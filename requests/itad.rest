@@ -6,3 +6,19 @@ GET {{baseUrl}}/games/search/v1?key={{apiKey}}&title=Hollow%20Knight
 
 ### Lookup exact match by Steam appid
 GET {{baseUrl}}/games/lookup/v1?key={{apiKey}}&appid=367520
+
+### Batch prices — POST with JSON body
+POST {{baseUrl}}/games/prices/v3?key={{apiKey}}
+Content-Type: application/json
+
+[
+  "018d937f-1ae9-734c-ba47-bd357cf07edd"
+]
+
+### Batch prices — deals only
+POST {{baseUrl}}/games/prices/v3?key={{apiKey}}&deals=true
+Content-Type: application/json
+
+[
+  "018d937f-1ae9-734c-ba47-bd357cf07edd"
+]
