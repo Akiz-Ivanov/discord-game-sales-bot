@@ -14,7 +14,7 @@
 - [x] Drizzle schema: `users`, `games`, `wishlist_items`, `prices`
   - store canonical IDs (ITAD ID / Steam App ID), never raw game name text
   - log a `prices` row on every daily check from day one, even before it's displayed anywhere
-- [ ] Register ITAD app, get API key
+- [x] Register ITAD app, get API key
 - [ ] `/wishlist add|remove|list` — wired to DB
 - [ ] Daily price check (Vercel Cron, once/day) using ITAD batch endpoint
   - `POST /games/prices/v3`, up to 200 game IDs per request

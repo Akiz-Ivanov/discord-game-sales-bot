@@ -1,0 +1,8 @@
+@baseUrl = https://api.isthereanydeal.com
+@apiKey = {{$dotenv ITAD_API_KEY}}
+
+### Search for a game by title
+GET {{baseUrl}}/games/search/v1?key={{apiKey}}&title=Hollow%20Knight
+
+### Lookup exact match by Steam appid
+GET {{baseUrl}}/games/lookup/v1?key={{apiKey}}&appid=367520

@@ -8,6 +8,18 @@ const commands = [
     description: 'Replies with pong!',
     type: 1, // CHAT_INPUT (slash command)
   },
+  {
+    name: 'price',
+    description: 'Get the current price for a game',
+    options: [
+      {
+        type: 3, // STRING
+        name: 'game',
+        description: 'Game title to look up',
+        required: true,
+      },
+    ],
+  },
 ]
 
 async function registerCommands() {

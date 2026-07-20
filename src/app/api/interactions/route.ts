@@ -1,8 +1,6 @@
-import {
-  verifyKey,
-  InteractionType,
-  InteractionResponseType,
-} from 'discord-interactions'
+import { verifyKey } from 'discord-interactions'
+import { InteractionType, InteractionResponseType } from 'discord-api-types/v10'
+import { commands } from '@/discord/commands'
 
 export async function POST(req: Request) {
   const sig = req.headers.get('x-signature-ed25519')!
@@ -15,18 +13,16 @@ export async function POST(req: Request) {
     ts,
     process.env.DISCORD_PUBLIC_KEY!
   )
-  if (!isValid) {
-    return new Response('bad signature', { status: 401 })
-  }
+  if (!isValid) return new Response('bad signature', { status: 401 })
 
   const interaction = JSON.parse(body)
-  if (interaction.type === InteractionType.PING) {
-    return Response.json({ type: InteractionResponseType.PONG })
+  if (interaction.type === InteractionType.Ping) {
+    return Response.json({ type: InteractionResponseType.Pong })
   }
-  if (interaction.data?.name === 'ping') {
-    return Response.json({
-      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-      data: { content: 'Pong!' },
-    })
-  }
+
+  const handler = commands[interaction.data?.name as keyof typeof commands]
+  if (!handler) return new Response('unknown command', { status: 400 })
+
+  const response = await handler(interaction)
+  return Response.json(response)
 }
