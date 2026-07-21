@@ -1,21 +1,22 @@
-// src/discord/commands/price.ts
 import { InteractionResponseType } from 'discord-api-types/v10'
 import type { CommandHandler } from '@/types/discord'
 import { searchGames, lookupByAppId, getPrices } from '@/itad/client'
 import type { ItadGame, ItadDeal } from '@/types/itad'
 
-function formatMoney(amountInt: number, currency: string) {
+export const formatMoney = (amountInt: number, currency: string) => {
   return `${(amountInt / 100).toFixed(2)} ${currency}`
 }
 
-function formatDealsReply(
+export const formatDealsReply = (
   game: ItadGame,
   deals: ItadDeal[],
   historyLowInt?: number,
   currency?: string
-) {
+) => {
+  const idLine = `\`\`\`${game.id}\`\`\``
+
   if (deals.length === 0) {
-    return `No store currently lists a price for **${game.title}**.`
+    return `**${game.title}**\n${idLine}\nNo store currently lists a price for this game.`
   }
 
   const sorted = [...deals].sort(
@@ -40,7 +41,7 @@ function formatDealsReply(
       ? `\nHistorical low: ${formatMoney(historyLowInt, currency ?? 'USD')}`
       : ''
 
-  return `**${game.title}**\n${lines.join('\n')}${historyLine}`
+  return `**${game.title}**\n${idLine}\n${lines.join('\n')}${historyLine}`
 }
 
 export const price: CommandHandler = async (interaction) => {
@@ -78,7 +79,7 @@ export const price: CommandHandler = async (interaction) => {
     return {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: {
-        content: `Multiple games found, can you be more specific?\n${list}`,
+        content: `Multiple games found, can you please be more specific?\n${list}`,
       },
     }
   }

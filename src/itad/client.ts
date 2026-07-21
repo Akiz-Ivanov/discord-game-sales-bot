@@ -1,3 +1,4 @@
+// src/itad/client.ts
 import type {
   ItadGame,
   ItadLookupResponse,
@@ -7,19 +8,18 @@ import type {
 
 const BASE_URL = 'https://api.isthereanydeal.com'
 
-function getApiKey(): string {
+const getApiKey = (): string => {
   const key = process.env.ITAD_API_KEY
   if (!key) throw new Error('ITAD_API_KEY is not set')
   return key
 }
 
-export async function searchGames(title: string): Promise<ItadGame[]> {
+export const searchGames = async (title: string): Promise<ItadGame[]> => {
   const url = new URL(`${BASE_URL}/games/search/v1`)
   url.searchParams.set('key', getApiKey())
   url.searchParams.set('title', title)
 
   const res = await fetch(url)
-
   if (!res.ok) {
     throw new Error(`ITAD search failed: ${res.status} ${await res.text()}`)
   }
@@ -28,13 +28,14 @@ export async function searchGames(title: string): Promise<ItadGame[]> {
   return results.filter((game) => game.type === 'game')
 }
 
-export async function lookupByAppId(appid: number): Promise<ItadGame | null> {
+export const lookupByAppId = async (
+  appid: number
+): Promise<ItadGame | null> => {
   const url = new URL(`${BASE_URL}/games/lookup/v1`)
   url.searchParams.set('key', getApiKey())
   url.searchParams.set('appid', String(appid))
 
   const res = await fetch(url)
-
   if (!res.ok) {
     throw new Error(`ITAD lookup failed: ${res.status} ${await res.text()}`)
   }
@@ -43,7 +44,9 @@ export async function lookupByAppId(appid: number): Promise<ItadGame | null> {
   return data.found ? (data.game ?? null) : null
 }
 
-export async function getPrices(gameIds: string[]): Promise<ItadGamePrices[]> {
+export const getPrices = async (
+  gameIds: string[]
+): Promise<ItadGamePrices[]> => {
   if (gameIds.length === 0) return []
   if (gameIds.length > 200) {
     throw new Error('ITAD prices endpoint accepts at most 200 IDs per request')

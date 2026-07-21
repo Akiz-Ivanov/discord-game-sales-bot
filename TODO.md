@@ -17,16 +17,21 @@
 - [x] Register ITAD app, get API key
 - [x] `/price` command registered, stub handler wired end-to-end via typed
       command registry (`CommandHandler`, `discord-api-types`)
-- [ ] `/price <game>` — real logic:
+- [x] `/price <game>` — real logic:
   - resolve input via ITAD: numeric input → `/games/lookup/v1` by Steam App ID
     (exact), otherwise → `/games/search/v1` by title (fuzzy, filtered to
     `type === "game"`)
   - if title search returns multiple matches, don't guess — reply listing
-    each candidate's title + Steam App ID and ask the user to retry with a
-    more specific title or the appid directly (same pattern as other ITAD
+    each candidate's title + slug and ask the user to retry with a more
+    specific title or the appid directly (same pattern as other ITAD
     Discord bots, e.g. Wishlist Doggo)
-  - price lookup via `/games/prices/v3`; cache same-day result in `prices`
-    table so a repeat `/price` call for the same game doesn't re-hit ITAD
+  - reply shows cheapest-first deals (capped at 5 shops), sale/no-sale
+    framing, historical low, and the game's ITAD ID as a copyable code
+    block
+  - covered by Vitest unit tests (formatDealsReply, formatMoney)
+- [ ] `/price` same-day price caching — check `prices` table before
+      calling ITAD, so a repeat lookup for the same game on the same day
+      doesn't re-hit the API (repositories/prices.ts)
 - [ ] `/wishlist add|remove|list` — wired to DB, reuses the same resolve/
       disambiguate logic as `/price`
 - [ ] Daily price check (Vercel Cron, once/day) using ITAD batch endpoint
