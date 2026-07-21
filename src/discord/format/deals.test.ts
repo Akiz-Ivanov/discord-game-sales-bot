@@ -1,7 +1,6 @@
-// src/discord/commands/price.test.ts
 import { describe, it, expect } from 'vitest'
-import { formatMoney, formatDealsReply } from './price'
-import type { ItadGame, ItadDeal } from '@/types/itad'
+import { formatMoney, formatDealsReply } from './deals'
+import type { ItadGame, ItadDeal } from '@/types'
 
 const game: ItadGame = {
   id: '018d937f-1ae9-734c-ba47-bd357cf07edd',
