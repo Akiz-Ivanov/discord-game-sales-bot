@@ -14,26 +14,37 @@
 - [x] Drizzle schema: `users`, `games`, `wishlist_items`, `prices`
   - store canonical IDs (ITAD ID / Steam App ID), never raw game name text
   - log a `prices` row on every daily check from day one, even before it's displayed anywhere
+  - `games` also carries `historyLowAmount`/`historyLowCurrency` (nullable) — a
+    cache of ITAD's `historyLow.all`, refreshed on every live fetch so a
+    cache-hit reply can still show it without re-calling ITAD
 - [x] Register ITAD app, get API key
 - [x] `/price` command registered, stub handler wired end-to-end via typed
       command registry (`CommandHandler`, `discord-api-types`)
 - [x] `/price <game>` — real logic:
-  - resolve input via ITAD: numeric input → `/games/lookup/v1` by Steam App ID
-    (exact), otherwise → `/games/search/v1` by title (fuzzy, filtered to
-    `type === "game"`)
+  - resolve input via `services/games.ts`'s `resolveGame()`: Steam App ID
+    (numeric input, exact) → ITAD ID (UUID input, exact, via
+    `/games/info/v2` — lets a user paste back an ID from a previous reply)
+    → fuzzy title search (fallback, filtered to `type === "game"`)
   - if title search returns multiple matches, don't guess — reply listing
-    each candidate's title + slug and ask the user to retry with a more
-    specific title or the appid directly (same pattern as other ITAD
-    Discord bots, e.g. Wishlist Doggo)
+    each candidate's title + ITAD ID (capped at 5) and ask the user to
+    retry with a more specific title or an ID directly (same pattern as
+    other ITAD Discord bots, e.g. Wishlist Doggo)
   - reply shows cheapest-first deals (capped at 5 shops), sale/no-sale
     framing, historical low, and the game's ITAD ID as a copyable code
     block
-  - covered by Vitest unit tests (formatDealsReply, formatMoney)
-- [ ] `/price` same-day price caching — check `prices` table before
-      calling ITAD, so a repeat lookup for the same game on the same day
-      doesn't re-hit the API (repositories/prices.ts)
-- [ ] `/wishlist add|remove|list` — wired to DB, reuses the same resolve/
-      disambiguate logic as `/price`
+  - `formatMoney`/`formatDealsReply` live in `discord/format/deals.ts`,
+    covered by Vitest unit tests
+- [x] `/price` same-day price caching — `repositories/prices.ts`
+      (`getCachedPrices`/`savePrices`) checks the `prices` table before
+      calling ITAD; `services/prices.ts`'s `getGamePrices()` is the
+      cache-aside entry point, so `/price` doesn't need to know caching
+      exists at all
+- [ ] Unit test coverage for `services/games.ts` (`resolveGame`) and
+      `services/prices.ts` (`getGamePrices`) — both call out to
+      `itad/client` and/or `repositories/`, so this means mocking those
+      (MSW candidate, not yet used) — next up
+- [ ] `/wishlist add|remove|list` — wired to DB, reuses `resolveGame()`
+      from `services/games.ts` (extracted early specifically for this)
 - [ ] Daily price check (Vercel Cron, once/day) using ITAD batch endpoint
   - `POST /games/prices/v3`, up to 200 game IDs per request
   - rate limit: 1000 req / 5 min — not a concern at this scale
@@ -52,12 +63,34 @@
 - [ ] Global command registration (once ready to invite the bot to other servers)
 - [ ] "Add to wishlist" button on `/price` embed replies (Discord message component, same `/api/interactions` route, `MESSAGE_COMPONENT` type — build after `/price` and `/wishlist add` both work standalone)
 - [ ] Import a user's existing ITAD Waitlist via OAuth (ITAD account linking — only relevant if/when someone wants to sync an existing ITAD waitlist instead of rebuilding it in Discord)
+- [ ] Steam App ID backfill on `games` rows resolved via title/ITAD-ID search
+      (currently only populated when a user types a numeric appid directly)
+      — only worth doing once something actually reads it (autocomplete
+      pre-seeding, cross-referencing, etc.); would use `/games/info/v2`'s
+      `appid` field
 - [ ] Docker + VPS migration (only if free-tier serverless is ever genuinely outgrown)
 
 ## Architecture notes
 
-- Layer structure: `discord/` (transport — parses interactions, formats replies) → `services/` (business logic, Discord-agnostic) → `repositories/` (DB access) → `itad/` (thin ITAD API client, no business logic). Nothing in `services/` should know Discord exists — keeps a future dashboard/API a matter of calling the same services, not a rewrite.
+- Layer structure, now actually implemented (not just aspirational):
+  `discord/` (transport — `discord/commands/` parses interactions,
+  `discord/format/` builds replies) → `services/` (business logic,
+  Discord-agnostic — `services/games.ts`'s `resolveGame()`,
+  `services/prices.ts`'s `getGamePrices()`) → `repositories/` (DB access —
+  `repositories/games.ts`'s `upsertGame()`, `repositories/prices.ts`'s
+  `getCachedPrices`/`savePrices`) → `itad/` (thin API client, no business
+  logic — `searchGamesByTitle`, `lookupBySteamAppId`, `lookupByItadId`,
+  `getPrices`). Nothing in `services/` should know Discord exists — keeps
+  a future dashboard/API a matter of calling the same services, not a
+  rewrite.
 - Discord HTTP Interactions, not a gateway bot — avoids needing an always-on host. Daily price checks don't need more than Vercel's free Hobby cron (capped at once/day anyway).
-- Command handlers share one typed contract (`CommandHandler` in `src/types/discord.ts`, built on `discord-api-types` — not `discord-interactions`' own enums, which don't type-check against `discord-api-types`' response union). Registry: `src/discord/commands/index.ts`, a `Record<string, CommandHandler>`. `discord-interactions` is still used, just only for `verifyKey()`.
+- Command handlers share one typed contract (`CommandHandler`, defined in
+  `src/types/discord.ts`, built on `discord-api-types` — not
+  `discord-interactions`' own enums, which don't type-check against
+  `discord-api-types`' response union). `src/types/index.ts` barrel-exports
+  `discord.ts` + `itad.ts` — import from `@/types` rather than the
+  individual files. Registry: `src/discord/commands/index.ts`, a
+  `Record<string, CommandHandler>`. `discord-interactions` is still used,
+  just only for `verifyKey()`.
 - Stack locked in: Next.js (App Router) + TS, Discord HTTP Interactions, Drizzle + Neon Postgres, Vercel Cron (daily), IsThereAnyDeal API, Vercel deploy, GitHub Actions for CI, Docker deferred until post-MVP, no Redis (SQL dedup via a `last_notified_price` column is enough).
 - Testing: Vitest (`environment: 'node'`, no jsdom needed — no frontend yet), tests co-located as `*.test.ts` next to source. MSW for mocking ITAD HTTP calls where useful.

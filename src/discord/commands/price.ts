@@ -1,53 +1,14 @@
 import { InteractionResponseType } from 'discord-api-types/v10'
-import type { CommandHandler } from '@/types/discord'
-import { searchGames, lookupByAppId, getPrices } from '@/itad/client'
-import type { ItadGame, ItadDeal } from '@/types/itad'
-
-export const formatMoney = (amountInt: number, currency: string) => {
-  return `${(amountInt / 100).toFixed(2)} ${currency}`
-}
-
-export const formatDealsReply = (
-  game: ItadGame,
-  deals: ItadDeal[],
-  historyLowInt?: number,
-  currency?: string
-) => {
-  const idLine = `\`\`\`${game.id}\`\`\``
-
-  if (deals.length === 0) {
-    return `**${game.title}**\n${idLine}\nNo store currently lists a price for this game.`
-  }
-
-  const sorted = [...deals].sort(
-    (a, b) => a.price.amountInt - b.price.amountInt
-  )
-  const shown = sorted.slice(0, 5)
-
-  const lines = shown.map((d) => {
-    const onSale =
-      d.cut > 0
-        ? ` (−${d.cut}%, was ${formatMoney(d.regular.amountInt, d.regular.currency)})`
-        : ''
-    return `**${d.shop.name}**: ${formatMoney(d.price.amountInt, d.price.currency)}${onSale}`
-  })
-
-  if (sorted.length > shown.length) {
-    lines.push(`_+${sorted.length - shown.length} more shop(s)_`)
-  }
-
-  const historyLine =
-    historyLowInt !== undefined
-      ? `\nHistorical low: ${formatMoney(historyLowInt, currency ?? 'USD')}`
-      : ''
-
-  return `**${game.title}**\n${idLine}\n${lines.join('\n')}${historyLine}`
-}
+import type { CommandHandler } from '@/types'
+import { resolveGame } from '@/services/games'
+import { getGamePrices } from '@/services/prices'
+import { upsertGame } from '@/repositories/games'
+import { formatDealsReply } from '@/discord/format/deals'
 
 export const price: CommandHandler = async (interaction) => {
   const gameOption = interaction.data.options?.find((o) => o.name === 'game')
   const query =
-    gameOption && 'value' in gameOption ? String(gameOption.value) : null
+    gameOption && 'value' in gameOption ? String(gameOption.value).trim() : null
 
   if (!query) {
     return {
@@ -56,13 +17,7 @@ export const price: CommandHandler = async (interaction) => {
     }
   }
 
-  const isSteamAppId = /^\d+$/.test(query.trim())
-  const game = isSteamAppId
-    ? await lookupByAppId(Number(query))
-    : await searchGames(query)
-
-  // Steam App ID: 0 or 1 result. Title search: could be several.
-  const matches = Array.isArray(game) ? game : game ? [game] : []
+  const matches = await resolveGame(query)
 
   if (matches.length === 0) {
     return {
@@ -74,7 +29,7 @@ export const price: CommandHandler = async (interaction) => {
   if (matches.length > 1) {
     const list = matches
       .slice(0, 5)
-      .map((g) => `${g.title} — ${g.slug}`)
+      .map((g) => `${g.title} — \`${g.id}\``)
       .join('\n')
     return {
       type: InteractionResponseType.ChannelMessageWithSource,
@@ -85,16 +40,20 @@ export const price: CommandHandler = async (interaction) => {
   }
 
   const [match] = matches
-  const [priceData] = await getPrices([match.id])
+  const gameRow = await upsertGame(match)
+  const { deals, historyLowInt, historyLowCurrency } = await getGamePrices(
+    gameRow.id,
+    match.id
+  )
 
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       content: formatDealsReply(
         match,
-        priceData?.deals ?? [],
-        priceData?.historyLow.all?.amountInt,
-        priceData?.historyLow.all?.currency
+        deals,
+        historyLowInt,
+        historyLowCurrency
       ),
     },
   }

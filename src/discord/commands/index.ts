@@ -1,4 +1,4 @@
-import type { CommandHandler } from '@/types/discord'
+import type { CommandHandler } from '@/types'
 import { ping } from './ping'
 import { price } from './price'
 

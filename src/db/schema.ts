@@ -13,17 +13,13 @@ import { relations } from 'drizzle-orm'
 export const users = pgTable(
   'users',
   {
-    id: serial('id').primaryKey(),
-    // Discord snowflake ID. Stored as text — it's a 64-bit number and
-    // exceeds JS's safe integer range, so never store it as integer/bigint.
+    id: serial('id').primaryKey(), // Discord snowflake ID. Stored as text — it's a 64-bit number and
     discordId: text('discord_id').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [uniqueIndex('users_discord_id_idx').on(table.discordId)]
 )
 
-// One row per game we track. Canonical IDs only — never store a raw
-// game-name string as the identity; title is display-only.
 export const games = pgTable(
   'games',
   {
@@ -35,6 +31,8 @@ export const games = pgTable(
     steamAppId: integer('steam_app_id'),
     slug: text('slug').notNull(),
     title: text('title').notNull(), // display only
+    historyLowAmount: integer('history_low_amount'),
+    historyLowCurrency: text('history_low_currency'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [uniqueIndex('games_itad_id_idx').on(table.itadId)]

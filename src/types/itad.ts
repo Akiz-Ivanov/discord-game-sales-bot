@@ -71,3 +71,22 @@ export interface ItadGamePrices {
   historyLow: ItadHistoryLow
   deals: ItadDeal[]
 }
+
+export type ItadMoneySummary = Pick<ItadMoney, 'amountInt' | 'currency'>
+
+// Deliberately narrower than ItadDeal — only the fields formatDealsReply
+// actually reads. A live ITAD deal structurally satisfies this for free;
+// a reconstructed DB row doesn't have to fake the rest (voucher, drm,
+// platforms, etc.) just to typecheck.
+
+export interface DealSummary extends Pick<ItadDeal, 'cut'> {
+  shop: Pick<ItadShop, 'name'>
+  price: ItadMoneySummary
+  regular: ItadMoneySummary
+}
+
+export interface PriceSnapshot {
+  deals: DealSummary[]
+  historyLowInt?: number
+  historyLowCurrency?: string
+}
