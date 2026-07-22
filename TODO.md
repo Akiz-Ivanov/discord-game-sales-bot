@@ -39,10 +39,15 @@
       calling ITAD; `services/prices.ts`'s `getGamePrices()` is the
       cache-aside entry point, so `/price` doesn't need to know caching
       exists at all
-- [ ] Unit test coverage for `services/games.ts` (`resolveGame`) and
-      `services/prices.ts` (`getGamePrices`) — both call out to
-      `itad/client` and/or `repositories/`, so this means mocking those
-      (MSW candidate, not yet used) — next up
+- [x] Unit test coverage for `services/games.ts` (`resolveGame`) and
+      `services/prices.ts` (`getGamePrices`) — mocked via `vi.mock()`
+      against `itad/client`/`repositories/prices`, not MSW
+- [x] Unit test coverage for `itad/client.ts` — `vi.stubGlobal('fetch')`,
+      covers URL/param construction, response parsing, error paths
+- [ ] Unit test coverage for `repositories/games.ts`/`repositories/prices.ts`
+      — blocked on a real (test) Postgres instance rather than mocks,
+      since these call Drizzle's query builder directly; likely means
+      Docker Postgres, not yet set up
 - [ ] `/wishlist add|remove|list` — wired to DB, reuses `resolveGame()`
       from `services/games.ts` (extracted early specifically for this)
 - [ ] Daily price check (Vercel Cron, once/day) using ITAD batch endpoint
@@ -62,6 +67,13 @@
 - [ ] Context-menu commands (type 2 "User" / type 3 "Message") — e.g. right-click a message → check price history
 - [ ] Global command registration (once ready to invite the bot to other servers)
 - [ ] "Add to wishlist" button on `/price` embed replies (Discord message component, same `/api/interactions` route, `MESSAGE_COMPONENT` type — build after `/price` and `/wishlist add` both work standalone)
+- [ ] Message-component buttons for disambiguation replies (instead of listing
+      ITAD IDs as visible text) — button `custom_id` holds the UUID (well
+      under Discord's 100-char limit), click re-runs price lookup via
+      `MESSAGE_COMPONENT` interaction type on the same route. Kills the
+      ugly-UUID-in-chat problem and the "retype the command" friction in
+      one move. Natural to build alongside the existing "Add to wishlist"
+      button item once `/wishlist add` exists.
 - [ ] Import a user's existing ITAD Waitlist via OAuth (ITAD account linking — only relevant if/when someone wants to sync an existing ITAD waitlist instead of rebuilding it in Discord)
 - [ ] Steam App ID backfill on `games` rows resolved via title/ITAD-ID search
       (currently only populated when a user types a numeric appid directly)
