@@ -44,10 +44,12 @@
       against `itad/client`/`repositories/prices`, not MSW
 - [x] Unit test coverage for `itad/client.ts` — `vi.stubGlobal('fetch')`,
       covers URL/param construction, response parsing, error paths
-- [ ] Unit test coverage for `repositories/games.ts`/`repositories/prices.ts`
-      — blocked on a real (test) Postgres instance rather than mocks,
-      since these call Drizzle's query builder directly; likely means
-      Docker Postgres, not yet set up
+- [x] Unit test coverage for `repositories/games.ts`/`repositories/prices.ts`
+      — against a real local Postgres (Docker + neon-proxy, see
+      docker-compose.yml), since these call Drizzle's query builder
+      directly and mocking it wouldn't test the actual SQL; TRUNCATE + RESTART IDENTITY CASCADE resets state between tests
+- [ ] `/price` reply as a real Discord embed — `buildPriceEmbed()`,
+      replacing `formatDealsReply`'s current plain-text output
 - [ ] `/wishlist add|remove|list` — wired to DB, reuses `resolveGame()`
       from `services/games.ts` (extracted early specifically for this)
 - [ ] Daily price check (Vercel Cron, once/day) using ITAD batch endpoint
@@ -105,4 +107,4 @@
   `Record<string, CommandHandler>`. `discord-interactions` is still used,
   just only for `verifyKey()`.
 - Stack locked in: Next.js (App Router) + TS, Discord HTTP Interactions, Drizzle + Neon Postgres, Vercel Cron (daily), IsThereAnyDeal API, Vercel deploy, GitHub Actions for CI, Docker deferred until post-MVP, no Redis (SQL dedup via a `last_notified_price` column is enough).
-- Testing: Vitest (`environment: 'node'`, no jsdom needed — no frontend yet), tests co-located as `*.test.ts` next to source. MSW for mocking ITAD HTTP calls where useful.
+- Testing: Vitest (`environment: 'node'`, no jsdom needed — no frontend yet), tests co-located as `*.test.ts` next to source. `vitest.config.ts` uses `projects` to isolate `repositories/**` tests with `fileParallelism: false` (they share one real Postgres instance via Docker + neon-proxy; unit tests elsewhere mock everything and stay parallel). MSW for mocking ITAD HTTP calls, not yet used.
