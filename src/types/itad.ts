@@ -79,7 +79,7 @@ export type ItadMoneySummary = Pick<ItadMoney, 'amountInt' | 'currency'>
 // a reconstructed DB row doesn't have to fake the rest (voucher, drm,
 // platforms, etc.) just to typecheck.
 
-export interface DealSummary extends Pick<ItadDeal, 'cut'> {
+export interface DealSummary extends Pick<ItadDeal, 'cut' | 'url'> {
   shop: Pick<ItadShop, 'name'>
   price: ItadMoneySummary
   regular: ItadMoneySummary

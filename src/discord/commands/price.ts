@@ -3,7 +3,7 @@ import type { CommandHandler } from '@/types'
 import { resolveGame } from '@/services/games'
 import { getGamePrices } from '@/services/prices'
 import { upsertGame } from '@/repositories/games'
-import { formatDealsReply } from '@/discord/format/deals'
+import { buildPriceEmbed } from '@/discord/embeds/price'
 
 export const price: CommandHandler = async (interaction) => {
   const gameOption = interaction.data.options?.find((o) => o.name === 'game')
@@ -49,12 +49,9 @@ export const price: CommandHandler = async (interaction) => {
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
-      content: formatDealsReply(
-        match,
-        deals,
-        historyLowInt,
-        historyLowCurrency
-      ),
+      embeds: [
+        buildPriceEmbed(match, deals, historyLowInt, historyLowCurrency),
+      ],
     },
   }
 }

@@ -30,6 +30,7 @@ describe('getGamePrices — cache hit', () => {
           price: { amountInt: 1499, currency: 'USD' },
           regular: { amountInt: 1499, currency: 'USD' },
           cut: 0,
+          url: 'https://itad.link/018d9386-75a1-73f0-9fff-3ed650048d61/',
         },
       ],
       historyLowInt: 509,

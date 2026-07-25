@@ -64,6 +64,7 @@ describe('getCachedPrices', () => {
         price: { amountInt: 1499, currency: 'USD' },
         regular: { amountInt: 1999, currency: 'USD' },
         cut: 25,
+        url: 'https://example.com',
       },
     ])
   })

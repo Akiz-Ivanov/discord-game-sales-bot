@@ -48,8 +48,11 @@
       — against a real local Postgres (Docker + neon-proxy, see
       docker-compose.yml), since these call Drizzle's query builder
       directly and mocking it wouldn't test the actual SQL; TRUNCATE + RESTART IDENTITY CASCADE resets state between tests
-- [ ] `/price` reply as a real Discord embed — `buildPriceEmbed()`,
-      replacing `formatDealsReply`'s current plain-text output
+- [x] `/price` reply as a real Discord embed — `buildPriceEmbed()`,
+      replacing `formatDealsReply`'s plain-text output. Uses
+      application-owned custom emoji (store logos, discount tier,
+      historical-low icon — Discord Developer Portal → Emojis) and
+      `Intl.NumberFormat` for currency display.
 - [ ] `/wishlist add|remove|list` — wired to DB, reuses `resolveGame()`
       from `services/games.ts` (extracted early specifically for this)
 - [ ] Daily price check (Vercel Cron, once/day) using ITAD batch endpoint
@@ -86,17 +89,11 @@
 
 ## Architecture notes
 
-- Layer structure, now actually implemented (not just aspirational):
-  `discord/` (transport — `discord/commands/` parses interactions,
-  `discord/format/` builds replies) → `services/` (business logic,
-  Discord-agnostic — `services/games.ts`'s `resolveGame()`,
-  `services/prices.ts`'s `getGamePrices()`) → `repositories/` (DB access —
-  `repositories/games.ts`'s `upsertGame()`, `repositories/prices.ts`'s
-  `getCachedPrices`/`savePrices`) → `itad/` (thin API client, no business
-  logic — `searchGamesByTitle`, `lookupBySteamAppId`, `lookupByItadId`,
-  `getPrices`). Nothing in `services/` should know Discord exists — keeps
-  a future dashboard/API a matter of calling the same services, not a
-  rewrite.
+- Layer structure: `discord/` (transport — `discord/commands/` parses
+  interactions, `discord/embeds/` builds embed replies) → `services/` →
+  `repositories/` → `itad/`. `lib/` holds cross-cutting pure helpers
+  (`formatMoney`) with no Discord/DB dependency, reusable by a future
+  dashboard same as `services/`.
 - Discord HTTP Interactions, not a gateway bot — avoids needing an always-on host. Daily price checks don't need more than Vercel's free Hobby cron (capped at once/day anyway).
 - Command handlers share one typed contract (`CommandHandler`, defined in
   `src/types/discord.ts`, built on `discord-api-types` — not

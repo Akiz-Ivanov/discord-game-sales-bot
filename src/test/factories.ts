@@ -6,7 +6,18 @@ export const game: ItadGame = {
   title: 'Hollow Knight',
   type: 'game',
   mature: false,
-  assets: {},
+  assets: {
+    banner145:
+      'https://assets.isthereanydeal.com/018d937f-1ae9-734c-ba47-bd357cf07edd/banner145.jpg?t=1776126009',
+    banner300:
+      'https://assets.isthereanydeal.com/018d937f-1ae9-734c-ba47-bd357cf07edd/banner300.jpg?t=1776126009',
+    banner400:
+      'https://assets.isthereanydeal.com/018d937f-1ae9-734c-ba47-bd357cf07edd/banner400.jpg?t=1776126009',
+    banner600:
+      'https://assets.isthereanydeal.com/018d937f-1ae9-734c-ba47-bd357cf07edd/banner600.jpg?t=1776126009',
+    boxart:
+      'https://assets.isthereanydeal.com/018d937f-1ae9-734c-ba47-bd357cf07edd/boxart.jpg?t=1776126009',
+  },
 }
 
 export const makeDeal = (overrides: Partial<ItadDeal> = {}): ItadDeal => {
@@ -22,7 +33,7 @@ export const makeDeal = (overrides: Partial<ItadDeal> = {}): ItadDeal => {
     platforms: [],
     timestamp: '2026-07-09T19:23:15+02:00',
     expiry: null,
-    url: 'https://itad.link/example/',
+    url: 'https://itad.link/018d9386-75a1-73f0-9fff-3ed650048d61/',
     ...overrides,
   }
 }

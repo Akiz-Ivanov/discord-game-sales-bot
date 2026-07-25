@@ -29,6 +29,7 @@ export const getCachedPrices = async (
       price: { amountInt: r.priceAmount, currency: r.currency },
       regular: { amountInt: r.regularAmount, currency: r.currency },
       cut: r.cut,
+      url: r.url,
     })),
     historyLowInt: gameRow?.historyLowAmount ?? undefined,
     historyLowCurrency: gameRow?.historyLowCurrency ?? undefined,

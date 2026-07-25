@@ -4,6 +4,12 @@
 ### Search for a game by title
 GET {{baseUrl}}/games/search/v1?key={{apiKey}}&title=Hollow%20Knight
 
+### Get game info by ITAD ID (exact-ID lookup, also returns appid for Steam backfill)
+GET {{baseUrl}}/games/info/v2?key={{apiKey}}&id=018d937f-1ae9-734c-ba47-bd357cf07edd
+
+### Get active bundles containing a game (used by the "Bundles" button, backlog)
+GET {{baseUrl}}/games/bundles/v2?key={{apiKey}}&id=018d937f-1ae9-734c-ba47-bd357cf07edd
+
 ### Lookup exact match by Steam appid
 GET {{baseUrl}}/games/lookup/v1?key={{apiKey}}&appid=367520
 
