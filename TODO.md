@@ -53,8 +53,24 @@
       application-owned custom emoji (store logos, discount tier,
       historical-low icon — Discord Developer Portal → Emojis) and
       `Intl.NumberFormat` for currency display.
-- [ ] `/wishlist add|remove|list` — wired to DB, reuses `resolveGame()`
-      from `services/games.ts` (extracted early specifically for this)
+- [x] `/wishlist add|remove|list` — wired to DB, reuses `resolveGame()`
+      from `services/games.ts`
+  - `add`/`list` are plain ChannelMessageWithSource replies (ephemeral)
+  - `remove` sends an ephemeral String Select menu built from the
+    user's wishlist (capped at 25 — Discord's own select-menu limit;
+    pagination not built yet, see v1.1)
+  - selecting an option fires a MESSAGE_COMPONENT interaction, handled
+    via a new `discord/components/` registry (mirrors `discord/commands/`
+    but keyed by `custom_id` prefix, not command name) — `route.ts` now
+    branches on `InteractionType.MessageComponent` alongside the
+    existing `Ping`/`ApplicationCommand` branches
+  - new: `repositories/users.ts`, `repositories/wishlist.ts`,
+    `services/wishlist.ts`, `discord/interactions/getInteractionUserId.ts`
+    (resolves the acting user's Discord ID from either a guild `member`
+    or a bare DM `user` — guild-only today, but every component handler
+    needs this same lookup so it's factored out now rather than later)
+  - full Vitest coverage: repositories against local Postgres, services/
+    commands/components mocked — 116 tests passing project-wide
 - [ ] Daily price check (Vercel Cron, once/day) using ITAD batch endpoint
   - `POST /games/prices/v3`, up to 200 game IDs per request
   - rate limit: 1000 req / 5 min — not a concern at this scale
@@ -64,6 +80,11 @@
 
 - [ ] Autocomplete on game search (Discord's native `autocomplete` option type — not a manual numbered list)
 - [ ] Display price history (data's already being logged from MVP)
+- [ ] Pagination for `/wishlist remove`'s select menu (only matters once
+      a wishlist exceeds 25 items) — `custom_id` carries a page number
+      (`wishlist_remove_page:2`), handler refetches `getWishlist` fresh
+      and re-slices rather than caching state (cheap at this row count,
+      no Vercel KV/Redis needed)
 
 ## Later / backlog
 
@@ -85,6 +106,16 @@
       — only worth doing once something actually reads it (autocomplete
       pre-seeding, cross-referencing, etc.); would use `/games/info/v2`'s
       `appid` field
+- [ ] Enable `noUncheckedIndexedAccess` in tsconfig.json — surfaces
+      unsafe array/tuple indexing project-wide (caught the
+      `addWishlistItem`/`getUserByDiscordId` null-inference bug
+      retroactively). Do as its own pass: flip flag, run
+      `tsc --noEmit`, fix each site on its own merits.
+- [ ] "Add to wishlist" button on `/price` embed replies — now unblocked
+      (`/wishlist add`/`addGameToWishlist` service both exist). Needs a
+      per-user wishlist-membership check at embed-build time to decide
+      button state (add vs. remove), and a `custom_id` carrying the
+      ITAD ID.
 - [ ] Docker + VPS migration (only if free-tier serverless is ever genuinely outgrown)
 
 ## Architecture notes

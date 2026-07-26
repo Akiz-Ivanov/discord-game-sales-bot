@@ -1,4 +1,5 @@
 import type { ItadGame, ItadDeal } from '@/types'
+import type { games } from '@/db/schema'
 
 export const game: ItadGame = {
   id: '018d937f-1ae9-734c-ba47-bd357cf07edd',
@@ -37,3 +38,17 @@ export const makeDeal = (overrides: Partial<ItadDeal> = {}): ItadDeal => {
     ...overrides,
   }
 }
+
+export const makeGameRow = (
+  overrides: Partial<typeof games.$inferSelect> = {}
+): typeof games.$inferSelect => ({
+  id: 1,
+  itadId: game.id,
+  slug: game.slug,
+  title: game.title,
+  steamAppId: null,
+  historyLowAmount: null,
+  historyLowCurrency: null,
+  createdAt: new Date(),
+  ...overrides,
+})
