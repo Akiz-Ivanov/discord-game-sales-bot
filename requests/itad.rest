@@ -13,12 +13,21 @@ GET {{baseUrl}}/games/bundles/v2?key={{apiKey}}&id=018d937f-1ae9-734c-ba47-bd357
 ### Lookup exact match by Steam appid
 GET {{baseUrl}}/games/lookup/v1?key={{apiKey}}&appid=367520
 
+### Best current deals
+GET {{baseUrl}}/deals/v2?key={{apiKey}}
+
+### Best current deals (US)
+GET {{baseUrl}}/deals/v2?key={{apiKey}}&country=US
+
+### Top 20 deals
+GET {{baseUrl}}/deals/v2?key={{apiKey}}&limit=20
+
 ### Batch prices — POST with JSON body
 POST {{baseUrl}}/games/prices/v3?key={{apiKey}}
 Content-Type: application/json
 
 [
-  "018d937f-1ae9-734c-ba47-bd357cf07edd"
+  "018d937f-0fa6-72ce-88cc-960788c91718"
 ]
 
 ### Batch prices — deals only

@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { handleWishlistRemoveSelect } from './wishlist'
+import { handleWishlistRemoveSelect, handleWishlistAddSelect } from './wishlist'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { getUserByDiscordId } from '@/repositories/users'
-import { getWishlist, removeGameFromWishlist } from '@/services/wishlist'
+import {
+  getWishlist,
+  removeGameFromWishlist,
+  addGameToWishlist,
+} from '@/services/wishlist'
 import { InteractionResponseType } from 'discord-api-types/v10'
 import type { APIInteractionResponse } from 'discord-api-types/v10'
-import { makeGameRow } from '@/test/factories'
+import { game, makeGameRow } from '@/test/factories'
+import { resolveGame } from '@/services/games'
 
 vi.mock('@/discord/interactions/getInteractionUserId', () => ({
   getInteractionUserId: vi.fn(),
@@ -14,7 +19,9 @@ vi.mock('@/repositories/users', () => ({ getUserByDiscordId: vi.fn() }))
 vi.mock('@/services/wishlist', () => ({
   getWishlist: vi.fn(),
   removeGameFromWishlist: vi.fn(),
+  addGameToWishlist: vi.fn(),
 }))
+vi.mock('@/services/games', () => ({ resolveGame: vi.fn() }))
 
 const discordId = '255361746758402048'
 const userRow = { id: 1, discordId, createdAt: new Date() }
@@ -75,5 +82,57 @@ describe('handleWishlistRemoveSelect', () => {
 
     expect(removeGameFromWishlist).not.toHaveBeenCalled()
     expect(data.content).toContain('Something went wrong')
+  })
+})
+
+const buildButtonInteraction = (customId: string) =>
+  ({ data: { custom_id: customId } }) as unknown as Parameters<
+    typeof handleWishlistAddSelect
+  >[0]
+
+describe('handleWishlistAddSelect', () => {
+  it('adds the chosen game and confirms', async () => {
+    vi.mocked(getInteractionUserId).mockReturnValue(discordId)
+    vi.mocked(resolveGame).mockResolvedValue([game])
+    vi.mocked(addGameToWishlist).mockResolvedValue({ status: 'added' })
+
+    const data = expectUpdateMessage(
+      await handleWishlistAddSelect(
+        buildButtonInteraction(`wishlist_add_select:${game.id}`)
+      )
+    )
+
+    expect(resolveGame).toHaveBeenCalledWith(game.id)
+    expect(addGameToWishlist).toHaveBeenCalledWith(discordId, game)
+    expect(data.content).toContain(`Added **${game.title}**`)
+    expect(data.components).toEqual([])
+  })
+
+  it('reports already-on-wishlist for a duplicate add', async () => {
+    vi.mocked(getInteractionUserId).mockReturnValue(discordId)
+    vi.mocked(resolveGame).mockResolvedValue([game])
+    vi.mocked(addGameToWishlist).mockResolvedValue({ status: 'already_exists' })
+
+    const data = expectUpdateMessage(
+      await handleWishlistAddSelect(
+        buildButtonInteraction(`wishlist_add_select:${game.id}`)
+      )
+    )
+
+    expect(data.content).toContain('already on your wishlist')
+  })
+
+  it('reports a not-found fallback when the game no longer resolves', async () => {
+    vi.mocked(getInteractionUserId).mockReturnValue(discordId)
+    vi.mocked(resolveGame).mockResolvedValue([])
+
+    const data = expectUpdateMessage(
+      await handleWishlistAddSelect(
+        buildButtonInteraction(`wishlist_add_select:${game.id}`)
+      )
+    )
+
+    expect(data.content).toContain("couldn't be found")
+    expect(addGameToWishlist).not.toHaveBeenCalled()
   })
 })

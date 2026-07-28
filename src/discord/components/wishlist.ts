@@ -2,7 +2,12 @@ import { InteractionResponseType, MessageFlags } from 'discord-api-types/v10'
 import type { ComponentHandler } from '@/types'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { getUserByDiscordId } from '@/repositories/users'
-import { getWishlist, removeGameFromWishlist } from '@/services/wishlist'
+import {
+  addGameToWishlist,
+  getWishlist,
+  removeGameFromWishlist,
+} from '@/services/wishlist'
+import { resolveGame } from '@/services/games'
 
 export const handleWishlistRemoveSelect: ComponentHandler = async (
   interaction
@@ -43,6 +48,40 @@ export const handleWishlistRemoveSelect: ComponentHandler = async (
     result.status === 'removed'
       ? `✅ Removed **${matched?.game.title ?? 'that game'}** from your wishlist.`
       : `That game's already off your wishlist — nothing to remove.`
+
+  return {
+    type: InteractionResponseType.UpdateMessage,
+    data: { flags: MessageFlags.Ephemeral, content, components: [] },
+  }
+}
+
+//* custom_id: "wishlist_add_select:{itadId}" — mirrors handlePriceSelect's
+//* re-resolution approach so the button flow lands on the same enriched
+//* lookupByItadId() branch a direct-ID-paste input would take.
+export const handleWishlistAddSelect: ComponentHandler = async (
+  interaction
+) => {
+  const itadId = interaction.data.custom_id.split(':')[1]
+  const discordId = getInteractionUserId(interaction)
+  const [match] = itadId ? await resolveGame(itadId) : []
+
+  if (!match) {
+    return {
+      type: InteractionResponseType.UpdateMessage,
+      data: {
+        flags: MessageFlags.Ephemeral,
+        content:
+          "That game couldn't be found anymore — try `/wishlist add` again.",
+        components: [],
+      },
+    }
+  }
+
+  const result = await addGameToWishlist(discordId, match)
+  const content =
+    result.status === 'added'
+      ? `✅ Added **${match.title}** to your wishlist.`
+      : `**${match.title}** is already on your wishlist.`
 
   return {
     type: InteractionResponseType.UpdateMessage,

@@ -4,7 +4,7 @@ import { resolveGame } from '@/services/games'
 import { getGamePrices } from '@/services/prices'
 import { upsertGame } from '@/repositories/games'
 import { buildPriceEmbed } from '@/discord/embeds/price'
-import { InteractionResponseType } from 'discord-api-types/v10'
+import { InteractionResponseType, ComponentType } from 'discord-api-types/v10'
 import type { APIEmbed, APIInteractionResponse } from 'discord-api-types/v10'
 import { game } from '@/test/factories'
 
@@ -56,7 +56,7 @@ describe('price command handler', () => {
     expect(upsertGame).not.toHaveBeenCalled()
   })
 
-  it('lists candidates (capped at 5) when multiple matches are found', async () => {
+  it('offers candidates as buttons (capped at 5) when multiple matches are found', async () => {
     const matches = Array.from({ length: 7 }, (_, i) => ({
       ...game,
       id: `id-${i}`,
@@ -67,8 +67,14 @@ describe('price command handler', () => {
     const data = expectChannelMessage(await price(buildInteraction('game')))
 
     expect(data.content).toContain('Multiple games found')
-    expect(data.content).toContain('Game 4')
-    expect(data.content).not.toContain('Game 5')
+    const row = data.components?.[0]
+    const buttons = row && 'components' in row ? row.components : []
+    expect(buttons).toHaveLength(5)
+    expect(buttons[0]).toMatchObject({
+      type: ComponentType.Button,
+      label: 'Game 0',
+      custom_id: 'price_select:id-0',
+    })
     expect(upsertGame).not.toHaveBeenCalled()
   })
 

@@ -1,9 +1,10 @@
-import { InteractionResponseType } from 'discord-api-types/v10'
+import { InteractionResponseType, MessageFlags } from 'discord-api-types/v10'
 import type { CommandHandler } from '@/types'
 import { resolveGame } from '@/services/games'
 import { getGamePrices } from '@/services/prices'
 import { upsertGame } from '@/repositories/games'
 import { buildPriceEmbed } from '@/discord/embeds/price'
+import { buildGameSelectButtons } from '@/discord/interactions/buildGameSelectButtons'
 
 export const price: CommandHandler = async (interaction) => {
   const gameOption = interaction.data.options?.find((o) => o.name === 'game')
@@ -27,14 +28,11 @@ export const price: CommandHandler = async (interaction) => {
   }
 
   if (matches.length > 1) {
-    const list = matches
-      .slice(0, 5)
-      .map((g) => `${g.title} — \`${g.id}\``)
-      .join('\n')
     return {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: {
-        content: `Multiple games found, can you please be more specific?\n${list}`,
+        content: 'Multiple games found — pick one:',
+        components: [buildGameSelectButtons(matches, 'price_select')],
       },
     }
   }

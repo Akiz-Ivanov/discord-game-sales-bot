@@ -9,13 +9,14 @@ import { resolveGame } from '@/services/games'
 import { addGameToWishlist, getWishlist } from '@/services/wishlist'
 import { getUserByDiscordId } from '@/repositories/users'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
+import { buildGameSelectButtons } from '../interactions/buildGameSelectButtons'
 
 const MAX_SELECT_OPTIONS = 25
 
 const getSubcommand = (interaction: Parameters<CommandHandler>[0]) => {
   const sub = interaction.data.options?.[0]
   if (sub?.type !== ApplicationCommandOptionType.Subcommand) return null
-  return sub //* TS now knows this is specifically the Subcommand variant, .options is safe
+  return sub //* TS now knows this is specifically the Subcommand variant
 }
 
 const getGameQuery = (sub: ReturnType<typeof getSubcommand>): string | null => {
@@ -50,15 +51,12 @@ const handleAdd: CommandHandler = async (interaction) => {
   }
 
   if (matches.length > 1) {
-    const list = matches
-      .slice(0, 5)
-      .map((g) => `${g.title} — \`${g.id}\``)
-      .join('\n')
     return {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: {
         flags: MessageFlags.Ephemeral,
-        content: `Multiple games found, can you please be more specific?\n${list}`,
+        content: 'Multiple games found — pick one:',
+        components: [buildGameSelectButtons(matches, 'wishlist_add_select')],
       },
     }
   }

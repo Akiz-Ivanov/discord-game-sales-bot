@@ -71,6 +71,44 @@
     needs this same lookup so it's factored out now rather than later)
   - full Vitest coverage: repositories against local Postgres, services/
     commands/components mocked — 116 tests passing project-wide
+- [x] `/price` embed enrichment + game-page link — extends
+      `buildPriceEmbed()` with optional fields only present when a game
+      was resolved via the ITAD-ID branch of `resolveGame()`
+      (`lookupByItadId()` → `/games/info/v2`, which returns far more
+      than search/v1 or lookup/v1): release date, review score
+      (prefers Steam, falls back to the first source), player counts,
+      and tags. `ItadGame`'s new fields (`appid`, `tags`, `releaseDate`,
+      `developers`, `reviews`, `players`, `urls`) are all optional for
+      exactly this reason — search/lookup paths simply leave them
+      undefined, keeping those embeds as lean as before with zero
+      branching on "which resolveGame path ran"
+  - embed title links to the game's ITAD page (`urls.game`) when
+    present — doubles as the "mention/link to IsThereAnyDeal.com"
+    ITAD's ToS asks for, satisfied per-response for free
+  - game ID moved out of a dedicated field into the embed footer
+    (alongside the "+N more shops" note) — footer text is plain, not
+    markdown, so this trades copy-on-click for less clutter; a
+    reasonable trade once disambiguation stopped requiring anyone to
+    manually copy/paste an ID (see next bullet)
+- [x] Multiple-match disambiguation (both `/price` and `/wishlist add`)
+      switched from a numbered text list of ITAD IDs to a button row —
+      `buildGameSelectButtons()` (shared helper, `discord/interactions/`)
+      builds up to 5 buttons keyed by ITAD ID in `custom_id` (e.g.
+      `price_select:{uuid}`); new component handlers
+      `discord/components/price.ts` (`price_select`) and
+      `discord/components/wishlist.ts`'s `handleWishlistAddSelect`
+      (`wishlist_add_select`) re-resolve the chosen game via
+      `resolveGame()` on click — since the ID is UUID-shaped this
+      naturally re-lands on the ITAD-ID branch, preserving the
+      enrichment fields above instead of falling back to a lean result
+  - `/price`'s picker stays public (non-ephemeral), matching the
+    public final embed; `/wishlist add`'s stays ephemeral throughout,
+    matching the rest of that command's private-by-design flow
+  - caught and fixed a bug pre-commit: `/wishlist add`'s button row was
+    built with the `price_select` prefix (copy-paste from `price.ts`),
+    which would have routed clicks to the price flow instead of adding
+    to the wishlist — a good example of why re-checking tests after a
+    multi-file refactor is worth doing before committing, not after
 - [ ] Daily price check (Vercel Cron, once/day) using ITAD batch endpoint
   - `POST /games/prices/v3`, up to 200 game IDs per request
   - rate limit: 1000 req / 5 min — not a concern at this scale
@@ -93,13 +131,21 @@
 - [ ] Context-menu commands (type 2 "User" / type 3 "Message") — e.g. right-click a message → check price history
 - [ ] Global command registration (once ready to invite the bot to other servers)
 - [ ] "Add to wishlist" button on `/price` embed replies (Discord message component, same `/api/interactions` route, `MESSAGE_COMPONENT` type — build after `/price` and `/wishlist add` both work standalone)
-- [ ] Message-component buttons for disambiguation replies (instead of listing
+- [x] Message-component buttons for disambiguation replies (instead of listing
       ITAD IDs as visible text) — button `custom_id` holds the UUID (well
       under Discord's 100-char limit), click re-runs price lookup via
       `MESSAGE_COMPONENT` interaction type on the same route. Kills the
       ugly-UUID-in-chat problem and the "retype the command" friction in
       one move. Natural to build alongside the existing "Add to wishlist"
       button item once `/wishlist add` exists.
+- [ ] Components V2 (`Container`/`Section`/`TextDisplay`/`Separator`) for
+      `/wishlist list` — lost to embeds for `/price` in a same-session
+      side-by-side test (V2 has no inline-field-grid equivalent, so the
+      release/reviews/players row collapsed into a taller stacked block),
+      but a plain vertical item list is exactly what V2's stacking model
+      suits. Could pair with colored Add/Remove buttons per item
+      (`ButtonStyle.Success`/`Danger` — not V2-specific, works in the
+      existing ActionRow system too)
 - [ ] Import a user's existing ITAD Waitlist via OAuth (ITAD account linking — only relevant if/when someone wants to sync an existing ITAD waitlist instead of rebuilding it in Discord)
 - [ ] Steam App ID backfill on `games` rows resolved via title/ITAD-ID search
       (currently only populated when a user types a numeric appid directly)

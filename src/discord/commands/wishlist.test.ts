@@ -8,6 +8,7 @@ import {
   InteractionResponseType,
   MessageFlags,
   ApplicationCommandOptionType,
+  ComponentType,
 } from 'discord-api-types/v10'
 import type { APIInteractionResponse } from 'discord-api-types/v10'
 import { game, makeGameRow } from '@/test/factories'
@@ -108,19 +109,28 @@ describe('wishlist command handler — add', () => {
     expect(addGameToWishlist).not.toHaveBeenCalled()
   })
 
-  it('lists candidates (capped at 5) when multiple matches are found', async () => {
+  it('offers candidates as buttons (capped at 5) when multiple matches are found', async () => {
     const matches = Array.from({ length: 7 }, (_, i) => ({
       ...game,
       id: `id-${i}`,
       title: `Game ${i}`,
     }))
     vi.mocked(resolveGame).mockResolvedValue(matches)
+
     const data = expectChannelMessage(
       await wishlist(buildAddInteraction('game'))
     )
+
     expect(data.content).toContain('Multiple games found')
-    expect(data.content).toContain('Game 4')
-    expect(data.content).not.toContain('Game 5')
+    expect(data.flags).toBe(MessageFlags.Ephemeral)
+    const row = data.components?.[0]
+    const buttons = row && 'components' in row ? row.components : []
+    expect(buttons).toHaveLength(5)
+    expect(buttons[0]).toMatchObject({
+      type: ComponentType.Button,
+      label: 'Game 0',
+      custom_id: 'wishlist_add_select:id-0',
+    })
     expect(addGameToWishlist).not.toHaveBeenCalled()
   })
 
