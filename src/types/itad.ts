@@ -8,6 +8,24 @@ export interface ItadGameAssets {
   boxart?: string
 }
 
+export interface ItadGameReview {
+  score: number
+  source: string
+  count: number
+  url: string
+}
+
+export interface ItadGamePlayers {
+  recent: number
+  day: number
+  week: number
+  peak: number
+}
+
+export interface ItadGameUrls {
+  game: string
+}
+
 export interface ItadGame {
   id: string // ITAD's canonical UUID
   slug: string
@@ -15,6 +33,13 @@ export interface ItadGame {
   type: ItadGameType
   mature: boolean
   assets: ItadGameAssets
+  //* Only populated when resolved via the ITAD-ID branch of resolveGame()
+  appid?: number
+  tags?: string[]
+  releaseDate?: string // "YYYY-MM-DD"
+  reviews?: ItadGameReview[]
+  players?: ItadGamePlayers
+  urls?: ItadGameUrls
 }
 
 export interface ItadLookupResponse {

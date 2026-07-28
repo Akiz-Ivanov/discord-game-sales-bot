@@ -65,7 +65,7 @@ describe('buildPriceEmbed', () => {
     )
     const embed = buildPriceEmbed(game, deals)
     expect(embed.fields?.some((f) => f.name.includes('Shop7'))).toBe(false)
-    expect(embed.footer?.text).toBe('+3 more shop(s) not shown')
+    expect(embed.footer?.text).toBe(`+3 more shop(s) · ID ${game.id}`)
   })
 
   it('includes a historical low field when provided', () => {
@@ -83,15 +83,106 @@ describe('buildPriceEmbed', () => {
     )
   })
 
-  it('includes the game ID as a code-formatted field', () => {
+  it('includes the game ID in the footer', () => {
     const embed = buildPriceEmbed(game, [makeDeal({})])
-    const idField = embed.fields?.find((f) => f.name === 'ITAD ID')
-    expect(idField?.value).toBe('`018d937f-1ae9-734c-ba47-bd357cf07edd`')
+    expect(embed.footer?.text).toBe(`ID ${game.id}`)
   })
 
-  it('includes the game ID even when no store lists a price', () => {
+  it('includes the game ID in the footer even when no store lists a price', () => {
     const embed = buildPriceEmbed(game, [])
-    const idField = embed.fields?.find((f) => f.name === 'ITAD ID')
-    expect(idField?.value).toBe('`018d937f-1ae9-734c-ba47-bd357cf07edd`')
+    expect(embed.footer?.text).toBe(`ID ${game.id}`)
+  })
+
+  it('links the title to the ITAD game page when urls.game is present', () => {
+    const enrichedGame = {
+      ...game,
+      urls: { game: 'https://isthereanydeal.com/game/hollow-knight/' },
+    }
+    const embed = buildPriceEmbed(enrichedGame, [makeDeal({})])
+    expect(embed.url).toBe('https://isthereanydeal.com/game/hollow-knight/')
+  })
+
+  it('leaves the title unlinked when urls is absent (search/lookup paths)', () => {
+    const embed = buildPriceEmbed(game, [makeDeal({})])
+    expect(embed.url).toBeUndefined()
+  })
+
+  describe('enrichment fields', () => {
+    it('omits all enrichment fields for a lean game object (search/lookup paths)', () => {
+      const embed = buildPriceEmbed(game, [makeDeal({})])
+      expect(embed.fields?.some((f) => f.name.includes('Released'))).toBe(false)
+      expect(embed.fields?.some((f) => f.name.includes('Reviews'))).toBe(false)
+      expect(embed.fields?.some((f) => f.name.includes('Players'))).toBe(false)
+      expect(embed.fields?.some((f) => f.name.includes('Tags'))).toBe(false)
+    })
+
+    it('includes release date, reviews, players, and tags when present', () => {
+      const enrichedGame = {
+        ...game,
+        releaseDate: '2017-02-24',
+        reviews: [{ score: 96, source: 'Steam', count: 489363, url: '' }],
+        players: { recent: 10021, day: 10758, week: 11284, peak: 95655 },
+        tags: [
+          'Metroidvania',
+          'Platformer',
+          'Souls-like',
+          'Difficult',
+          'Great Soundtrack',
+          'Extra Tag',
+        ],
+      }
+      const embed = buildPriceEmbed(enrichedGame, [makeDeal({})])
+
+      expect(
+        embed.fields?.find((f) => f.name.includes('Released'))?.value
+      ).toBe('Feb 24, 2017')
+      expect(embed.fields?.find((f) => f.name.includes('Reviews'))?.value).toBe(
+        '96% (Steam · 489,363)'
+      )
+      expect(embed.fields?.find((f) => f.name.includes('Players'))?.value).toBe(
+        '10,021 now · 95,655 peak'
+      )
+      const tagsValue = embed.fields?.find((f) =>
+        f.name.includes('Tags')
+      )?.value
+      expect(tagsValue).toContain('`Metroidvania`')
+      expect(tagsValue).not.toContain('Extra Tag') // capped at 5
+    })
+
+    it('prefers the Steam review source over others when multiple are present', () => {
+      const enrichedGame = {
+        ...game,
+        reviews: [
+          { score: 87, source: 'Metascore', count: 27, url: '' },
+          { score: 96, source: 'Steam', count: 489363, url: '' },
+        ],
+      }
+      const embed = buildPriceEmbed(enrichedGame, [makeDeal({})])
+      expect(
+        embed.fields?.find((f) => f.name.includes('Reviews'))?.value
+      ).toContain('Steam')
+    })
+
+    it('falls back to the first review source when Steam is not present', () => {
+      const enrichedGame = {
+        ...game,
+        reviews: [{ score: 87, source: 'Metascore', count: 27, url: '' }],
+      }
+      const embed = buildPriceEmbed(enrichedGame, [makeDeal({})])
+      expect(
+        embed.fields?.find((f) => f.name.includes('Reviews'))?.value
+      ).toContain('Metascore')
+    })
+
+    it('includes enrichment fields on the no-deals branch too', () => {
+      const enrichedGame = { ...game, releaseDate: '2017-02-24' }
+      const embed = buildPriceEmbed(enrichedGame, [])
+      expect(embed.fields?.some((f) => f.name.includes('Released'))).toBe(true)
+    })
+
+    it('leaves fields undefined on the no-deals branch when there is no enrichment data', () => {
+      const embed = buildPriceEmbed(game, [])
+      expect(embed.fields).toBeUndefined()
+    })
   })
 })
