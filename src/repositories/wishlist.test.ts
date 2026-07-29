@@ -12,9 +12,10 @@ import { resetDb } from '@/test/db-reset'
 import { game } from '@/test/factories'
 
 const discordId = '123456789012345678'
+const guildId = '999888777666555444'
 
 const setup = async () => {
-  const user = await upsertUser(discordId)
+  const user = await upsertUser(discordId, guildId)
   const gameRow = await upsertGame(game)
   return { userId: user.id, gameId: gameRow.id }
 }
@@ -47,7 +48,7 @@ describe('addWishlistItem', () => {
 
   it('allows the same game to be added by two different users', async () => {
     const { userId, gameId } = await setup()
-    const otherUser = await upsertUser('987654321098765432')
+    const otherUser = await upsertUser('987654321098765432', guildId)
 
     const rowA = await addWishlistItem(userId, gameId)
     const rowB = await addWishlistItem(otherUser.id, gameId)
@@ -83,7 +84,7 @@ describe('removeWishlistItem', () => {
 
   it("does not remove a different user's wishlist item for the same game", async () => {
     const { userId, gameId } = await setup()
-    const otherUser = await upsertUser('987654321098765432')
+    const otherUser = await upsertUser('987654321098765432', guildId)
     await addWishlistItem(userId, gameId)
     await addWishlistItem(otherUser.id, gameId)
 
@@ -121,7 +122,7 @@ describe('listWishlistItems', () => {
 
   it("does not include another user's wishlist items", async () => {
     const { userId, gameId } = await setup()
-    const otherUser = await upsertUser('987654321098765432')
+    const otherUser = await upsertUser('987654321098765432', guildId)
     await addWishlistItem(otherUser.id, gameId)
 
     const result = await listWishlistItems(userId)

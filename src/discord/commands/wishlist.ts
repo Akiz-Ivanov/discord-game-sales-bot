@@ -10,6 +10,7 @@ import { addGameToWishlist, getWishlist } from '@/services/wishlist'
 import { getUserByDiscordId } from '@/repositories/users'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { buildGameSelectButtons } from '../interactions/buildGameSelectButtons'
+import { getInteractionGuildId } from '../interactions/getInteractionGuildId'
 
 const MAX_SELECT_OPTIONS = 25
 
@@ -62,8 +63,9 @@ const handleAdd: CommandHandler = async (interaction) => {
   }
 
   const discordId = getInteractionUserId(interaction)
+  const guildId = getInteractionGuildId(interaction)
   const [match] = matches
-  const result = await addGameToWishlist(discordId, match)
+  const result = await addGameToWishlist(discordId, guildId, match)
 
   const content =
     result.status === 'added'

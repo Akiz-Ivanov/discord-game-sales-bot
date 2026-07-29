@@ -15,6 +15,10 @@ export const users = pgTable(
   {
     id: serial('id').primaryKey(), // Discord snowflake ID. Stored as text — it's a 64-bit number and
     discordId: text('discord_id').notNull(),
+    // Which guild this user last touched a /wishlist command in — alerts
+    // go here. Nullable: a user created via /price (which never calls
+    // upsertUser) or before this column existed won't have one yet.
+    guildId: text('guild_id'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [uniqueIndex('users_discord_id_idx').on(table.discordId)]
@@ -77,6 +81,17 @@ export const prices = pgTable('prices', {
   url: text('url').notNull(), // ITAD affiliate deep link to the deal
   checkedAt: timestamp('checked_at').notNull().defaultNow(),
 })
+
+export const guilds = pgTable(
+  'guilds',
+  {
+    id: serial('id').primaryKey(),
+    guildId: text('guild_id').notNull(), // Discord guild snowflake
+    notificationChannelId: text('notification_channel_id'), // null until /set-channel is run
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex('guilds_guild_id_idx').on(table.guildId)]
+)
 
 // Relations — lets Drizzle's query API do `db.query.users.findMany({ with: { wishlistItems: true } })`
 export const usersRelations = relations(users, ({ many }) => ({

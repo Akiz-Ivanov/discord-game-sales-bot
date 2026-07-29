@@ -27,7 +27,8 @@ vi.mock('@/repositories/wishlist', () => ({
 }))
 
 const discordId = '123456789012345678'
-const userRow = { id: 1, discordId, createdAt: new Date() }
+const guildId = '999888777666555444'
+const userRow = { id: 1, discordId, guildId, createdAt: new Date() }
 const gameRow = makeGameRow({ id: 2 })
 
 beforeEach(() => {
@@ -46,9 +47,9 @@ describe('addGameToWishlist', () => {
       createdAt: new Date(),
     })
 
-    const result = await addGameToWishlist(discordId, game)
+    const result = await addGameToWishlist(discordId, guildId, game)
 
-    expect(upsertUser).toHaveBeenCalledWith(discordId)
+    expect(upsertUser).toHaveBeenCalledWith(discordId, guildId)
     expect(upsertGame).toHaveBeenCalledWith(game)
     expect(addWishlistItem).toHaveBeenCalledWith(userRow.id, gameRow.id)
     expect(result).toEqual({ status: 'added' })
@@ -59,7 +60,7 @@ describe('addGameToWishlist', () => {
     vi.mocked(upsertGame).mockResolvedValue(gameRow)
     vi.mocked(addWishlistItem).mockResolvedValue(null)
 
-    const result = await addGameToWishlist(discordId, game)
+    const result = await addGameToWishlist(discordId, guildId, game)
 
     expect(result).toEqual({ status: 'already_exists' })
   })

@@ -4,6 +4,7 @@ import { resolveGame } from '@/services/games'
 import { addGameToWishlist, getWishlist } from '@/services/wishlist'
 import { getUserByDiscordId } from '@/repositories/users'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
+import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
 import {
   InteractionResponseType,
   MessageFlags,
@@ -23,9 +24,13 @@ vi.mock('@/repositories/users', () => ({ getUserByDiscordId: vi.fn() }))
 vi.mock('@/discord/interactions/getInteractionUserId', () => ({
   getInteractionUserId: vi.fn(),
 }))
+vi.mock('@/discord/interactions/getInteractionGuildId', () => ({
+  getInteractionGuildId: vi.fn(),
+}))
 
 const discordId = '255361746758402048'
-const userRow = { id: 1, discordId, createdAt: new Date() }
+const guildId = '999888777666555444'
+const userRow = { id: 1, discordId, guildId, createdAt: new Date() }
 
 const expectChannelMessage = (result: APIInteractionResponse) => {
   if (result.type !== InteractionResponseType.ChannelMessageWithSource) {
@@ -88,6 +93,7 @@ const buildRemoveInteraction = () =>
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(getInteractionUserId).mockReturnValue(discordId)
+  vi.mocked(getInteractionGuildId).mockReturnValue(guildId)
 })
 
 describe('wishlist command handler — add', () => {
@@ -140,7 +146,7 @@ describe('wishlist command handler — add', () => {
     const data = expectChannelMessage(
       await wishlist(buildAddInteraction('hollow knight'))
     )
-    expect(addGameToWishlist).toHaveBeenCalledWith(discordId, game)
+    expect(addGameToWishlist).toHaveBeenCalledWith(discordId, guildId, game)
     expect(data.content).toContain(`Added **${game.title}**`)
   })
 

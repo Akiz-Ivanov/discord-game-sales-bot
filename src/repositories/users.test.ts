@@ -6,6 +6,7 @@ import { resetDb } from '@/test/db-reset'
 import { beforeEach } from 'vitest'
 
 const discordId = '123456789012345678' //* snowflake, stored as text
+const guildId = '999888777666555444'
 
 describe('upsertUser', () => {
   beforeEach(async () => {
@@ -13,15 +14,16 @@ describe('upsertUser', () => {
   })
 
   it('inserts a new user on first call', async () => {
-    const row = await upsertUser(discordId)
+    const row = await upsertUser(discordId, guildId)
 
     expect(row.discordId).toBe(discordId)
+    expect(row.guildId).toBe(guildId)
     expect(row.id).toBeTypeOf('number')
   })
 
   it('returns the same row on a repeat call, without creating a duplicate', async () => {
-    const first = await upsertUser(discordId)
-    const second = await upsertUser(discordId)
+    const first = await upsertUser(discordId, guildId)
+    const second = await upsertUser(discordId, guildId)
 
     expect(second.id).toBe(first.id)
 
@@ -30,8 +32,8 @@ describe('upsertUser', () => {
   })
 
   it('does not cross-contaminate rows for different discordIds', async () => {
-    const rowA = await upsertUser(discordId)
-    const rowB = await upsertUser('987654321098765432')
+    const rowA = await upsertUser(discordId, guildId)
+    const rowB = await upsertUser('987654321098765432', guildId)
 
     expect(rowA.id).not.toBe(rowB.id)
 
@@ -50,7 +52,7 @@ describe('getUserByDiscordId', () => {
   })
 
   it('returns the existing row when one exists', async () => {
-    const created = await upsertUser(discordId)
+    const created = await upsertUser(discordId, guildId)
 
     const result = await getUserByDiscordId(discordId)
 

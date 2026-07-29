@@ -13,9 +13,10 @@ import type {
 
 export const addGameToWishlist = async (
   discordId: string,
+  guildId: string,
   game: ItadGame
 ): Promise<AddToWishlistResult> => {
-  const user = await upsertUser(discordId)
+  const user = await upsertUser(discordId, guildId)
   const gameRow = await upsertGame(game)
   const row = await addWishlistItem(user.id, gameRow.id)
 

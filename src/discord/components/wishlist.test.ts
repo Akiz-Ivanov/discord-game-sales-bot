@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { handleWishlistRemoveSelect, handleWishlistAddSelect } from './wishlist'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
+import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
 import { getUserByDiscordId } from '@/repositories/users'
 import {
   getWishlist,
@@ -15,6 +16,9 @@ import { resolveGame } from '@/services/games'
 vi.mock('@/discord/interactions/getInteractionUserId', () => ({
   getInteractionUserId: vi.fn(),
 }))
+vi.mock('@/discord/interactions/getInteractionGuildId', () => ({
+  getInteractionGuildId: vi.fn(),
+}))
 vi.mock('@/repositories/users', () => ({ getUserByDiscordId: vi.fn() }))
 vi.mock('@/services/wishlist', () => ({
   getWishlist: vi.fn(),
@@ -24,7 +28,8 @@ vi.mock('@/services/wishlist', () => ({
 vi.mock('@/services/games', () => ({ resolveGame: vi.fn() }))
 
 const discordId = '255361746758402048'
-const userRow = { id: 1, discordId, createdAt: new Date() }
+const guildId = '999888777666555444'
+const userRow = { id: 1, discordId, guildId, createdAt: new Date() }
 
 const expectUpdateMessage = (result: APIInteractionResponse) => {
   if (result.type !== InteractionResponseType.UpdateMessage) {
@@ -42,6 +47,7 @@ const buildSelectInteraction = (value: string) =>
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(getInteractionUserId).mockReturnValue(discordId)
+  vi.mocked(getInteractionGuildId).mockReturnValue(guildId)
 })
 
 describe('handleWishlistRemoveSelect', () => {
@@ -103,7 +109,7 @@ describe('handleWishlistAddSelect', () => {
     )
 
     expect(resolveGame).toHaveBeenCalledWith(game.id)
-    expect(addGameToWishlist).toHaveBeenCalledWith(discordId, game)
+    expect(addGameToWishlist).toHaveBeenCalledWith(discordId, guildId, game)
     expect(data.content).toContain(`Added **${game.title}**`)
     expect(data.components).toEqual([])
   })

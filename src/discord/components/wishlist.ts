@@ -8,6 +8,7 @@ import {
   removeGameFromWishlist,
 } from '@/services/wishlist'
 import { resolveGame } from '@/services/games'
+import { getInteractionGuildId } from '../interactions/getInteractionGuildId'
 
 export const handleWishlistRemoveSelect: ComponentHandler = async (
   interaction
@@ -63,6 +64,7 @@ export const handleWishlistAddSelect: ComponentHandler = async (
 ) => {
   const itadId = interaction.data.custom_id.split(':')[1]
   const discordId = getInteractionUserId(interaction)
+  const guildId = getInteractionGuildId(interaction)
   const [match] = itadId ? await resolveGame(itadId) : []
 
   if (!match) {
@@ -77,7 +79,7 @@ export const handleWishlistAddSelect: ComponentHandler = async (
     }
   }
 
-  const result = await addGameToWishlist(discordId, match)
+  const result = await addGameToWishlist(discordId, guildId, match)
   const content =
     result.status === 'added'
       ? `✅ Added **${match.title}** to your wishlist.`
