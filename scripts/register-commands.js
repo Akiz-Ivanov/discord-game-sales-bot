@@ -51,6 +51,27 @@ const commands = [
       },
     ],
   },
+  {
+    name: 'config',
+    description: 'Configure server settings for this bot',
+    default_member_permissions: '32',
+    options: [
+      {
+        type: 1, //* SUB_COMMAND
+        name: 'alerts-channel',
+        description: 'Set the channel where sale alerts get posted',
+        options: [
+          {
+            type: 7, //* CHANNEL
+            name: 'channel',
+            description: 'The channel to post alerts in',
+            required: true,
+            channel_types: [0], //* GUILD_TEXT only — no voice/category noise
+          },
+        ],
+      },
+    ],
+  },
 ]
 
 async function registerCommands() {

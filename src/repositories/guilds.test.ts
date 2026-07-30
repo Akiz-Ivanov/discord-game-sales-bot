@@ -1,0 +1,44 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import { db } from '@/db'
+import { guilds } from '@/db/schema'
+import { upsertGuildChannel } from './guilds'
+import { resetDb } from '@/test/db-reset'
+
+const guildId = '999888777666555444'
+const channelId = '111222333444555666'
+
+describe('upsertGuildChannel', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('inserts a new guild row on first call', async () => {
+    const row = await upsertGuildChannel(guildId, channelId)
+
+    expect(row.guildId).toBe(guildId)
+    expect(row.notificationChannelId).toBe(channelId)
+  })
+
+  it('updates the channel in place on re-upsert, keeping the same id', async () => {
+    const first = await upsertGuildChannel(guildId, channelId)
+    const otherChannelId = '222333444555666777'
+
+    const updated = await upsertGuildChannel(guildId, otherChannelId)
+
+    expect(updated.id).toBe(first.id)
+    expect(updated.notificationChannelId).toBe(otherChannelId)
+
+    const rows = await db.select().from(guilds)
+    expect(rows).toHaveLength(1)
+  })
+
+  it('does not cross-contaminate rows for different guildIds', async () => {
+    const rowA = await upsertGuildChannel(guildId, channelId)
+    const rowB = await upsertGuildChannel('other-guild-id', channelId)
+
+    expect(rowA.id).not.toBe(rowB.id)
+
+    const all = await db.select().from(guilds)
+    expect(all).toHaveLength(2)
+  })
+})
