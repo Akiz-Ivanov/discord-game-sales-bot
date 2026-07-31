@@ -23,7 +23,7 @@ services:
     environment:
       PG_CONNECTION_STRING: postgres://postgres:postgres@postgres:5432/discord_game_sales_test
     ports:
-      - '4444:4444'
+      - '4545:4444'
     depends_on:
       postgres:
         condition: service_healthy

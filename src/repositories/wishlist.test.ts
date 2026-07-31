@@ -5,11 +5,14 @@ import {
   addWishlistItem,
   removeWishlistItem,
   listWishlistItems,
+  getWishlistedGamesByGuild,
 } from './wishlist'
 import { upsertUser } from './users'
 import { upsertGame } from './games'
 import { resetDb } from '@/test/db-reset'
 import { game } from '@/test/factories'
+import { upsertGuildChannel } from './guilds'
+import { eq } from 'drizzle-orm'
 
 const discordId = '123456789012345678'
 const guildId = '999888777666555444'
@@ -166,5 +169,80 @@ describe('addWishlistItem — referential integrity', () => {
     const { userId } = await setup()
 
     await expect(addWishlistItem(userId, 999999)).rejects.toThrow()
+  })
+})
+
+describe('getWishlistedGamesByGuild', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('returns [] when no guild has a configured channel', async () => {
+    const { userId, gameId } = await setup()
+    await addWishlistItem(userId, gameId)
+
+    const result = await getWishlistedGamesByGuild()
+
+    expect(result).toEqual([])
+  })
+
+  it('returns a row once the guild has a configured channel', async () => {
+    const { userId, gameId } = await setup()
+    await addWishlistItem(userId, gameId)
+    await upsertGuildChannel(guildId, '111222333444555666')
+
+    const result = await getWishlistedGamesByGuild()
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      guildId,
+      notificationChannelId: '111222333444555666',
+      discordId,
+      gameId,
+      lastNotifiedPrice: null,
+    })
+  })
+
+  it('returns one row per user for a game wishlisted by multiple users in the same guild', async () => {
+    const { userId, gameId } = await setup()
+    const otherUser = await upsertUser('987654321098765432', guildId)
+    await addWishlistItem(userId, gameId)
+    await addWishlistItem(otherUser.id, gameId)
+    await upsertGuildChannel(guildId, '111222333444555666')
+
+    const result = await getWishlistedGamesByGuild()
+
+    expect(result).toHaveLength(2)
+    expect(result.map((r) => r.discordId).sort()).toEqual(
+      [discordId, '987654321098765432'].sort()
+    )
+  })
+
+  it('excludes users whose last-touched guild has no configured channel', async () => {
+    const { gameId } = await setup()
+    const otherGuildUser = await upsertUser(
+      '111111111111111111',
+      'some-other-guild-id'
+    )
+    await addWishlistItem(otherGuildUser.id, gameId)
+    // note: guildId (the `setup()` guild) never gets upsertGuildChannel'd here
+
+    const result = await getWishlistedGamesByGuild()
+
+    expect(result).toEqual([])
+  })
+
+  it('carries the correct lastNotifiedPrice per wishlist item', async () => {
+    const { userId, gameId } = await setup()
+    const item = await addWishlistItem(userId, gameId)
+    await upsertGuildChannel(guildId, '111222333444555666')
+    await db
+      .update(wishlistItems)
+      .set({ lastNotifiedPrice: 999 })
+      .where(eq(wishlistItems.id, item!.id))
+
+    const result = await getWishlistedGamesByGuild()
+
+    expect(result[0].lastNotifiedPrice).toBe(999)
   })
 })

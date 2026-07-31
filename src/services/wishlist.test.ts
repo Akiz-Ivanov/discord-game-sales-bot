@@ -97,11 +97,21 @@ describe('getWishlist', () => {
 
   it("returns the user's wishlist items when the user exists", async () => {
     vi.mocked(getUserByDiscordId).mockResolvedValue(userRow)
-    vi.mocked(listWishlistItems).mockResolvedValue([{ game: gameRow }])
+    vi.mocked(listWishlistItems).mockResolvedValue([
+      {
+        id: 1,
+        userId: userRow.id,
+        gameId: gameRow.id,
+        lastNotifiedPrice: null,
+        createdAt: new Date(),
+        game: gameRow,
+      },
+    ])
 
     const result = await getWishlist(discordId)
 
     expect(listWishlistItems).toHaveBeenCalledWith(userRow.id)
-    expect(result).toEqual([{ game: gameRow }])
+    expect(result).toHaveLength(1)
+    expect(result[0].game).toEqual(gameRow)
   })
 })

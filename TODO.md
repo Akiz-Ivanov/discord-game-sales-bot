@@ -109,10 +109,34 @@
     which would have routed clicks to the price flow instead of adding
     to the wishlist — a good example of why re-checking tests after a
     multi-file refactor is worth doing before committing, not after
-- [ ] Daily price check (Vercel Cron, once/day) using ITAD batch endpoint
+- [ ] Enrich `/wishlist add` confirmation with current price (reuse
+      `getGamePrices`) and set `wishlist_items.lastNotifiedPrice` to
+      the current price at add-time when the game's already on sale —
+      avoids an immediate redundant cron alert for a deal the user
+      just saw seconds ago. Needs `addWishlistItem`'s signature to
+      accept an optional initial price.
+- [x] Daily price check (Vercel Cron, once/day) using ITAD batch endpoint
   - `POST /games/prices/v3`, up to 200 game IDs per request
   - rate limit: 1000 req / 5 min — not a concern at this scale
-- [ ] Post sale alerts as Discord embeds
+  - `services/cron.ts`'s `getSaleAlerts()`: pulls wishlisted rows via
+    `repositories/wishlist.ts`'s `getWishlistedGamesByGuild()`, dedupes
+    itadIds before the batch call, applies `shouldNotify` (moved to
+    `lib/`, it's a pure helper), groups results by guild
+  - `app/api/cron/price-check/route.ts`: gated on
+    `Authorization: Bearer $CRON_SECRET` (env var set in Vercel,
+    marked Sensitive; Vercel auto-attaches it on real scheduled
+    invocations only — local testing needs a manual curl with the
+    header)
+- [x] Post sale alerts as Discord embeds
+  - `discord/rest.ts`'s `postChannelMessage()` — first outbound-only
+    Discord call (bot token via plain fetch), not a reply to an
+    interaction
+  - `discord/embeds/saleAlert.ts`'s `buildSaleAlertMessage()` — lean
+    one-line-per-game embeds (price/discount/shop only, not /price's
+    full multi-store breakdown), capped at 10 embeds/message with a
+    "+N more" note, per Discord's own per-message embed limit
+  - verified live end-to-end via ngrok: real alert posted to a
+    `/config`-set channel for an actual on-sale wishlisted game
 
 ## v1.1
 
@@ -126,6 +150,18 @@
 
 ## Later / backlog
 
+- [ ] Sale alert card v2 — first version is functional but bare
+      (single-line embeds, no interactivity). Ideas surfaced but not
+      decided: a "Check price" button per game (ephemeral reply,
+      reusing resolveGame → getGamePrices → buildPriceEmbed — does NOT
+      reuse handlePriceSelect's UpdateMessage pattern, since that would
+      wipe every other game's card in the same alert message); a
+      "Remove from wishlist" button (removeGameFromWishlist already
+      exists); @mention strategy (per-game vs. one combined line) —
+      needs to be seen live before deciding. Components V2 worth a
+      second look specifically for this card shape (unlike /wishlist
+      list's field-grid problem, a stacked list of games is exactly
+      what V2's Container/Section model suits)
 - [ ] User-defined notification thresholds (min % off, price ceiling, historical-low-only, store filter)
 - [ ] Web dashboard (tracked games + price history, reusing the same service layer as the bot)
 - [ ] Context-menu commands (type 2 "User" / type 3 "Message") — e.g. right-click a message → check price history
@@ -162,6 +198,12 @@
       per-user wishlist-membership check at embed-build time to decide
       button state (add vs. remove), and a `custom_id` carrying the
       ITAD ID.
+- [ ] True end-to-end test for /api/interactions and /api/cron/price-check
+      — real signed request (fake discord-interactions signing) through
+      the full route → DB chain. Current coverage is unit tests with
+      mocked boundaries + DB-backed repository integration tests; this
+      would be the one missing tier. Not urgent, current coverage is
+      97%+ and fast.
 - [ ] Docker + VPS migration (only if free-tier serverless is ever genuinely outgrown)
 
 ## Architecture notes

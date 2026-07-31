@@ -7,7 +7,7 @@ const databaseUrl = process.env.DATABASE_URL!
 //* Only relevant when pointed at the local Docker Postgres + Neon proxy
 //* (see docker-compose.yml) — real Neon URLs never hit this branch.
 if (new URL(databaseUrl).hostname === 'db.localtest.me') {
-  neonConfig.fetchEndpoint = (host) => `http://${host}:4444/sql`
+  neonConfig.fetchEndpoint = (host) => `http://${host}:4545/sql`
 }
 
 export const db = drizzle(process.env.DATABASE_URL!, {
