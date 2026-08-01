@@ -109,12 +109,28 @@
     which would have routed clicks to the price flow instead of adding
     to the wishlist — a good example of why re-checking tests after a
     multi-file refactor is worth doing before committing, not after
-- [ ] Enrich `/wishlist add` confirmation with current price (reuse
+- [x] Enrich `/wishlist add` confirmation with current price (reuse
       `getGamePrices`) and set `wishlist_items.lastNotifiedPrice` to
       the current price at add-time when the game's already on sale —
       avoids an immediate redundant cron alert for a deal the user
-      just saw seconds ago. Needs `addWishlistItem`'s signature to
-      accept an optional initial price.
+      just saw seconds ago
+  - `addGameToWishlist` (services/wishlist.ts) now calls `getGamePrices`
+    itself, picks the cheapest deal via the new shared
+    `lib/pickCheapestDeal.ts` helper (extracted from `services/cron.ts`,
+    which had the same sort inline — now imported by both), and seeds
+    `addWishlistItem`'s new optional `initialPrice` param only when
+    that deal has `cut > 0`
+  - `AddToWishlistResult` now carries the fetched `PriceSnapshot`
+    alongside `status`, so the Discord layer doesn't need a second
+    `getGamePrices` call to build a confirmation embed
+  - both `/wishlist add` and its button-click counterpart
+    (`handleWishlistAddSelect`) now render the same `buildPriceEmbed()`
+    card `/price` uses on a successful add (ephemeral) — reuses the
+    embed builder as-is, zero duplication; duplicate-add stays a plain
+    one-line reply, no embed
+  - verified live: an on-sale add correctly seeded `last_notified_price`
+    in Postgres; a not-on-sale add left it `null`; a duplicate add
+    fell back to plain text as expected
 - [x] Daily price check (Vercel Cron, once/day) using ITAD batch endpoint
   - `POST /games/prices/v3`, up to 200 game IDs per request
   - rate limit: 1000 req / 5 min — not a concern at this scale
@@ -147,9 +163,6 @@
       (`wishlist_remove_page:2`), handler refetches `getWishlist` fresh
       and re-slices rather than caching state (cheap at this row count,
       no Vercel KV/Redis needed)
-
-## Later / backlog
-
 - [ ] Sale alert card v2 — first version is functional but bare
       (single-line embeds, no interactivity). Ideas surfaced but not
       decided: a "Check price" button per game (ephemeral reply,
@@ -162,6 +175,30 @@
       second look specifically for this card shape (unlike /wishlist
       list's field-grid problem, a stacked list of games is exactly
       what V2's Container/Section model suits)
+- [ ] Components V2 (`Container`/`Section`/`TextDisplay`/`Separator`) for
+      `/wishlist list` — lost to embeds for `/price` in a same-session
+      side-by-side test (V2 has no inline-field-grid equivalent, so the
+      release/reviews/players row collapsed into a taller stacked block),
+      but a plain vertical item list is exactly what V2's stacking model
+      suits. Could pair with colored Add/Remove buttons per item
+      (`ButtonStyle.Success`/`Danger` — not V2-specific, works in the
+      existing ActionRow system too)
+- [ ] CI/CD via GitHub Actions — run `npm test` (with a Postgres service
+      container, mirroring docker-compose.yml) + lint on every push/PR.
+      Already locked in as the stack choice in the architecture notes
+      below; this is turning that into an actual checklist item.
+- [ ] Per-user wishlist size cap (suggested: 100 games) — guards against
+      abuse (scripted mass-add) without constraining any real usage
+      pattern. `countWishlistItems` repo helper + a check in
+      `addGameToWishlist` before insert, friendly reply on rejection
+      instead of a raw DB error.
+- [ ] `/wishlist list` embed/Components V2 overhaul — current version is
+      a flat numbered text list, feels thin next to /price's embed.
+      Bumped up from backlog since this needs to feel solid before any
+      wider release, not just a someday polish item.
+
+## Later / backlog
+
 - [ ] User-defined notification thresholds (min % off, price ceiling, historical-low-only, store filter)
 - [ ] Web dashboard (tracked games + price history, reusing the same service layer as the bot)
 - [ ] Context-menu commands (type 2 "User" / type 3 "Message") — e.g. right-click a message → check price history
@@ -174,14 +211,25 @@
       ugly-UUID-in-chat problem and the "retype the command" friction in
       one move. Natural to build alongside the existing "Add to wishlist"
       button item once `/wishlist add` exists.
-- [ ] Components V2 (`Container`/`Section`/`TextDisplay`/`Separator`) for
-      `/wishlist list` — lost to embeds for `/price` in a same-session
-      side-by-side test (V2 has no inline-field-grid equivalent, so the
-      release/reviews/players row collapsed into a taller stacked block),
-      but a plain vertical item list is exactly what V2's stacking model
-      suits. Could pair with colored Add/Remove buttons per item
-      (`ButtonStyle.Success`/`Danger` — not V2-specific, works in the
-      existing ActionRow system too)
+- [ ] Free/100%-off games tracking via GamerPower API — a second daily
+      cron source alongside ITAD's sale checks. Start with no dedupe
+      table (just post whatever's currently free each cron run) to see
+      how repeat-posting actually feels in practice before deciding
+      whether a `free_games_seen`-style table is worth the extra
+      Postgres writes — open UX question, not an obvious yes on logging
+      from day one this time.
+- [ ] Bundles integration (ITAD `GET /games/bundles/v2`) — shape
+      undecided, several directions on the table: (a) a "Show bundles"
+      button on /price and /wishlist add embeds, separate lookup +
+      separate embed on click; (b) surface a bundle proactively during
+      the daily cron check when a wishlisted game appears in one; (c)
+      fetch bundle data alongside the initial ITAD call but keep it
+      collapsed until a user expands it. Needs to be prototyped/seen
+      live before choosing, same posture as sale alert card v2.
+- [ ] Discord Developer Portal polish — bot avatar/icon, app
+      description, permissions/OAuth scope review — relevant once
+      global command registration and a wider invite are actually on
+      the table, not urgent before that.
 - [ ] Import a user's existing ITAD Waitlist via OAuth (ITAD account linking — only relevant if/when someone wants to sync an existing ITAD waitlist instead of rebuilding it in Discord)
 - [ ] Steam App ID backfill on `games` rows resolved via title/ITAD-ID search
       (currently only populated when a user types a numeric appid directly)

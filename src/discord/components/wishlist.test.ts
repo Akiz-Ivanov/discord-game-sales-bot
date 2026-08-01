@@ -9,9 +9,10 @@ import {
   addGameToWishlist,
 } from '@/services/wishlist'
 import { InteractionResponseType } from 'discord-api-types/v10'
-import type { APIInteractionResponse } from 'discord-api-types/v10'
-import { game, makeGameRow } from '@/test/factories'
+import type { APIInteractionResponse, APIEmbed } from 'discord-api-types/v10'
+import { game, makeGameRow, makeWishlistItemRow } from '@/test/factories'
 import { resolveGame } from '@/services/games'
+import { buildPriceEmbed } from '@/discord/embeds/price'
 
 vi.mock('@/discord/interactions/getInteractionUserId', () => ({
   getInteractionUserId: vi.fn(),
@@ -26,6 +27,7 @@ vi.mock('@/services/wishlist', () => ({
   addGameToWishlist: vi.fn(),
 }))
 vi.mock('@/services/games', () => ({ resolveGame: vi.fn() }))
+vi.mock('@/discord/embeds/price', () => ({ buildPriceEmbed: vi.fn() }))
 
 const discordId = '255361746758402048'
 const guildId = '999888777666555444'
@@ -54,7 +56,9 @@ describe('handleWishlistRemoveSelect', () => {
   it('removes the selected game and confirms with its title', async () => {
     vi.mocked(getUserByDiscordId).mockResolvedValue(userRow)
     vi.mocked(getWishlist).mockResolvedValue([
-      { game: makeGameRow({ id: 2, title: 'Hollow Knight' }) },
+      makeWishlistItemRow({
+        game: makeGameRow({ id: 2, title: 'Hollow Knight' }),
+      }),
     ])
     vi.mocked(removeGameFromWishlist).mockResolvedValue({ status: 'removed' })
 
@@ -97,10 +101,20 @@ const buildButtonInteraction = (customId: string) =>
   >[0]
 
 describe('handleWishlistAddSelect', () => {
-  it('adds the chosen game and confirms', async () => {
+  it('adds the chosen game, confirms, and includes the price embed', async () => {
     vi.mocked(getInteractionUserId).mockReturnValue(discordId)
     vi.mocked(resolveGame).mockResolvedValue([game])
-    vi.mocked(addGameToWishlist).mockResolvedValue({ status: 'added' })
+    const snapshot = {
+      deals: [],
+      historyLowInt: undefined,
+      historyLowCurrency: undefined,
+    }
+    vi.mocked(addGameToWishlist).mockResolvedValue({
+      status: 'added',
+      priceSnapshot: snapshot,
+    })
+    const fakeEmbed = { title: game.title } as APIEmbed
+    vi.mocked(buildPriceEmbed).mockReturnValue(fakeEmbed)
 
     const data = expectUpdateMessage(
       await handleWishlistAddSelect(
@@ -111,13 +125,21 @@ describe('handleWishlistAddSelect', () => {
     expect(resolveGame).toHaveBeenCalledWith(game.id)
     expect(addGameToWishlist).toHaveBeenCalledWith(discordId, guildId, game)
     expect(data.content).toContain(`Added **${game.title}**`)
+    expect(data.embeds).toEqual([fakeEmbed])
     expect(data.components).toEqual([])
   })
 
-  it('reports already-on-wishlist for a duplicate add', async () => {
+  it('reports already-on-wishlist for a duplicate add without an embed', async () => {
     vi.mocked(getInteractionUserId).mockReturnValue(discordId)
     vi.mocked(resolveGame).mockResolvedValue([game])
-    vi.mocked(addGameToWishlist).mockResolvedValue({ status: 'already_exists' })
+    vi.mocked(addGameToWishlist).mockResolvedValue({
+      status: 'already_exists',
+      priceSnapshot: {
+        deals: [],
+        historyLowInt: undefined,
+        historyLowCurrency: undefined,
+      },
+    })
 
     const data = expectUpdateMessage(
       await handleWishlistAddSelect(
@@ -126,6 +148,7 @@ describe('handleWishlistAddSelect', () => {
     )
 
     expect(data.content).toContain('already on your wishlist')
+    expect(data.embeds).toBeUndefined()
   })
 
   it('reports a not-found fallback when the game no longer resolves', async () => {

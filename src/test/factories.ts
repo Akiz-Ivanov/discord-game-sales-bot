@@ -1,5 +1,5 @@
 import type { ItadGame, ItadDeal } from '@/types'
-import type { games } from '@/db/schema'
+import type { games, wishlistItems } from '@/db/schema'
 
 export const game: ItadGame = {
   id: '018d937f-1ae9-734c-ba47-bd357cf07edd',
@@ -50,5 +50,24 @@ export const makeGameRow = (
   historyLowAmount: null,
   historyLowCurrency: null,
   createdAt: new Date(),
+  ...overrides,
+})
+
+export const makeWishlistItemRow = (
+  overrides: Partial<
+    Omit<typeof wishlistItems.$inferSelect, 'id' | 'userId' | 'gameId'>
+  > & {
+    id?: number
+    userId?: number
+    gameId?: number
+    game?: ReturnType<typeof makeGameRow>
+  } = {}
+) => ({
+  id: 1,
+  userId: 1,
+  gameId: 1,
+  lastNotifiedPrice: null,
+  createdAt: new Date(),
+  game: makeGameRow(),
   ...overrides,
 })

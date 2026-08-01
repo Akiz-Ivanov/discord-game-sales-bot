@@ -9,8 +9,9 @@ import { resolveGame } from '@/services/games'
 import { addGameToWishlist, getWishlist } from '@/services/wishlist'
 import { getUserByDiscordId } from '@/repositories/users'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
-import { buildGameSelectButtons } from '../interactions/buildGameSelectButtons'
-import { getInteractionGuildId } from '../interactions/getInteractionGuildId'
+import { buildGameSelectButtons } from '@/discord/interactions/buildGameSelectButtons'
+import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
+import { buildPriceEmbed } from '@/discord/embeds/price'
 
 const MAX_SELECT_OPTIONS = 25
 
@@ -67,14 +68,30 @@ const handleAdd: CommandHandler = async (interaction) => {
   const [match] = matches
   const result = await addGameToWishlist(discordId, guildId, match)
 
-  const content =
-    result.status === 'added'
-      ? `✅ Added **${match.title}** to your wishlist.`
-      : `**${match.title}** is already on your wishlist.`
+  if (result.status === 'already_exists') {
+    return {
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        flags: MessageFlags.Ephemeral,
+        content: `**${match.title}** is already on your wishlist.`,
+      },
+    }
+  }
 
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
-    data: { flags: MessageFlags.Ephemeral, content },
+    data: {
+      flags: MessageFlags.Ephemeral,
+      content: `✅ Added **${match.title}** to your wishlist.`,
+      embeds: [
+        buildPriceEmbed(
+          match,
+          result.priceSnapshot.deals,
+          result.priceSnapshot.historyLowInt,
+          result.priceSnapshot.historyLowCurrency
+        ),
+      ],
+    },
   }
 }
 

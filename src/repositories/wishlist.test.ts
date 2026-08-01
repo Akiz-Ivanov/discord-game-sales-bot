@@ -59,6 +59,22 @@ describe('addWishlistItem', () => {
     expect(rowA).not.toBeNull()
     expect(rowB).not.toBeNull()
   })
+
+  it('sets lastNotifiedPrice when an initialPrice is provided', async () => {
+    const { userId, gameId } = await setup()
+
+    const row = await addWishlistItem(userId, gameId, 1799)
+
+    expect(row!.lastNotifiedPrice).toBe(1799)
+  })
+
+  it('leaves lastNotifiedPrice null when no initialPrice is provided', async () => {
+    const { userId, gameId } = await setup()
+
+    const row = await addWishlistItem(userId, gameId)
+
+    expect(row!.lastNotifiedPrice).toBeNull()
+  })
 })
 
 describe('removeWishlistItem', () => {

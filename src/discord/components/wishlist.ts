@@ -9,6 +9,7 @@ import {
 } from '@/services/wishlist'
 import { resolveGame } from '@/services/games'
 import { getInteractionGuildId } from '../interactions/getInteractionGuildId'
+import { buildPriceEmbed } from '@/discord/embeds/price'
 
 export const handleWishlistRemoveSelect: ComponentHandler = async (
   interaction
@@ -80,13 +81,32 @@ export const handleWishlistAddSelect: ComponentHandler = async (
   }
 
   const result = await addGameToWishlist(discordId, guildId, match)
-  const content =
-    result.status === 'added'
-      ? `✅ Added **${match.title}** to your wishlist.`
-      : `**${match.title}** is already on your wishlist.`
+
+  if (result.status === 'already_exists') {
+    return {
+      type: InteractionResponseType.UpdateMessage,
+      data: {
+        flags: MessageFlags.Ephemeral,
+        content: `**${match.title}** is already on your wishlist.`,
+        components: [],
+      },
+    }
+  }
 
   return {
     type: InteractionResponseType.UpdateMessage,
-    data: { flags: MessageFlags.Ephemeral, content, components: [] },
+    data: {
+      flags: MessageFlags.Ephemeral,
+      content: `✅ Added **${match.title}** to your wishlist.`,
+      embeds: [
+        buildPriceEmbed(
+          match,
+          result.priceSnapshot.deals,
+          result.priceSnapshot.historyLowInt,
+          result.priceSnapshot.historyLowCurrency
+        ),
+      ],
+      components: [],
+    },
   }
 }

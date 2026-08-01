@@ -8,11 +8,12 @@ import { and, eq, isNotNull } from 'drizzle-orm'
 //* without a pre-check SELECT.
 export const addWishlistItem = async (
   userId: number,
-  gameId: number
+  gameId: number,
+  initialPrice?: number
 ): Promise<typeof wishlistItems.$inferSelect | null> => {
   const [row] = await db
     .insert(wishlistItems)
-    .values({ userId, gameId })
+    .values({ userId, gameId, lastNotifiedPrice: initialPrice ?? null })
     .onConflictDoNothing()
     .returning()
 

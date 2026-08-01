@@ -1,12 +1,8 @@
 import { getWishlistedGamesByGuild } from '@/repositories/wishlist'
 import { getPrices } from '@/itad/client'
 import { shouldNotify } from '@/lib/shouldNotify'
-import type { ItadDeal, GuildSaleAlerts } from '@/types'
-
-//* Cheapest deal only — same "best price right now" framing buildPriceEmbed
-//* already uses for /price's cheapest-first sort.
-const pickCheapestDeal = (deals: ItadDeal[]): ItadDeal | undefined =>
-  [...deals].sort((a, b) => a.price.amountInt - b.price.amountInt)[0]
+import type { GuildSaleAlerts } from '@/types'
+import { pickCheapestDeal } from '@/lib/pickCheapestDeal'
 
 //* Cron entry point. Pulls every wishlisted game across every guild with
 //* a configured alert channel, fetches live prices in as few batched ITAD
