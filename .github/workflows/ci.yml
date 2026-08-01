@@ -35,16 +35,10 @@ jobs:
     env:
       NODE_ENV: test
       DATABASE_URL: postgres://postgres:postgres@db.localtest.me:5432/discord_game_sales_test
-      DISCORD_PUBLIC_KEY: test-public-key
-      DISCORD_BOT_TOKEN: test-bot-token
-      DISCORD_APPLICATION_ID: test-app-id
-      ITAD_API_KEY: test-itad-key
-      CRON_SECRET: test-secret
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
