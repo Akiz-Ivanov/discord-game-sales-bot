@@ -185,6 +185,19 @@ describe('wishlist command handler — add', () => {
     expect(data.embeds).toBeUndefined()
     expect(buildPriceEmbed).not.toHaveBeenCalled()
   })
+
+  it('reports the limit-reached message without an embed when the wishlist is full', async () => {
+    vi.mocked(resolveGame).mockResolvedValue([game])
+    vi.mocked(addGameToWishlist).mockResolvedValue({ status: 'limit_reached' })
+
+    const data = expectChannelMessage(
+      await wishlist(buildAddInteraction('hollow knight'))
+    )
+
+    expect(data.content).toContain('limit')
+    expect(data.embeds).toBeUndefined()
+    expect(buildPriceEmbed).not.toHaveBeenCalled()
+  })
 })
 
 describe('wishlist command handler — list', () => {

@@ -164,4 +164,20 @@ describe('handleWishlistAddSelect', () => {
     expect(data.content).toContain("couldn't be found")
     expect(addGameToWishlist).not.toHaveBeenCalled()
   })
+
+  it('reports the limit-reached message without an embed when the wishlist is full', async () => {
+    vi.mocked(getInteractionUserId).mockReturnValue(discordId)
+    vi.mocked(resolveGame).mockResolvedValue([game])
+    vi.mocked(addGameToWishlist).mockResolvedValue({ status: 'limit_reached' })
+
+    const data = expectUpdateMessage(
+      await handleWishlistAddSelect(
+        buildButtonInteraction(`wishlist_add_select:${game.id}`)
+      )
+    )
+
+    expect(data.content).toContain('limit')
+    expect(data.embeds).toBeUndefined()
+    expect(data.components).toEqual([])
+  })
 })

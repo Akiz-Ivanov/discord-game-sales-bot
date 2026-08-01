@@ -4,6 +4,7 @@ import {
   addWishlistItem,
   removeWishlistItem,
   listWishlistItems,
+  countWishlistItems,
 } from '@/repositories/wishlist'
 import { getGamePrices } from '@/services/prices'
 import type {
@@ -12,6 +13,7 @@ import type {
   RemoveFromWishlistResult,
 } from '@/types'
 import { pickCheapestDeal } from '@/lib/pickCheapestDeal'
+import { WISHLIST_LIMIT } from '@/lib/constants'
 
 export const addGameToWishlist = async (
   discordId: string,
@@ -20,6 +22,11 @@ export const addGameToWishlist = async (
 ): Promise<AddToWishlistResult> => {
   const user = await upsertUser(discordId, guildId)
   const gameRow = await upsertGame(game)
+
+  const currentCount = await countWishlistItems(user.id)
+  if (currentCount >= WISHLIST_LIMIT) {
+    return { status: 'limit_reached' }
+  }
 
   const priceSnapshot = await getGamePrices(gameRow.id, game.id)
   const cheapest = pickCheapestDeal(priceSnapshot.deals)

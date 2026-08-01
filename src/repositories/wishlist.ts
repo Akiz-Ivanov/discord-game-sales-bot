@@ -1,6 +1,6 @@
 import { db } from '@/db'
 import { wishlistItems, games, guilds, users } from '@/db/schema'
-import { and, eq, isNotNull } from 'drizzle-orm'
+import { and, count, eq, isNotNull } from 'drizzle-orm'
 
 //* Inserts a wishlist row for (userId, gameId). Returns null instead of
 //* throwing when the pair already exists (unique index on user_id+game_id)
@@ -64,4 +64,12 @@ export const getWishlistedGamesByGuild = async () => {
     .innerJoin(wishlistItems, eq(wishlistItems.userId, users.id))
     .innerJoin(games, eq(games.id, wishlistItems.gameId))
     .where(isNotNull(guilds.notificationChannelId))
+}
+
+export const countWishlistItems = async (userId: number): Promise<number> => {
+  const [row] = await db
+    .select({ count: count() })
+    .from(wishlistItems)
+    .where(eq(wishlistItems.userId, userId))
+  return row?.count ?? 0
 }

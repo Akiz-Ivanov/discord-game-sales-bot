@@ -11,6 +11,7 @@ import {
   addWishlistItem,
   removeWishlistItem,
   listWishlistItems,
+  countWishlistItems,
 } from '@/repositories/wishlist'
 import { game, makeDeal, makeGameRow } from '@/test/factories'
 import { PriceSnapshot } from '@/types'
@@ -26,6 +27,7 @@ vi.mock('@/repositories/wishlist', () => ({
   addWishlistItem: vi.fn(),
   removeWishlistItem: vi.fn(),
   listWishlistItems: vi.fn(),
+  countWishlistItems: vi.fn(),
 }))
 vi.mock('@/services/prices', () => ({
   getGamePrices: vi.fn(),
@@ -38,6 +40,7 @@ const gameRow = makeGameRow({ id: 2 })
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.mocked(countWishlistItems).mockResolvedValue(0)
 })
 
 describe('addGameToWishlist', () => {
@@ -169,6 +172,40 @@ describe('addGameToWishlist', () => {
       status: 'already_exists',
       priceSnapshot: snapshot,
     })
+  })
+
+  it('returns "limit_reached" without fetching prices or inserting when the user is at the cap', async () => {
+    vi.mocked(upsertUser).mockResolvedValue(userRow)
+    vi.mocked(upsertGame).mockResolvedValue(gameRow)
+    vi.mocked(countWishlistItems).mockResolvedValue(100)
+
+    const result = await addGameToWishlist(discordId, guildId, game)
+
+    expect(result).toEqual({ status: 'limit_reached' })
+    expect(getGamePrices).not.toHaveBeenCalled()
+    expect(addWishlistItem).not.toHaveBeenCalled()
+  })
+
+  it('proceeds normally when the user is under the cap', async () => {
+    vi.mocked(upsertUser).mockResolvedValue(userRow)
+    vi.mocked(upsertGame).mockResolvedValue(gameRow)
+    vi.mocked(countWishlistItems).mockResolvedValue(5)
+    vi.mocked(getGamePrices).mockResolvedValue({
+      deals: [],
+      historyLowInt: undefined,
+      historyLowCurrency: undefined,
+    })
+    vi.mocked(addWishlistItem).mockResolvedValue({
+      id: 1,
+      userId: userRow.id,
+      gameId: gameRow.id,
+      lastNotifiedPrice: null,
+      createdAt: new Date(),
+    })
+
+    const result = await addGameToWishlist(discordId, guildId, game)
+
+    expect(result.status).toBe('added')
   })
 })
 

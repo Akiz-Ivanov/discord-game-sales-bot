@@ -10,6 +10,7 @@ import {
 import { resolveGame } from '@/services/games'
 import { getInteractionGuildId } from '../interactions/getInteractionGuildId'
 import { buildPriceEmbed } from '@/discord/embeds/price'
+import { WISHLIST_LIMIT, wishlistLimitReachedMessage } from '@/lib/constants'
 
 export const handleWishlistRemoveSelect: ComponentHandler = async (
   interaction
@@ -88,6 +89,17 @@ export const handleWishlistAddSelect: ComponentHandler = async (
       data: {
         flags: MessageFlags.Ephemeral,
         content: `**${match.title}** is already on your wishlist.`,
+        components: [],
+      },
+    }
+  }
+
+  if (result.status === 'limit_reached') {
+    return {
+      type: InteractionResponseType.UpdateMessage,
+      data: {
+        flags: MessageFlags.Ephemeral,
+        content: wishlistLimitReachedMessage(),
         components: [],
       },
     }

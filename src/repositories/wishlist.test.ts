@@ -6,6 +6,7 @@ import {
   removeWishlistItem,
   listWishlistItems,
   getWishlistedGamesByGuild,
+  countWishlistItems,
 } from './wishlist'
 import { upsertUser } from './users'
 import { upsertGame } from './games'
@@ -260,5 +261,40 @@ describe('getWishlistedGamesByGuild', () => {
     const result = await getWishlistedGamesByGuild()
 
     expect(result[0].lastNotifiedPrice).toBe(999)
+  })
+})
+
+describe('countWishlistItems', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('returns 0 for a user with no wishlist items', async () => {
+    const { userId } = await setup()
+
+    expect(await countWishlistItems(userId)).toBe(0)
+  })
+
+  it('returns the correct count after items are added', async () => {
+    const { userId, gameId } = await setup()
+    const secondGame = await upsertGame({
+      ...game,
+      id: 'b1b2c3d4-0000-0000-0000-000000000000',
+      slug: 'second-game',
+      title: 'Second Game',
+    })
+    await addWishlistItem(userId, gameId)
+    await addWishlistItem(userId, secondGame.id)
+
+    expect(await countWishlistItems(userId)).toBe(2)
+  })
+
+  it("does not count another user's wishlist items", async () => {
+    const { userId, gameId } = await setup()
+    const otherUser = await upsertUser('987654321098765432', guildId)
+    await addWishlistItem(userId, gameId)
+    await addWishlistItem(otherUser.id, gameId)
+
+    expect(await countWishlistItems(userId)).toBe(1)
   })
 })

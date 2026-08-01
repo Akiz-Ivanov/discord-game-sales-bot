@@ -12,6 +12,7 @@ import { getInteractionUserId } from '@/discord/interactions/getInteractionUserI
 import { buildGameSelectButtons } from '@/discord/interactions/buildGameSelectButtons'
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
 import { buildPriceEmbed } from '@/discord/embeds/price'
+import { WISHLIST_LIMIT, wishlistLimitReachedMessage } from '@/lib/constants'
 
 const MAX_SELECT_OPTIONS = 25
 
@@ -74,6 +75,16 @@ const handleAdd: CommandHandler = async (interaction) => {
       data: {
         flags: MessageFlags.Ephemeral,
         content: `**${match.title}** is already on your wishlist.`,
+      },
+    }
+  }
+
+  if (result.status === 'limit_reached') {
+    return {
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        flags: MessageFlags.Ephemeral,
+        content: wishlistLimitReachedMessage(),
       },
     }
   }

@@ -252,6 +252,11 @@
       fetch bundle data alongside the initial ITAD call but keep it
       collapsed until a user expands it. Needs to be prototyped/seen
       live before choosing, same posture as sale alert card v2.
+- [ ] Additional `/config` subcommands (currency, stores, role) — deferred post-MVP
+  - alert-visibility toggle: admin-set per-guild flag for whether sale
+    alerts post as ephemeral or visible-to-all (some guilds may want
+    alerts shareable/visible for group deal-hunting) — reads at
+    buildSaleAlertMessage()/postChannelMessage() time
 - [ ] Discord Developer Portal polish — bot avatar/icon, app
       description, permissions/OAuth scope review — relevant once
       global command registration and a wider invite are actually on
@@ -267,6 +272,12 @@
       `addWishlistItem`/`getUserByDiscordId` null-inference bug
       retroactively). Do as its own pass: flip flag, run
       `tsc --noEmit`, fix each site on its own merits.
+- [ ] Surface `/wishlist remove`'s select menu directly on the
+      limit-reached reply — lets a user free a slot without a second
+      command round-trip. Reuses the existing select-menu builder from
+      handleRemove; no new state needed. Explicitly NOT auto-adding the
+      pending game after a removal — keeps every wishlist mutation an
+      explicit user action.
 - [ ] "Add to wishlist" button on `/price` embed replies — now unblocked
       (`/wishlist add`/`addGameToWishlist` service both exist). Needs a
       per-user wishlist-membership check at embed-build time to decide
