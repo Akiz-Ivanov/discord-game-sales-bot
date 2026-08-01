@@ -1,4 +1,4 @@
-import { InteractionResponseType, MessageFlags } from 'discord-api-types/v10'
+import { InteractionResponseType } from 'discord-api-types/v10'
 import type { CommandHandler } from '@/types'
 import { resolveGame } from '@/services/games'
 import { getGamePrices } from '@/services/prices'

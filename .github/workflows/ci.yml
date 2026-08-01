@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: discord_game_sales_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      neon-proxy:
+        image: ghcr.io/timowilhelm/local-neon-http-proxy:main
+        env:
+          PG_CONNECTION_STRING: postgres://postgres:postgres@postgres:5432/discord_game_sales_test
+        ports:
+          - 4545:4444
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@db.localtest.me:5432/discord_game_sales_test
+      DISCORD_PUBLIC_KEY: test-public-key
+      DISCORD_BOT_TOKEN: test-bot-token
+      DISCORD_APPLICATION_ID: test-app-id
+      ITAD_API_KEY: test-itad-key
+      CRON_SECRET: test-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply schema to test database
+        run: |
+          for f in drizzle/*.sql; do
+            echo "Applying $f"
+            PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d discord_game_sales_test -f "$f"
+          done
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test

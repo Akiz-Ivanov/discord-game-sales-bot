@@ -17,7 +17,6 @@ services:
 
   # Translates the Neon serverless (HTTP) protocol that drizzle-orm/neon-http
   # speaks into plain Postgres wire protocol against the container above —
-  # lets src/db/index.ts stay completely unchanged for local/test use.
   neon-proxy:
     image: ghcr.io/timowilhelm/local-neon-http-proxy:main
     environment:
