@@ -156,6 +156,36 @@
 
 ## v1.1
 
+- [x] CI/CD via GitHub Actions — `test` job runs on every push/PR to
+      `main`: spins up Postgres 16 + `local-neon-http-proxy` as service
+      containers (mirrors docker-compose.yml), applies committed
+      `drizzle/*.sql` migrations via `psql`, then runs lint + the full
+      Vitest suite (183 tests)
+  - had to align the workflow's Node version with local dev (24) —
+    `npm ci`'s strict lockfile check resolved `esbuild`'s
+    platform-specific optional deps differently under Node 22 vs 24,
+    failing installs that were fine locally; added `.nvmrc` +
+    `engines` in package.json so this can't silently drift again
+  - job-level env vars for DISCORD_BOT_TOKEN/ITAD_API_KEY initially
+    masked two tests asserting those vars are unset (each already
+    manages its own value via `vi.stubEnv()`) — trimmed `env:` down
+    to just DATABASE_URL/NODE_ENV
+  - branch ruleset on `main`: requires the `test` status check,
+    restricts force pushes/deletions, self added as bypass actor
+    (solo dev — not requiring PRs for every change yet)
+  - `npm audit` cleanup alongside: patched `brace-expansion` (clean
+    fix) and bumped `next` 16.2.10 → 16.2.12 (patches several
+    high-severity CVEs — SSRF, DoS in Server Actions). Remaining
+    Next.js findings have no patched release yet upstream (advisory
+    range spans nearly all of Next's history — `npm audit`'s only
+    "fix" is downgrading to pre-App-Router 9.x, a regression, not a
+    real fix); left as-is pending a real upstream patch. `esbuild`
+    finding (via `drizzle-kit`'s `@esbuild-kit/*` chain) also left
+    alone — dev-server-only risk, and the suggested fix downgrades
+    `drizzle-kit`
+  - Dependabot enabled: dependency graph, alerts, and security
+    updates on via repo settings; `.github/dependabot.yml` added for
+    weekly routine version-bump PRs (capped at 5 open at once)
 - [ ] Autocomplete on game search (Discord's native `autocomplete` option type — not a manual numbered list)
 - [ ] Display price history (data's already being logged from MVP)
 - [ ] Pagination for `/wishlist remove`'s select menu (only matters once
@@ -183,10 +213,6 @@
       suits. Could pair with colored Add/Remove buttons per item
       (`ButtonStyle.Success`/`Danger` — not V2-specific, works in the
       existing ActionRow system too)
-- [ ] CI/CD via GitHub Actions — run `npm test` (with a Postgres service
-      container, mirroring docker-compose.yml) + lint on every push/PR.
-      Already locked in as the stack choice in the architecture notes
-      below; this is turning that into an actual checklist item.
 - [ ] Per-user wishlist size cap (suggested: 100 games) — guards against
       abuse (scripted mass-add) without constraining any real usage
       pattern. `countWishlistItems` repo helper + a check in
