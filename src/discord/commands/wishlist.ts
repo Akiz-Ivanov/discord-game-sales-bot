@@ -12,7 +12,9 @@ import { getInteractionUserId } from '@/discord/interactions/getInteractionUserI
 import { buildGameSelectButtons } from '@/discord/interactions/buildGameSelectButtons'
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
 import { buildPriceEmbed } from '@/discord/embeds/price'
-import { WISHLIST_LIMIT, wishlistLimitReachedMessage } from '@/lib/constants'
+import { wishlistLimitReachedMessage } from '@/lib/constants'
+import { buildWishlistListMessage } from '../views/wishlistList'
+import { getWishlistPrices } from '@/services/prices'
 
 const MAX_SELECT_OPTIONS = 25
 
@@ -120,14 +122,13 @@ const handleList: CommandHandler = async (interaction) => {
     }
   }
 
-  const list = items.map((i, idx) => `${idx + 1}. ${i.game.title}`).join('\n')
+  const prices = await getWishlistPrices(
+    items.map((i) => ({ gameDbId: i.game.id, itadId: i.game.itadId }))
+  )
 
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
-    data: {
-      flags: MessageFlags.Ephemeral,
-      content: `**Your Wishlist**\n${list}`,
-    },
+    data: buildWishlistListMessage(items, prices),
   }
 }
 

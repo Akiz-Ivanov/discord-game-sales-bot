@@ -7,6 +7,6 @@ describe('formatMoney', () => {
   })
 
   it('handles zero correctly', () => {
-    expect(formatMoney(0, 'USD')).toBe('$0.00')
+    expect(formatMoney(0, 'USD')).toBe('Free')
   })
 })

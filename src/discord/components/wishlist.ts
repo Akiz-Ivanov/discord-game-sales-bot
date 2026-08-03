@@ -1,4 +1,8 @@
-import { InteractionResponseType, MessageFlags } from 'discord-api-types/v10'
+import {
+  ComponentType,
+  InteractionResponseType,
+  MessageFlags,
+} from 'discord-api-types/v10'
 import type { ComponentHandler } from '@/types'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { getUserByDiscordId } from '@/repositories/users'
@@ -10,7 +14,9 @@ import {
 import { resolveGame } from '@/services/games'
 import { getInteractionGuildId } from '../interactions/getInteractionGuildId'
 import { buildPriceEmbed } from '@/discord/embeds/price'
-import { WISHLIST_LIMIT, wishlistLimitReachedMessage } from '@/lib/constants'
+import { wishlistLimitReachedMessage } from '@/lib/constants'
+import { buildWishlistListMessage } from '../views/wishlistList'
+import { getWishlistPrices } from '@/services/prices'
 
 export const handleWishlistRemoveSelect: ComponentHandler = async (
   interaction
@@ -120,5 +126,36 @@ export const handleWishlistAddSelect: ComponentHandler = async (
       ],
       components: [],
     },
+  }
+}
+
+export const handleWishlistItemRemove: ComponentHandler = async (
+  interaction
+) => {
+  const gameId = Number(interaction.data.custom_id.split(':')[1])
+  const discordId = getInteractionUserId(interaction)
+  const user = await getUserByDiscordId(discordId)
+
+  if (!user || !gameId) {
+    return {
+      type: InteractionResponseType.UpdateMessage,
+      data: {
+        flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+        components: [
+          { type: ComponentType.TextDisplay, content: 'Something went wrong.' },
+        ],
+      },
+    }
+  }
+
+  await removeGameFromWishlist(user.id, gameId)
+  const items = await getWishlist(discordId)
+  const prices = await getWishlistPrices(
+    items.map((i) => ({ gameDbId: i.game.id, itadId: i.game.itadId }))
+  )
+
+  return {
+    type: InteractionResponseType.UpdateMessage,
+    data: buildWishlistListMessage(items, prices),
   }
 }

@@ -1,14 +1,13 @@
 import { db } from '@/db'
 import { games, prices } from '@/db/schema'
-import { eq, gte, and } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import type { ItadDeal, ItadMoney, PriceSnapshot } from '@/types'
+import { buildConflictUpdateColumns } from '@/db/buildConflictUpdateColumns'
 
-// Midnight UTC. A "day" here is a calendar-UTC day, not the user's local
-// day — simplest thing that works; revisit only if someone actually
-// complains about a cache boundary crossing at a weird local hour.
-const startOfTodayUTC = () => new Date(new Date().toISOString().slice(0, 10))
+//* "YYYY-MM-DD" in UTC — matches the `date` column's string mode (Drizzle
+//* doesn't convert `date` columns to JS Date objects unless told to)
+const todayDateString = () => new Date().toISOString().slice(0, 10)
 
-// null = no check logged yet today → caller should hit ITAD.
 export const getCachedPrices = async (
   gameDbId: number
 ): Promise<PriceSnapshot | null> => {
@@ -16,7 +15,10 @@ export const getCachedPrices = async (
     .select()
     .from(prices)
     .where(
-      and(eq(prices.gameId, gameDbId), gte(prices.checkedAt, startOfTodayUTC()))
+      and(
+        eq(prices.gameId, gameDbId),
+        eq(prices.checkedDate, todayDateString())
+      )
     )
 
   if (rows.length === 0) return null
@@ -36,16 +38,29 @@ export const getCachedPrices = async (
   }
 }
 
-// One prices row per shop deal, plus a rolling update to the game's
-// all-time low. Call right after a live ITAD call.
 export const savePrices = async (
   gameDbId: number,
   deals: ItadDeal[],
   historyLow?: ItadMoney
 ) => {
-  if (deals.length > 0) {
-    await db.insert(prices).values(
-      deals.map((d) => ({
+  await savePricesBulk([{ gameDbId, deals, historyLow }])
+}
+
+export const savePricesBulk = async (
+  entries: { gameDbId: number; deals: ItadDeal[]; historyLow?: ItadMoney }[]
+) => {
+  const checkedDate = todayDateString()
+
+  //* Dedup by (gameId, shopId) before building the INSERT batch — Postgres's
+  //* ON CONFLICT DO UPDATE can't touch the same target row twice in one
+  //* statement, and ITAD's own deals array isn't guaranteed to be
+  //* shop-unique per game. Last write wins per key.
+  const dedupedRows = new Map<string, typeof prices.$inferInsert>()
+
+  for (const { gameDbId, deals } of entries) {
+    for (const d of deals) {
+      const key = `${gameDbId}:${d.shop.id}`
+      dedupedRows.set(key, {
         gameId: gameDbId,
         shopId: d.shop.id,
         shopName: d.shop.name,
@@ -54,17 +69,41 @@ export const savePrices = async (
         cut: d.cut,
         currency: d.price.currency,
         url: d.url,
-      }))
-    )
+        checkedDate,
+      })
+    }
   }
 
-  if (historyLow) {
+  const allRows = [...dedupedRows.values()]
+
+  if (allRows.length > 0) {
     await db
-      .update(games)
-      .set({
-        historyLowAmount: historyLow.amountInt,
-        historyLowCurrency: historyLow.currency,
+      .insert(prices)
+      .values(allRows)
+      .onConflictDoUpdate({
+        target: [prices.gameId, prices.shopId, prices.checkedDate],
+        set: buildConflictUpdateColumns(prices, [
+          'priceAmount',
+          'regularAmount',
+          'cut',
+          'currency',
+          'url',
+          'checkedAt',
+        ]),
       })
-      .where(eq(games.id, gameDbId))
   }
+
+  await Promise.all(
+    entries
+      .filter((e) => e.historyLow)
+      .map((e) =>
+        db
+          .update(games)
+          .set({
+            historyLowAmount: e.historyLow!.amountInt,
+            historyLowCurrency: e.historyLow!.currency,
+          })
+          .where(eq(games.id, e.gameDbId))
+      )
+  )
 }

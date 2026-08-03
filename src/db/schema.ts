@@ -6,6 +6,7 @@ import {
   timestamp,
   uuid,
   uniqueIndex,
+  date,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -66,21 +67,34 @@ export const wishlistItems = pgTable(
 
 // One row per (game, shop) per daily check — the full price history log.
 // Logged from day one per TODO, even before anything displays it.
-export const prices = pgTable('prices', {
-  id: serial('id').primaryKey(),
-  gameId: integer('game_id')
-    .notNull()
-    .references(() => games.id, { onDelete: 'cascade' }),
-  shopId: integer('shop_id').notNull(), // ITAD's shop ID (e.g. 61 = Steam)
-  shopName: text('shop_name').notNull(), // denormalized to skip a join for display
-  // All money as integer cents (ITAD's `amountInt`) — never float.
-  priceAmount: integer('price_amount').notNull(),
-  regularAmount: integer('regular_amount').notNull(),
-  cut: integer('cut').notNull(), // percent off, e.g. 34
-  currency: text('currency').notNull(), // ISO 4217, e.g. "USD"
-  url: text('url').notNull(), // ITAD affiliate deep link to the deal
-  checkedAt: timestamp('checked_at').notNull().defaultNow(),
-})
+export const prices = pgTable(
+  'prices',
+  {
+    id: serial('id').primaryKey(),
+    gameId: integer('game_id')
+      .notNull()
+      .references(() => games.id, { onDelete: 'cascade' }),
+    shopId: integer('shop_id').notNull(),
+    shopName: text('shop_name').notNull(),
+    priceAmount: integer('price_amount').notNull(),
+    regularAmount: integer('regular_amount').notNull(),
+    cut: integer('cut').notNull(),
+    currency: text('currency').notNull(),
+    url: text('url').notNull(),
+    //* UTC calendar day of this check — drives the one-row-per-shop-per-day
+    //* guarantee below. Separate from checkedAt (a precise timestamp) since
+    //* the uniqueness needs to be on the *day*, not the moment.
+    checkedDate: date('checked_date').notNull(),
+    checkedAt: timestamp('checked_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('prices_game_shop_date_idx').on(
+      table.gameId,
+      table.shopId,
+      table.checkedDate
+    ),
+  ]
+)
 
 export const guilds = pgTable(
   'guilds',

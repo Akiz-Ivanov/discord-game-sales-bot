@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { handleWishlistRemoveSelect, handleWishlistAddSelect } from './wishlist'
+import {
+  handleWishlistRemoveSelect,
+  handleWishlistAddSelect,
+  handleWishlistItemRemove,
+} from './wishlist'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
 import { getUserByDiscordId } from '@/repositories/users'
@@ -8,11 +12,13 @@ import {
   removeGameFromWishlist,
   addGameToWishlist,
 } from '@/services/wishlist'
-import { InteractionResponseType } from 'discord-api-types/v10'
+import { InteractionResponseType, MessageFlags } from 'discord-api-types/v10'
 import type { APIInteractionResponse, APIEmbed } from 'discord-api-types/v10'
 import { game, makeGameRow, makeWishlistItemRow } from '@/test/factories'
 import { resolveGame } from '@/services/games'
 import { buildPriceEmbed } from '@/discord/embeds/price'
+import { buildWishlistListMessage } from '../views/wishlistList'
+import { getWishlistPrices } from '@/services/prices'
 
 vi.mock('@/discord/interactions/getInteractionUserId', () => ({
   getInteractionUserId: vi.fn(),
@@ -28,6 +34,10 @@ vi.mock('@/services/wishlist', () => ({
 }))
 vi.mock('@/services/games', () => ({ resolveGame: vi.fn() }))
 vi.mock('@/discord/embeds/price', () => ({ buildPriceEmbed: vi.fn() }))
+vi.mock('@/discord/views/wishlistList', () => ({
+  buildWishlistListMessage: vi.fn(),
+}))
+vi.mock('@/services/prices', () => ({ getWishlistPrices: vi.fn() }))
 
 const discordId = '255361746758402048'
 const guildId = '999888777666555444'
@@ -45,6 +55,11 @@ const buildSelectInteraction = (value: string) =>
   ({
     data: { custom_id: 'wishlist_remove_select', values: [value] },
   }) as unknown as Parameters<typeof handleWishlistRemoveSelect>[0]
+
+const buildRemoveButtonInteraction = (customId: string) =>
+  ({ data: { custom_id: customId } }) as unknown as Parameters<
+    typeof handleWishlistItemRemove
+  >[0]
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -179,5 +194,48 @@ describe('handleWishlistAddSelect', () => {
     expect(data.content).toContain('limit')
     expect(data.embeds).toBeUndefined()
     expect(data.components).toEqual([])
+  })
+})
+
+describe('handleWishlistItemRemove', () => {
+  beforeEach(() => {
+    vi.mocked(getWishlistPrices).mockResolvedValue(new Map())
+  })
+
+  it('removes the game, re-fetches live prices, and re-renders the list', async () => {
+    vi.mocked(getUserByDiscordId).mockResolvedValue(userRow)
+    vi.mocked(getWishlist).mockResolvedValue([
+      makeWishlistItemRow({ game: makeGameRow({ id: 5, itadId: 'itad-5' }) }),
+    ])
+    const fakeMessage = { flags: 0, components: [] }
+    vi.mocked(buildWishlistListMessage).mockReturnValue(fakeMessage as never)
+
+    const data = expectUpdateMessage(
+      await handleWishlistItemRemove(
+        buildRemoveButtonInteraction('wishlist_item_remove:5')
+      )
+    )
+
+    expect(removeGameFromWishlist).toHaveBeenCalledWith(userRow.id, 5)
+    expect(getWishlistPrices).toHaveBeenCalledWith([
+      { gameDbId: 5, itadId: 'itad-5' },
+    ])
+    expect(data).toEqual(fakeMessage)
+  })
+
+  it('returns a components-v2 fallback without removing anything when no user row exists', async () => {
+    vi.mocked(getUserByDiscordId).mockResolvedValue(null)
+
+    const result = await handleWishlistItemRemove(
+      buildRemoveButtonInteraction('wishlist_item_remove:5')
+    )
+
+    expect(removeGameFromWishlist).not.toHaveBeenCalled()
+    if (result.type !== InteractionResponseType.UpdateMessage) {
+      throw new Error(`Expected UpdateMessage, got type ${result.type}`)
+    }
+    expect(result.data?.flags).toBe(
+      MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+    )
   })
 })

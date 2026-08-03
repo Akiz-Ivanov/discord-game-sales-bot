@@ -186,6 +186,74 @@
   - Dependabot enabled: dependency graph, alerts, and security
     updates on via repo settings; `.github/dependabot.yml` added for
     weekly routine version-bump PRs (capped at 5 open at once)
+- [x] Per-user wishlist size cap (100 games/user) — guards against
+      scripted mass-add abuse without constraining real usage.
+      `lib/constants.ts`'s `WISHLIST_LIMIT` + `wishlistLimitReachedMessage()`;
+      `countWishlistItems` repo helper checked in `addGameToWishlist`
+      before insert (before the ITAD price call — no wasted API call for
+      an already-full wishlist). New `AddToWishlistResult` status:
+      `'limit_reached'`, handled on both `/wishlist add` and its
+      button-driven counterpart (`handleWishlistAddSelect`) with a
+      friendly reply instead of a raw DB error. Full test coverage:
+      repo (real Postgres), service (mocked, both branches), one
+      assertion each in command/component test files.
+- [x] `/wishlist list` overhaul — Components V2 (`Container`/`Section`/
+      `TextDisplay`/`Separator`/`Button` accessory), replacing the old
+      flat numbered text list. New `discord/views/wishlistList.ts`
+      (`buildWishlistListMessage`) — one `Section` per game (bold title + subtext price line in a single merged `TextDisplay`, capped at
+      8 items/page per the 40-component-per-message budget), each with
+      an inline Remove button (`wishlist_item_remove:{gameId}`) via a
+      new `handleWishlistItemRemove` component handler that re-fetches
+      and re-renders the list on click (`InteractionResponseType.UpdateMessage`)
+  - Live pricing: `/wishlist list` now shows the cheapest current deal
+    per game, not just a static "added on" date. New
+    `services/prices.ts`'s `getWishlistPrices()` — one batched ITAD
+    call for the whole page (dedup'd by itadId), returns cheapest deal
+    per game via existing `pickCheapestDeal`. Deliberately bypasses
+    `getGamePrices`' same-day cache-READ for freshness, but still
+    writes through to the cache so a `/price` lookup right after
+    benefits. Crucially never touches `wishlist_items.lastNotifiedPrice`
+    — that's cron/add-time-only, so viewing the list can't silently
+    suppress a future sale alert.
+  - `formatMoney` now returns `'Free'` instead of `'$0.00'`
+  - Discount badge icon (custom emoji, circled caret) tried inline next
+    to the title, in the price line, and dropped entirely after a live
+    side-by-side comparison — the `(−80%)` text already communicates
+    it clearly, and the icon read as clutter at 8-rows-repeated density
+    (kept as-is on `/price`, where it's one-per-message, not repeated)
+  - **Real bug found and fixed along the way**: `prices` table had no
+    uniqueness constraint — repeat same-day price checks (e.g. from
+    `/wishlist list`'s always-live fetch) were appending duplicate rows
+    instead of updating, confirmed live (600+ duplicate rows found in
+    prod Neon data, cleaned up via a one-time dedup + migration). Fixed
+    at the schema level: new `checked_date` column +
+    `prices_game_shop_date_idx` unique index on
+    `(game_id, shop_id, checked_date)`; `savePrices`/`savePricesBulk`
+    now upsert via `onConflictDoUpdate` instead of blind `INSERT`.
+    `savePricesBulk` also dedupes its own input batch by
+    `(gameId, shopId)` before insert — Postgres's `ON CONFLICT DO UPDATE` can't
+    touch the same target row twice in one statement,
+    and ITAD's own `deals` array isn't guaranteed shop-unique per game.
+    New `db/buildConflictUpdateColumns.ts` helper (Drizzle's own
+    documented pattern) generates the upsert `set` clause from real
+    column names instead of hand-typed `excluded.x` strings — avoids a
+    documented Drizzle footgun around camelCase/snake_case mismatches.
+  - Full test coverage: `repositories/prices.test.ts` (upsert/dedup
+    behavior against real Postgres), `services/prices.test.ts`
+    (`getWishlistPrices`), `discord/views/wishlistList.test.ts` (new,
+    100% coverage — component structure, price/title matching by game
+    id not list order, 8-item cap, Free/no-deal/discount-line
+    formatting), plus command/component handler coverage. 221/221
+    passing project-wide.
+  - **Not done yet, deliberately deferred**: pagination. Wishlist is
+    capped at 8 games/page (component budget), real test wishlists
+    have been at exactly 8 all session — no concrete need yet to build
+    against. Next up.
+- [ ] `/wishlist list` pagination — needed once a wishlist exceeds the
+      8-item Components V2 page cap. Same `custom_id`-carries-page-number
+      pattern already used for `/wishlist remove`'s select menu
+      (`wishlist_remove_page:2`) — re-fetch + re-slice fresh each time,
+      no cached state needed.
 - [ ] Autocomplete on game search (Discord's native `autocomplete` option type — not a manual numbered list)
 - [ ] Display price history (data's already being logged from MVP)
 - [ ] Pagination for `/wishlist remove`'s select menu (only matters once
@@ -205,23 +273,6 @@
       second look specifically for this card shape (unlike /wishlist
       list's field-grid problem, a stacked list of games is exactly
       what V2's Container/Section model suits)
-- [ ] Components V2 (`Container`/`Section`/`TextDisplay`/`Separator`) for
-      `/wishlist list` — lost to embeds for `/price` in a same-session
-      side-by-side test (V2 has no inline-field-grid equivalent, so the
-      release/reviews/players row collapsed into a taller stacked block),
-      but a plain vertical item list is exactly what V2's stacking model
-      suits. Could pair with colored Add/Remove buttons per item
-      (`ButtonStyle.Success`/`Danger` — not V2-specific, works in the
-      existing ActionRow system too)
-- [ ] Per-user wishlist size cap (suggested: 100 games) — guards against
-      abuse (scripted mass-add) without constraining any real usage
-      pattern. `countWishlistItems` repo helper + a check in
-      `addGameToWishlist` before insert, friendly reply on rejection
-      instead of a raw DB error.
-- [ ] `/wishlist list` embed/Components V2 overhaul — current version is
-      a flat numbered text list, feels thin next to /price's embed.
-      Bumped up from backlog since this needs to feel solid before any
-      wider release, not just a someday polish item.
 
 ## Later / backlog
 

@@ -15,6 +15,13 @@
       "when": 1785267766408,
       "tag": "0001_odd_sally_floyd",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785687156608,
+      "tag": "0002_curly_the_fury",
+      "breakpoints": true
     }
   ]
 }

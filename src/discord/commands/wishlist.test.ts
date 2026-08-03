@@ -14,6 +14,7 @@ import {
 import type { APIEmbed, APIInteractionResponse } from 'discord-api-types/v10'
 import { game, makeGameRow, makeWishlistItemRow } from '@/test/factories'
 import { buildPriceEmbed } from '../embeds/price'
+import { getWishlistPrices } from '@/services/prices'
 
 vi.mock('@/services/games', () => ({ resolveGame: vi.fn() }))
 vi.mock('@/services/wishlist', () => ({
@@ -29,6 +30,7 @@ vi.mock('@/discord/interactions/getInteractionGuildId', () => ({
   getInteractionGuildId: vi.fn(),
 }))
 vi.mock('@/discord/embeds/price', () => ({ buildPriceEmbed: vi.fn() }))
+vi.mock('@/services/prices', () => ({ getWishlistPrices: vi.fn() }))
 
 const discordId = '255361746758402048'
 const guildId = '999888777666555444'
@@ -201,20 +203,48 @@ describe('wishlist command handler — add', () => {
 })
 
 describe('wishlist command handler — list', () => {
+  beforeEach(() => {
+    vi.mocked(getWishlistPrices).mockResolvedValue(new Map())
+  })
+
   it('shows an empty-wishlist message when there are no items', async () => {
     vi.mocked(getWishlist).mockResolvedValue([])
     const data = expectChannelMessage(await wishlist(buildListInteraction()))
     expect(data.content).toContain('empty')
+    expect(getWishlistPrices).not.toHaveBeenCalled() //* empty branch returns before fetching prices
   })
 
-  it('lists all wishlist items in order', async () => {
+  it('renders a Components V2 message with one Container for a non-empty wishlist', async () => {
     vi.mocked(getWishlist).mockResolvedValue([
-      makeWishlistItemRow({ game: makeGameRow({ title: 'Hollow Knight' }) }),
-      makeWishlistItemRow({ game: makeGameRow({ title: 'Celeste' }) }),
+      makeWishlistItemRow({
+        game: makeGameRow({ id: 1, title: 'Hollow Knight' }),
+      }),
+      makeWishlistItemRow({ game: makeGameRow({ id: 2, title: 'Celeste' }) }),
     ])
-    const data = expectChannelMessage(await wishlist(buildListInteraction()))
-    expect(data.content).toContain('1. Hollow Knight')
-    expect(data.content).toContain('2. Celeste')
+
+    const result = await wishlist(buildListInteraction())
+
+    if (result.type !== InteractionResponseType.ChannelMessageWithSource) {
+      throw new Error(
+        `Expected ChannelMessageWithSource, got type ${result.type}`
+      )
+    }
+    expect(result.data?.flags).toBe(
+      MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+    )
+    expect(result.data?.components).toHaveLength(1)
+  })
+
+  it('passes each wishlisted game to getWishlistPrices for the live price fetch', async () => {
+    vi.mocked(getWishlist).mockResolvedValue([
+      makeWishlistItemRow({ game: makeGameRow({ id: 1, itadId: 'itad-1' }) }),
+    ])
+
+    await wishlist(buildListInteraction())
+
+    expect(getWishlistPrices).toHaveBeenCalledWith([
+      { gameDbId: 1, itadId: 'itad-1' },
+    ])
   })
 })
 

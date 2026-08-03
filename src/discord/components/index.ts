@@ -1,5 +1,9 @@
 import type { ComponentHandler } from '@/types'
-import { handleWishlistAddSelect, handleWishlistRemoveSelect } from './wishlist'
+import {
+  handleWishlistAddSelect,
+  handleWishlistRemoveSelect,
+  handleWishlistItemRemove,
+} from './wishlist'
 import { handlePriceSelect } from './price'
 
 //* Keyed by the literal prefix before the first ':' in custom_id.
@@ -8,5 +12,6 @@ import { handlePriceSelect } from './price'
 export const components: Record<string, ComponentHandler> = {
   wishlist_remove_select: handleWishlistRemoveSelect,
   wishlist_add_select: handleWishlistAddSelect,
+  wishlist_item_remove: handleWishlistItemRemove,
   price_select: handlePriceSelect,
 }

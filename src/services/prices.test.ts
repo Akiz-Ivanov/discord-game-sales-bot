@@ -1,17 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getGamePrices } from './prices'
+import { getGamePrices, getWishlistPrices } from './prices'
 import { getPrices } from '@/itad/client'
-import { getCachedPrices, savePrices } from '@/repositories/prices'
+import {
+  getCachedPrices,
+  savePrices,
+  savePricesBulk,
+} from '@/repositories/prices'
 import type { ItadGamePrices, PriceSnapshot } from '@/types'
 import { makeDeal } from '@/test/factories'
 
-vi.mock('@/itad/client', () => ({
-  getPrices: vi.fn(),
-}))
-
+vi.mock('@/itad/client', () => ({ getPrices: vi.fn() }))
 vi.mock('@/repositories/prices', () => ({
   getCachedPrices: vi.fn(),
   savePrices: vi.fn(),
+  savePricesBulk: vi.fn(),
 }))
 
 const gameDbId = 1
@@ -111,5 +113,71 @@ describe('getGamePrices — cache miss', () => {
     expect(savePrices).toHaveBeenCalledWith(gameDbId, [], undefined)
     expect(result.historyLowInt).toBeUndefined()
     expect(result.historyLowCurrency).toBeUndefined()
+  })
+})
+
+describe('getWishlistPrices', () => {
+  it('returns an empty Map without calling ITAD when targets is empty', async () => {
+    const result = await getWishlistPrices([])
+
+    expect(result).toEqual(new Map())
+    expect(getPrices).not.toHaveBeenCalled()
+    expect(savePricesBulk).not.toHaveBeenCalled()
+  })
+
+  it('dedupes itadIds across targets before calling getPrices', async () => {
+    vi.mocked(getPrices).mockResolvedValue([])
+
+    await getWishlistPrices([
+      { gameDbId: 1, itadId },
+      { gameDbId: 2, itadId }, // same itadId, different wishlist row/game — shouldn't happen in practice but shouldn't double-fetch either way
+    ])
+
+    expect(getPrices).toHaveBeenCalledWith([itadId])
+  })
+
+  it('maps each target to its cheapest deal', async () => {
+    const cheap = makeDeal({
+      price: { amount: 5, amountInt: 500, currency: 'USD' },
+    })
+    const expensive = makeDeal({
+      price: { amount: 10, amountInt: 1000, currency: 'USD' },
+    })
+    vi.mocked(getPrices).mockResolvedValue([
+      { id: itadId, historyLow: {}, deals: [expensive, cheap] },
+    ])
+
+    const result = await getWishlistPrices([{ gameDbId, itadId }])
+
+    expect(result.get(gameDbId)).toEqual(cheap)
+  })
+
+  it('maps to undefined when ITAD has no entry for that itadId', async () => {
+    vi.mocked(getPrices).mockResolvedValue([])
+
+    const result = await getWishlistPrices([{ gameDbId, itadId }])
+
+    expect(result.get(gameDbId)).toBeUndefined()
+  })
+
+  it('writes all entries to the cache via savePricesBulk, including historyLow', async () => {
+    const deal = makeDeal()
+    vi.mocked(getPrices).mockResolvedValue([
+      {
+        id: itadId,
+        historyLow: { all: { amount: 4.99, amountInt: 499, currency: 'USD' } },
+        deals: [deal],
+      },
+    ])
+
+    await getWishlistPrices([{ gameDbId, itadId }])
+
+    expect(savePricesBulk).toHaveBeenCalledWith([
+      {
+        gameDbId,
+        deals: [deal],
+        historyLow: { amount: 4.99, amountInt: 499, currency: 'USD' },
+      },
+    ])
   })
 })

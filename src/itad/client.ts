@@ -35,7 +35,9 @@ export const searchGamesByTitle = async (
   }
 
   const results: ItadSearchResponse = await res.json()
-  return results.filter((game) => game.type === 'game')
+  return results.filter(
+    (game) => game.type === 'game' || game.type === 'package'
+  )
 }
 
 //* Exact match by Steam App ID — user typed a number.
