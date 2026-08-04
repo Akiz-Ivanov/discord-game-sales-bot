@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from './route'
 import { verifyKey } from 'discord-interactions'
-import { InteractionType } from 'discord-api-types/v10'
+import { InteractionType, MessageFlags } from 'discord-api-types/v10'
 import { commands } from '@/discord/commands'
 import { components } from '@/discord/components'
 
@@ -114,5 +114,46 @@ describe('POST /api/interactions', () => {
     const res = await POST(buildRequest({ type: 999 }))
 
     expect(res.status).toBe(400)
+  })
+
+  it('returns a friendly ephemeral message when a command handler throws', async () => {
+    vi.mocked(verifyKey).mockResolvedValue(true)
+    vi.mocked(commands.ping).mockRejectedValue(
+      new Error('ITAD search failed: 503')
+    )
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const res = await POST(
+      buildRequest({
+        type: InteractionType.ApplicationCommand,
+        data: { name: 'ping' },
+      })
+    )
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.data.content).toContain('Something went wrong')
+    expect(body.data.flags).toBe(MessageFlags.Ephemeral)
+    consoleSpy.mockRestore()
+  })
+
+  it('returns a friendly ephemeral update when a component handler throws', async () => {
+    vi.mocked(verifyKey).mockResolvedValue(true)
+    vi.mocked(components.wishlist_remove_select).mockRejectedValue(
+      new Error('DB connection lost')
+    )
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const res = await POST(
+      buildRequest({
+        type: InteractionType.MessageComponent,
+        data: { custom_id: 'wishlist_remove_select' },
+      })
+    )
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.data.content).toContain('Something went wrong')
+    consoleSpy.mockRestore()
   })
 })

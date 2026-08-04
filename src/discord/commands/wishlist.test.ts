@@ -284,4 +284,19 @@ describe('wishlist command handler — remove', () => {
     expect(customId).toBe('wishlist_remove_select')
     expect(options).toHaveLength(25)
   })
+
+  it('adds a nav row when the wishlist exceeds 25 items', async () => {
+    vi.mocked(getUserByDiscordId).mockResolvedValue(userRow)
+    const items = Array.from({ length: 26 }, (_, i) =>
+      makeWishlistItemRow({
+        id: i,
+        game: makeGameRow({ id: i, title: `Game ${i}` }),
+      })
+    )
+    vi.mocked(getWishlist).mockResolvedValue(items)
+
+    const data = expectChannelMessage(await wishlist(buildRemoveInteraction()))
+
+    expect(data.components).toHaveLength(2)
+  })
 })

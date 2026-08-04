@@ -17,6 +17,7 @@ import { buildPriceEmbed } from '@/discord/embeds/price'
 import { wishlistLimitReachedMessage } from '@/lib/constants'
 import { buildWishlistListMessage } from '../views/wishlistList'
 import { getWishlistPrices } from '@/services/prices'
+import { buildWishlistRemoveMessage } from '../views/wishlistRemove'
 
 export const handleWishlistRemoveSelect: ComponentHandler = async (
   interaction
@@ -178,5 +179,20 @@ export const handleWishlistListPage: ComponentHandler = async (interaction) => {
   return {
     type: InteractionResponseType.UpdateMessage,
     data: buildWishlistListMessage(items, prices, page),
+  }
+}
+
+//* custom_id: "wishlist_remove_page:{page}". Same fetch → render shape as
+//* handleWishlistListPage — pure navigation, no removal happens here.
+export const handleWishlistRemovePage: ComponentHandler = async (
+  interaction
+) => {
+  const page = Number(interaction.data.custom_id.split(':')[1])
+  const discordId = getInteractionUserId(interaction)
+  const items = await getWishlist(discordId)
+
+  return {
+    type: InteractionResponseType.UpdateMessage,
+    data: buildWishlistRemoveMessage(items, page),
   }
 }

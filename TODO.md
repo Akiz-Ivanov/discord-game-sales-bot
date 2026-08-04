@@ -273,13 +273,49 @@
     Candidate follow-up: swap to `⬅️ ➡️` (real emoji codepoints, render
     identically everywhere) or app-owned custom emoji matching the
     Remove button's trash-icon style for full visual consistency.
+- [x] `/wishlist remove` pagination — same shape as `/wishlist list`'s,
+      but capped by Discord's flat 25-option StringSelect limit instead
+      of the 40-component budget (`MAX_REMOVE_OPTIONS_PER_PAGE`, a
+      coincidentally-similar constant for an unrelated reason — kept
+      separate from `wishlistList.ts`'s `MAX_ITEMS_PER_PAGE` rather than
+      shared). New `discord/views/wishlistRemove.ts`
+      (`buildWishlistRemoveMessage`) — genuinely new (StringSelect vs.
+      V2 Container/Section, no shared render logic), but the pagination
+      _mechanics_ generalized cleanly out of last session's list work:
+  - `buildPaginationRow` (was local to `wishlistList.ts`) moved to
+    `discord/interactions/buildPaginationRow.ts` and parameterized on
+    `prefix`, so both `/wishlist list` and `/wishlist remove` share one
+    Prev/indicator/Next builder instead of two near-identical copies
+  - the clamp formula moved to `lib/paginate.ts` (`clampPage`,
+    `getTotalPages`) — same reasoning
+  - new component handler `handleWishlistRemovePage`
+    (`wishlist_remove_page:{page}`), registered in
+    `discord/components/index.ts` — mirrors `handleWishlistListPage`'s
+    fetch → reslice → `UpdateMessage` shape, no removal step
+  - `handleRemove` (command) shrinks to a thin wrapper around
+    `buildWishlistRemoveMessage`, matching `handleList`'s shape
+  - content line shows the visible range once paginated (e.g.
+    "Select a game to remove (1–25 of 26):"), omitted on single-page
+    wishlists to keep the common case unchanged
+  - live-tested past 25 items via ngrok: nav row appears, Prev/Next
+    reslice correctly, removal works from either page
+  - full test coverage: `paginate.test.ts`, `buildPaginationRow.test.ts`,
+    `wishlistRemove.test.ts` (new, 100%), plus command/component handler
+    coverage. 254/254 passing project-wide.
+- [x] Route-level error handling for `/api/interactions` — command and
+      component dispatch in `route.ts` now wrap `handler(interaction)` in
+      try/catch. Surfaced by a live ITAD 503 during add-heavy testing:
+      an unhandled throw meant Discord's 3s timeout fired before any
+      response went out, showing Discord's own generic "didn't respond
+      in time" message instead of something actionable. Now catches at
+      the two dispatch points (covers _any_ handler's unhandled throw,
+      not just ITAD's), logs the real error server-side via
+      `console.error` (only place to see the actual cause — Vercel
+      function logs), and returns a friendly ephemeral
+      "something went wrong, try again" as a real 200 response instead
+      of letting Discord's timeout own the failure mode. Two new tests
+      in `route.test.ts` covering both dispatch branches.
 - [ ] Autocomplete on game search (Discord's native `autocomplete` option type — not a manual numbered list)
-- [ ] Display price history (data's already being logged from MVP)
-- [ ] Pagination for `/wishlist remove`'s select menu (only matters once
-      a wishlist exceeds 25 items) — `custom_id` carries a page number
-      (`wishlist_remove_page:2`), handler refetches `getWishlist` fresh
-      and re-slices rather than caching state (cheap at this row count,
-      no Vercel KV/Redis needed)
 - [ ] Sale alert card v2 — first version is functional but bare
       (single-line embeds, no interactivity). Ideas surfaced but not
       decided: a "Check price" button per game (ephemeral reply,
@@ -353,12 +389,41 @@
       per-user wishlist-membership check at embed-build time to decide
       button state (add vs. remove), and a `custom_id` carrying the
       ITAD ID.
+- [ ] `/price` embed layout: reconsider Historical low's position — it
+      currently sits alone on its own line above the 3-across
+      Released/Reviews/Players inline-field row, which reads oddly.
+      Options surfaced but undecided: drop Released to make room for
+      Historical low in the 3-across row; find a different visual slot
+      for Historical low; leave Released as-is and accept the awkward
+      line. Needs to be looked at live with a few different games before
+      deciding — some games won't have all fields populated (no
+      historyLow if never on sale, no reviews if very new), so whatever
+      layout is chosen needs to degrade gracefully when fields are
+      missing.
+- [ ] Per-user favorite/preferred stores for `/price` and `/wishlist list`
+      — open-ended, not scoped yet. Motivating idea: some users only
+      care about Steam/Epic/GOG and don't want smaller stores cluttering
+      the deals list, even when a smaller store has the objectively best
+      price. Design questions still open: a settings command to pick
+      favorite stores vs. inferring from click/purchase behavior (no
+      purchase tracking exists, so this leans toward explicit settings);
+      whether to _filter_ to favorites only or _show favorites AND best
+      deal as separate sections_ (a "best deal" callout plus a
+      "your stores" section is more useful than pure filtering, but a
+      second design/db question); storage shape (a new per-user table?
+      an array column on `users`?) and how that interacts with
+      `guilds`-scoped vs. `users`-scoped state, since favorites feel
+      like a per-user preference, not a per-guild one, but the existing
+      `guildId` on `users` is about last-touched-guild, not preferences.
+      No decisions made — needs its own dedicated design session before
+      any schema changes, given the db-cost sensitivity here.
 - [ ] True end-to-end test for /api/interactions and /api/cron/price-check
       — real signed request (fake discord-interactions signing) through
       the full route → DB chain. Current coverage is unit tests with
       mocked boundaries + DB-backed repository integration tests; this
       would be the one missing tier. Not urgent, current coverage is
       97%+ and fast.
+- [ ] Display price history (data's already being logged from MVP)
 - [ ] Docker + VPS migration (only if free-tier serverless is ever genuinely outgrown)
 
 ## Architecture notes

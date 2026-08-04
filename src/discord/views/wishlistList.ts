@@ -10,6 +10,8 @@ import type { games, wishlistItems } from '@/db/schema'
 import type { ItadDeal } from '@/types'
 import { formatMoney } from '@/lib/money'
 import { getShopEmoji } from '@/discord/embeds/shopEmoji'
+import { buildPaginationRow } from '@/discord/interactions/buildPaginationRow'
+import { clampPage, getTotalPages } from '@/lib/paginate'
 
 type WishlistItemWithGame = typeof wishlistItems.$inferSelect & {
   game: typeof games.$inferSelect
@@ -53,50 +55,13 @@ const buildItemSection = (
   },
 })
 
-//* Plain classic ActionRow, not V2-specific — sits below the Container
-//* as a sibling, same pattern Discord uses elsewhere for V2 messages
-//* that still need button rows. Middle button is a disabled "N / M"
-//* label, the standard trick for a page indicator inside a button row.
-const buildPaginationRow = (
-  page: number,
-  totalPages: number
-): APIActionRowComponent<APIButtonComponentWithCustomId> => ({
-  type: ComponentType.ActionRow,
-  components: [
-    {
-      type: ComponentType.Button,
-      style: ButtonStyle.Secondary,
-      custom_id: `wishlist_list_page:${page - 1}`,
-      label: '◀',
-      disabled: page === 0,
-    },
-    {
-      type: ComponentType.Button,
-      style: ButtonStyle.Secondary,
-      custom_id: 'wishlist_list_page:noop',
-      label: `${page + 1} / ${totalPages}`,
-      disabled: true,
-    },
-    {
-      type: ComponentType.Button,
-      style: ButtonStyle.Secondary,
-      custom_id: `wishlist_list_page:${page + 1}`,
-      label: '▶',
-      disabled: page === totalPages - 1,
-    },
-  ],
-})
-
 export const buildWishlistListMessage = (
   items: WishlistItemWithGame[],
   prices: Map<number, ItadDeal | undefined>,
   page = 0
 ) => {
-  const totalPages = Math.max(1, Math.ceil(items.length / MAX_ITEMS_PER_PAGE))
-  //* Clamped once, here — covers both a caller passing an out-of-range
-  //* page directly and the "removed the last item on the last page"
-  //* case, since items.length has already shrunk by the time this runs.
-  const clampedPage = Math.min(Math.max(page, 0), totalPages - 1)
+  const totalPages = getTotalPages(items.length, MAX_ITEMS_PER_PAGE)
+  const clampedPage = clampPage(page, totalPages)
   const start = clampedPage * MAX_ITEMS_PER_PAGE
   const shown = items.slice(start, start + MAX_ITEMS_PER_PAGE)
 
@@ -122,7 +87,9 @@ export const buildWishlistListMessage = (
   //* Nav row only appears once there's something to navigate — keeps
   //* small wishlists exactly as clean as before this feature existed.
   if (totalPages > 1) {
-    components.push(buildPaginationRow(clampedPage, totalPages))
+    components.push(
+      buildPaginationRow('wishlist_list_page', clampedPage, totalPages)
+    )
   }
 
   return {

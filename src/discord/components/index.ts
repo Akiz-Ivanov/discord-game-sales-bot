@@ -4,6 +4,7 @@ import {
   handleWishlistRemoveSelect,
   handleWishlistItemRemove,
   handleWishlistListPage,
+  handleWishlistRemovePage,
 } from './wishlist'
 import { handlePriceSelect } from './price'
 
@@ -15,5 +16,6 @@ export const components: Record<string, ComponentHandler> = {
   wishlist_add_select: handleWishlistAddSelect,
   wishlist_item_remove: handleWishlistItemRemove,
   wishlist_list_page: handleWishlistListPage,
+  wishlist_remove_page: handleWishlistRemovePage,
   price_select: handlePriceSelect,
 }

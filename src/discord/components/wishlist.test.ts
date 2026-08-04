@@ -20,6 +20,8 @@ import { resolveGame } from '@/services/games'
 import { buildPriceEmbed } from '@/discord/embeds/price'
 import { buildWishlistListMessage } from '../views/wishlistList'
 import { getWishlistPrices } from '@/services/prices'
+import { handleWishlistRemovePage } from './wishlist'
+import { buildWishlistRemoveMessage } from '../views/wishlistRemove'
 
 vi.mock('@/discord/interactions/getInteractionUserId', () => ({
   getInteractionUserId: vi.fn(),
@@ -39,6 +41,9 @@ vi.mock('@/discord/views/wishlistList', () => ({
   buildWishlistListMessage: vi.fn(),
 }))
 vi.mock('@/services/prices', () => ({ getWishlistPrices: vi.fn() }))
+vi.mock('@/discord/views/wishlistRemove', () => ({
+  buildWishlistRemoveMessage: vi.fn(),
+}))
 
 const discordId = '255361746758402048'
 const guildId = '999888777666555444'
@@ -296,6 +301,33 @@ describe('handleWishlistListPage', () => {
       expect.anything(),
       expect.anything(),
       2
+    )
+    expect(data).toEqual(fakeMessage)
+  })
+})
+
+describe('handleWishlistRemovePage', () => {
+  const buildPageInteraction = (customId: string) =>
+    ({ data: { custom_id: customId } }) as unknown as Parameters<
+      typeof handleWishlistRemovePage
+    >[0]
+
+  it('parses the target page and re-renders the select menu', async () => {
+    vi.mocked(getWishlist).mockResolvedValue([
+      makeWishlistItemRow({ game: makeGameRow({ id: 9 }) }),
+    ])
+    const fakeMessage = { flags: 0, content: '', components: [] }
+    vi.mocked(buildWishlistRemoveMessage).mockReturnValue(fakeMessage as never)
+
+    const data = expectUpdateMessage(
+      await handleWishlistRemovePage(
+        buildPageInteraction('wishlist_remove_page:1')
+      )
+    )
+
+    expect(buildWishlistRemoveMessage).toHaveBeenCalledWith(
+      expect.anything(),
+      1
     )
     expect(data).toEqual(fakeMessage)
   })

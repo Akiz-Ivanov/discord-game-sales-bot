@@ -1,7 +1,6 @@
 import {
   InteractionResponseType,
   MessageFlags,
-  ComponentType,
   ApplicationCommandOptionType,
 } from 'discord-api-types/v10'
 import type { CommandHandler } from '@/types'
@@ -15,8 +14,7 @@ import { buildPriceEmbed } from '@/discord/embeds/price'
 import { wishlistLimitReachedMessage } from '@/lib/constants'
 import { buildWishlistListMessage } from '../views/wishlistList'
 import { getWishlistPrices } from '@/services/prices'
-
-const MAX_SELECT_OPTIONS = 25
+import { buildWishlistRemoveMessage } from '../views/wishlistRemove'
 
 const getSubcommand = (interaction: Parameters<CommandHandler>[0]) => {
   const sub = interaction.data.options?.[0]
@@ -147,31 +145,9 @@ const handleRemove: CommandHandler = async (interaction) => {
     }
   }
 
-  //* MVP: first 25 only. Wishlists beyond that need pagination (TODO),
-  //* not built yet since no real user is near this limit.
-  const options = items.slice(0, MAX_SELECT_OPTIONS).map((i) => ({
-    label: i.game.title.slice(0, 100), // Discord's own option-label cap
-    value: String(i.game.id),
-  }))
-
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
-    data: {
-      flags: MessageFlags.Ephemeral,
-      content: 'Select a game to remove:',
-      components: [
-        {
-          type: ComponentType.ActionRow,
-          components: [
-            {
-              type: ComponentType.StringSelect,
-              custom_id: 'wishlist_remove_select',
-              options,
-            },
-          ],
-        },
-      ],
-    },
+    data: buildWishlistRemoveMessage(items),
   }
 }
 
