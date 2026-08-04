@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { buildWishlistListMessage } from './wishlistList'
-import { ComponentType, MessageFlags, ButtonStyle } from 'discord-api-types/v10'
+import { buildWishlistListMessage, MAX_ITEMS_PER_PAGE } from './wishlistList'
+import {
+  ComponentType,
+  MessageFlags,
+  ButtonStyle,
+  APIActionRowComponent,
+  APIButtonComponentWithCustomId,
+} from 'discord-api-types/v10'
 import type {
   APISectionComponent,
   APIContainerComponent,
@@ -20,6 +26,12 @@ const getSections = (container: APIContainerComponent) =>
 
 const getContent = (section: APISectionComponent) =>
   (section.components[0] as APITextDisplayComponent).content
+
+const getNavRow = (
+  result: ReturnType<typeof buildWishlistListMessage>
+): APIActionRowComponent<APIButtonComponentWithCustomId> | undefined =>
+  result.components[1] as
+    APIActionRowComponent<APIButtonComponentWithCustomId> | undefined
 
 describe('buildWishlistListMessage', () => {
   it('sets the Ephemeral and IsComponentsV2 flags', () => {
@@ -64,8 +76,8 @@ describe('buildWishlistListMessage', () => {
     expect(separators).toHaveLength(1)
   })
 
-  it('caps display at 8 items even with more on the wishlist', () => {
-    const items = Array.from({ length: 12 }, (_, i) =>
+  it(`caps display at ${MAX_ITEMS_PER_PAGE} items even with more on the wishlist`, () => {
+    const items = Array.from({ length: MAX_ITEMS_PER_PAGE + 3 }, (_, i) =>
       makeWishlistItemRow({
         id: i,
         game: makeGameRow({ id: i, title: `Game ${i}` }),
@@ -73,7 +85,7 @@ describe('buildWishlistListMessage', () => {
     )
     const container = getContainer(buildWishlistListMessage(items, new Map()))
 
-    expect(getSections(container)).toHaveLength(8)
+    expect(getSections(container)).toHaveLength(MAX_ITEMS_PER_PAGE)
   })
 
   it('renders the game title in bold on the first line', () => {
@@ -164,8 +176,114 @@ describe('buildWishlistListMessage', () => {
     expect(accessory).toMatchObject({
       type: ComponentType.Button,
       style: ButtonStyle.Secondary,
-      custom_id: 'wishlist_item_remove:42',
+      custom_id: 'wishlist_item_remove:42:0',
       emoji: { id: '1533452777471344660', name: 'trash' },
+    })
+  })
+})
+
+describe('pagination', () => {
+  const buildItems = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      makeWishlistItemRow({
+        id: i,
+        game: makeGameRow({ id: i, title: `Game ${i}` }),
+      })
+    )
+
+  it('omits the nav row when everything fits on one page', () => {
+    const result = buildWishlistListMessage(
+      buildItems(MAX_ITEMS_PER_PAGE),
+      new Map()
+    )
+    expect(result.components).toHaveLength(1)
+  })
+
+  it('adds a nav row once the wishlist exceeds one page', () => {
+    const result = buildWishlistListMessage(
+      buildItems(MAX_ITEMS_PER_PAGE + 1),
+      new Map()
+    )
+    expect(result.components).toHaveLength(2)
+    expect(getNavRow(result)?.type).toBe(ComponentType.ActionRow)
+  })
+
+  it('disables Prev on the first page and enables Next', () => {
+    const row = getNavRow(
+      buildWishlistListMessage(
+        buildItems(MAX_ITEMS_PER_PAGE * 2 + 2),
+        new Map(),
+        0
+      )
+    )
+    expect(row?.components[0].disabled).toBe(true) // Prev
+    expect(row?.components[2].disabled).toBe(false) // Next
+  })
+
+  it('disables Next on the last page and enables Prev', () => {
+    // MAX_ITEMS_PER_PAGE * 2 + 2 items → 3 pages (indices 0-2)
+    const row = getNavRow(
+      buildWishlistListMessage(
+        buildItems(MAX_ITEMS_PER_PAGE * 2 + 2),
+        new Map(),
+        2
+      )
+    )
+    expect(row?.components[0].disabled).toBe(false) // Prev
+    expect(row?.components[2].disabled).toBe(true) // Next
+  })
+
+  it('enables both Prev and Next on a middle page', () => {
+    const row = getNavRow(
+      buildWishlistListMessage(
+        buildItems(MAX_ITEMS_PER_PAGE * 2 + 2),
+        new Map(),
+        1
+      )
+    )
+    expect(row?.components[0].disabled).toBe(false)
+    expect(row?.components[2].disabled).toBe(false)
+  })
+
+  it('shows a "current / total" page indicator', () => {
+    const row = getNavRow(
+      buildWishlistListMessage(
+        buildItems(MAX_ITEMS_PER_PAGE * 2 + 2),
+        new Map(),
+        1
+      )
+    )
+    expect(row?.components[1].label).toBe('2 / 3')
+    expect(row?.components[1].disabled).toBe(true)
+  })
+
+  it('clamps a page number above the valid range down to the last page', () => {
+    const items = buildItems(MAX_ITEMS_PER_PAGE + 1) // 2 pages: full page + 1
+    const container = getContainer(
+      buildWishlistListMessage(items, new Map(), 99)
+    )
+    const sections = getSections(container)
+    expect(sections).toHaveLength(1)
+    expect(getContent(sections[0])).toContain(`Game ${MAX_ITEMS_PER_PAGE}`)
+  })
+
+  it('clamps a negative page number up to page 0', () => {
+    const items = buildItems(MAX_ITEMS_PER_PAGE * 2 + 2)
+    const container = getContainer(
+      buildWishlistListMessage(items, new Map(), -5)
+    )
+    const sections = getSections(container)
+    expect(getContent(sections[0])).toContain('Game 0')
+  })
+
+  it("carries the current page in each item's Remove button custom_id", () => {
+    const items = buildItems(MAX_ITEMS_PER_PAGE + 1) // page 1 has exactly one item
+    const container = getContainer(
+      buildWishlistListMessage(items, new Map(), 1)
+    )
+    const accessory = getSections(container)[0].accessory
+    expect(accessory).toMatchObject({
+      custom_id: `wishlist_item_remove:${MAX_ITEMS_PER_PAGE}:1`,
     })
   })
 })

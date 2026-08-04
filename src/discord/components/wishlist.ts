@@ -132,7 +132,9 @@ export const handleWishlistAddSelect: ComponentHandler = async (
 export const handleWishlistItemRemove: ComponentHandler = async (
   interaction
 ) => {
-  const gameId = Number(interaction.data.custom_id.split(':')[1])
+  const [, gameIdStr, pageStr] = interaction.data.custom_id.split(':')
+  const gameId = Number(gameIdStr)
+  const page = Number(pageStr ?? 0)
   const discordId = getInteractionUserId(interaction)
   const user = await getUserByDiscordId(discordId)
 
@@ -156,6 +158,25 @@ export const handleWishlistItemRemove: ComponentHandler = async (
 
   return {
     type: InteractionResponseType.UpdateMessage,
-    data: buildWishlistListMessage(items, prices),
+    data: buildWishlistListMessage(items, prices, page),
+  }
+}
+
+//* custom_id: "wishlist_list_page:{page}". Same fetch → render shape as
+//* handleWishlistItemRemove, just without the remove step — clamping is
+//* handled inside buildWishlistListMessage, so an out-of-range page here
+//* (shouldn't happen from a live button, but defensive) just resolves to
+//* the nearest valid one instead of erroring.
+export const handleWishlistListPage: ComponentHandler = async (interaction) => {
+  const page = Number(interaction.data.custom_id.split(':')[1])
+  const discordId = getInteractionUserId(interaction)
+  const items = await getWishlist(discordId)
+  const prices = await getWishlistPrices(
+    items.map((i) => ({ gameDbId: i.game.id, itadId: i.game.itadId }))
+  )
+
+  return {
+    type: InteractionResponseType.UpdateMessage,
+    data: buildWishlistListMessage(items, prices, page),
   }
 }

@@ -249,11 +249,30 @@
     capped at 8 games/page (component budget), real test wishlists
     have been at exactly 8 all session — no concrete need yet to build
     against. Next up.
-- [ ] `/wishlist list` pagination — needed once a wishlist exceeds the
-      8-item Components V2 page cap. Same `custom_id`-carries-page-number
-      pattern already used for `/wishlist remove`'s select menu
-      (`wishlist_remove_page:2`) — re-fetch + re-slice fresh each time,
-      no cached state needed.
+- [x] `/wishlist list` pagination — Prev/Next buttons in a plain classic
+      ActionRow below the Container (sibling component, not V2-specific).
+      Component budget: `4N + 4 ≤ 40` → capped at 9 items/page, which
+      lands exactly on Discord's 40-component ceiling when the nav row
+      is showing (no headroom left on a paginated page for anything
+      added later). Remove button's `custom_id` carries the current
+      page (`wishlist_item_remove:{gameId}:{page}`) so removing an item
+      re-renders the same page instead of bouncing to page 1; clamping
+      (page too high/low, or the last item on the last page just got
+      removed) happens once inside `buildWishlistListMessage`, so
+      neither component handler needs its own clamp logic. New
+      `discord/components/wishlist.ts`'s `handleWishlistListPage`
+      (`wishlist_list_page:{page}`) mirrors `handleWishlistItemRemove`'s
+      fetch → render shape, just without the remove step. Full test
+      coverage: `wishlistList.test.ts` (slicing, clamping, nav-row
+      visibility, disabled states, page indicator), component handler
+      tests for both `handleWishlistItemRemove` and the new
+      `handleWishlistListPage`. 232/232 passing project-wide.
+  - **Not done yet, deliberately deferred**: Prev/Next currently use
+    plain `◀ ▶` Unicode glyphs, not emoji — these can render as thin
+    text-glyphs rather than filled triangles on some platforms.
+    Candidate follow-up: swap to `⬅️ ➡️` (real emoji codepoints, render
+    identically everywhere) or app-owned custom emoji matching the
+    Remove button's trash-icon style for full visual consistency.
 - [ ] Autocomplete on game search (Discord's native `autocomplete` option type — not a manual numbered list)
 - [ ] Display price history (data's already being logged from MVP)
 - [ ] Pagination for `/wishlist remove`'s select menu (only matters once

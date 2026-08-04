@@ -3,6 +3,7 @@ import {
   handleWishlistRemoveSelect,
   handleWishlistAddSelect,
   handleWishlistItemRemove,
+  handleWishlistListPage,
 } from './wishlist'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
@@ -202,7 +203,7 @@ describe('handleWishlistItemRemove', () => {
     vi.mocked(getWishlistPrices).mockResolvedValue(new Map())
   })
 
-  it('removes the game, re-fetches live prices, and re-renders the list', async () => {
+  it('removes the game, re-fetches live prices, and re-renders the same page', async () => {
     vi.mocked(getUserByDiscordId).mockResolvedValue(userRow)
     vi.mocked(getWishlist).mockResolvedValue([
       makeWishlistItemRow({ game: makeGameRow({ id: 5, itadId: 'itad-5' }) }),
@@ -212,7 +213,7 @@ describe('handleWishlistItemRemove', () => {
 
     const data = expectUpdateMessage(
       await handleWishlistItemRemove(
-        buildRemoveButtonInteraction('wishlist_item_remove:5')
+        buildRemoveButtonInteraction('wishlist_item_remove:5:2')
       )
     )
 
@@ -220,7 +221,33 @@ describe('handleWishlistItemRemove', () => {
     expect(getWishlistPrices).toHaveBeenCalledWith([
       { gameDbId: 5, itadId: 'itad-5' },
     ])
+    expect(buildWishlistListMessage).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      2
+    )
     expect(data).toEqual(fakeMessage)
+  })
+
+  it('defaults to page 0 when the custom_id has no page segment', async () => {
+    vi.mocked(getUserByDiscordId).mockResolvedValue(userRow)
+    vi.mocked(getWishlist).mockResolvedValue([
+      makeWishlistItemRow({ game: makeGameRow({ id: 5, itadId: 'itad-5' }) }),
+    ])
+    vi.mocked(buildWishlistListMessage).mockReturnValue({
+      flags: 0,
+      components: [],
+    } as never)
+
+    await handleWishlistItemRemove(
+      buildRemoveButtonInteraction('wishlist_item_remove:5')
+    )
+
+    expect(buildWishlistListMessage).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      0
+    )
   })
 
   it('returns a components-v2 fallback without removing anything when no user row exists', async () => {
@@ -237,5 +264,39 @@ describe('handleWishlistItemRemove', () => {
     expect(result.data?.flags).toBe(
       MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
     )
+  })
+})
+
+describe('handleWishlistListPage', () => {
+  beforeEach(() => {
+    vi.mocked(getWishlistPrices).mockResolvedValue(new Map())
+  })
+
+  const buildPageInteraction = (customId: string) =>
+    ({ data: { custom_id: customId } }) as unknown as Parameters<
+      typeof handleWishlistListPage
+    >[0]
+
+  it('parses the target page and re-renders without removing anything', async () => {
+    vi.mocked(getWishlist).mockResolvedValue([
+      makeWishlistItemRow({ game: makeGameRow({ id: 9, itadId: 'itad-9' }) }),
+    ])
+    const fakeMessage = { flags: 0, components: [] }
+    vi.mocked(buildWishlistListMessage).mockReturnValue(fakeMessage as never)
+
+    const data = expectUpdateMessage(
+      await handleWishlistListPage(buildPageInteraction('wishlist_list_page:2'))
+    )
+
+    expect(removeGameFromWishlist).not.toHaveBeenCalled()
+    expect(getWishlistPrices).toHaveBeenCalledWith([
+      { gameDbId: 9, itadId: 'itad-9' },
+    ])
+    expect(buildWishlistListMessage).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      2
+    )
+    expect(data).toEqual(fakeMessage)
   })
 })
