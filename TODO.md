@@ -315,7 +315,37 @@
       "something went wrong, try again" as a real 200 response instead
       of letting Discord's timeout own the failure mode. Two new tests
       in `route.test.ts` covering both dispatch branches.
-- [ ] Autocomplete on game search (Discord's native `autocomplete` option type — not a manual numbered list)
+- [x] Autocomplete on game search — new `discord/autocomplete/`
+      registry (mirrors `discord/commands/`/`discord/components/`,
+      keyed by command name) dispatched from a new
+      `ApplicationCommandAutocomplete` branch in `route.ts`. Shared
+      handler (`handleGameSearchAutocomplete`) wired to both /price's
+      and /wishlist add's "game" option via `autocomplete: true` in
+      register-commands.js.
+  - Hits ITAD's `searchGamesByTitle()` directly, never the DB — the
+    `games` table only has rows for previously-resolved titles, and
+    querying Neon per-keystroke would be the worst pattern for
+    CU-hour billing (sparse queries repeatedly wake a suspended
+    compute and reset its idle timer). Confirmed zero DB impact live.
+  - `AUTOCOMPLETE_MIN_QUERY_LENGTH = 3` gates the ITAD call — new
+    `getFocusedOption.ts` helper walks the (possibly subcommand-
+    nested) options tree to find the focused value. No local
+    debounce built; Discord's own client-side behavior handles
+    request volume well enough in practice (confirmed live: ITAD's
+    `/games/search/v1` usage barely moved under repeated testing,
+    dashboard still reads 0.13% avg usage of the 1000/5min app-wide
+    limit, shared with /price, /wishlist add, and cron).
+  - Selecting a suggestion round-trips the ITAD UUID as the choice
+    `value`, so `resolveGame()` lands on the enriched
+    `lookupByItadId` branch on submit — same richer embed as pasting
+    an ID back manually, for free.
+  - Considered a "keep typing…" placeholder for the below-threshold
+    empty state; skipped — Discord's own native
+    "No options match your search" empty state already covers this
+    fine, confirmed live.
+  - Full test coverage: `getFocusedOption.test.ts`,
+    `gameSearch.test.ts`, route dispatch tests (success, unknown
+    command, handler-throws branches). 269/269 passing project-wide.
 - [ ] Sale alert card v2 — first version is functional but bare
       (single-line embeds, no interactivity). Ideas surfaced but not
       decided: a "Check price" button per game (ephemeral reply,
@@ -423,8 +453,23 @@
       mocked boundaries + DB-backed repository integration tests; this
       would be the one missing tier. Not urgent, current coverage is
       97%+ and fast.
+
+## Possible future upgrades (not needed yet — revisit only if usage justifies it)
+
 - [ ] Display price history (data's already being logged from MVP)
-- [ ] Docker + VPS migration (only if free-tier serverless is ever genuinely outgrown)
+- [ ] Local trigram-indexed game catalog mirror for autocomplete — if
+      ITAD's shared app-wide rate limit (1000 req/5min, shared with
+      /price, /wishlist add, and the daily cron) ever becomes a real
+      constraint at scale, mirror ITAD's own game catalog into a
+      games-adjacent Neon Postgres table using the `pg_trgm` extension
+      (trigram fuzzy matching + GIN index) for local search instead of
+      hitting ITAD on every autocomplete keystroke. ITAD's changelog
+      mentions unstable `games list`/`games changes` endpoints meant
+      for exactly this — bulk-seed once, sync incrementally. Real work
+      (sync job, staleness handling, a new schema decision), so only
+      worth it once the ITAD usage graph actually says so, not before.
+- [ ] Docker + VPS migration (only if free-tier serverless is ever
+      genuinely outgrown)
 
 ## Architecture notes
 

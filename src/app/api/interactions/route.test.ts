@@ -4,11 +4,15 @@ import { verifyKey } from 'discord-interactions'
 import { InteractionType, MessageFlags } from 'discord-api-types/v10'
 import { commands } from '@/discord/commands'
 import { components } from '@/discord/components'
+import { autocomplete } from '@/discord/autocomplete'
 
 vi.mock('discord-interactions', () => ({ verifyKey: vi.fn() }))
 vi.mock('@/discord/commands', () => ({ commands: { ping: vi.fn() } }))
 vi.mock('@/discord/components', () => ({
   components: { wishlist_remove_select: vi.fn() },
+}))
+vi.mock('@/discord/autocomplete', () => ({
+  autocomplete: { price: vi.fn() },
 }))
 
 const buildRequest = (body: unknown) =>
@@ -154,6 +158,60 @@ describe('POST /api/interactions', () => {
 
     expect(res.status).toBe(200)
     expect(body.data.content).toContain('Something went wrong')
+    consoleSpy.mockRestore()
+  })
+})
+
+describe('POST /api/interactions — autocomplete', () => {
+  it('dispatches an ApplicationCommandAutocomplete interaction to the matching handler', async () => {
+    vi.mocked(verifyKey).mockResolvedValue(true)
+    vi.mocked(autocomplete.price).mockResolvedValue({
+      type: 8,
+      data: { choices: [{ name: 'Hollow Knight', value: 'id-1' }] },
+    })
+
+    const res = await POST(
+      buildRequest({
+        type: InteractionType.ApplicationCommandAutocomplete,
+        data: { name: 'price', options: [] },
+      })
+    )
+    const body = await res.json()
+
+    expect(autocomplete.price).toHaveBeenCalled()
+    expect(body.data.choices).toHaveLength(1)
+  })
+
+  it('returns an empty-choices result for an unregistered command name', async () => {
+    vi.mocked(verifyKey).mockResolvedValue(true)
+
+    const res = await POST(
+      buildRequest({
+        type: InteractionType.ApplicationCommandAutocomplete,
+        data: { name: 'does-not-exist', options: [] },
+      })
+    )
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.data.choices).toEqual([])
+  })
+
+  it('returns an empty-choices result when the autocomplete handler throws', async () => {
+    vi.mocked(verifyKey).mockResolvedValue(true)
+    vi.mocked(autocomplete.price).mockRejectedValue(new Error('ITAD down'))
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const res = await POST(
+      buildRequest({
+        type: InteractionType.ApplicationCommandAutocomplete,
+        data: { name: 'price', options: [] },
+      })
+    )
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.data.choices).toEqual([])
     consoleSpy.mockRestore()
   })
 })

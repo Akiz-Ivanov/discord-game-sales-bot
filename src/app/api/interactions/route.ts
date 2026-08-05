@@ -6,6 +6,7 @@ import {
 } from 'discord-api-types/v10'
 import { commands } from '@/discord/commands'
 import { components } from '@/discord/components'
+import { autocomplete } from '@/discord/autocomplete'
 
 export async function POST(req: Request) {
   const sig = req.headers.get('x-signature-ed25519')!
@@ -58,6 +59,22 @@ export async function POST(req: Request) {
           content: '⚠️ Something went wrong — please try that again.',
         },
       })
+    }
+  }
+
+  if (interaction.type === InteractionType.ApplicationCommandAutocomplete) {
+    const handler =
+      autocomplete[interaction.data?.name as keyof typeof autocomplete]
+    const emptyResult = {
+      type: InteractionResponseType.ApplicationCommandAutocompleteResult,
+      data: { choices: [] },
+    }
+    if (!handler) return Response.json(emptyResult)
+    try {
+      return Response.json(await handler(interaction))
+    } catch (err) {
+      console.error('Autocomplete handler error:', err)
+      return Response.json(emptyResult) //* no ephemeral text option here — empty choices is the only valid fallback shape
     }
   }
 

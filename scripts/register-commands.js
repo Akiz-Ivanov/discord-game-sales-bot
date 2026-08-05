@@ -17,6 +17,7 @@ const commands = [
         name: 'game',
         description: 'Game title to look up',
         required: true,
+        autocomplete: true,
       },
     ],
   },
@@ -34,6 +35,7 @@ const commands = [
             name: 'game',
             description: 'Game title, Steam App ID, or ITAD ID to add',
             required: true, // Discord blocks submission until this is filled
+            autocomplete: true,
           },
         ],
       },

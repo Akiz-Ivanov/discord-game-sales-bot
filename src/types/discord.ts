@@ -1,6 +1,7 @@
 import type {
   APIChatInputApplicationCommandInteraction,
   APIMessageComponentInteraction,
+  APIApplicationCommandAutocompleteInteraction,
   APIInteractionResponse,
 } from 'discord-api-types/v10'
 
@@ -10,4 +11,8 @@ export type CommandHandler = (
 
 export type ComponentHandler = (
   interaction: APIMessageComponentInteraction
+) => APIInteractionResponse | Promise<APIInteractionResponse>
+
+export type AutocompleteHandler = (
+  interaction: APIApplicationCommandAutocompleteInteraction
 ) => APIInteractionResponse | Promise<APIInteractionResponse>
