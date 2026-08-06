@@ -346,18 +346,62 @@
   - Full test coverage: `getFocusedOption.test.ts`,
     `gameSearch.test.ts`, route dispatch tests (success, unknown
     command, handler-throws branches). 269/269 passing project-wide.
-- [ ] Sale alert card v2 — first version is functional but bare
-      (single-line embeds, no interactivity). Ideas surfaced but not
-      decided: a "Check price" button per game (ephemeral reply,
-      reusing resolveGame → getGamePrices → buildPriceEmbed — does NOT
-      reuse handlePriceSelect's UpdateMessage pattern, since that would
-      wipe every other game's card in the same alert message); a
-      "Remove from wishlist" button (removeGameFromWishlist already
-      exists); @mention strategy (per-game vs. one combined line) —
-      needs to be seen live before deciding. Components V2 worth a
-      second look specifically for this card shape (unlike /wishlist
-      list's field-grid problem, a stacked list of games is exactly
-      what V2's Container/Section model suits)
+- [x] Sale alert card v2 — grouped by (guild, game) instead of one
+      row per (user, guild) — fixes a real bug where two users
+      wishlisting the same game produced two duplicate cards for
+      the same sale. New `discord/views/saleAlert.ts`
+      (`buildSaleAlertMessage`) — Components V2, one Container per
+      message, one Section per game, accent color matches the
+      existing on-sale green. Capped at `MAX_ALERTS_PER_MESSAGE = 9`
+      (component budget, same math as `/wishlist list`'s 9-item cap)
+      with a "+N more sales not shown" note.
+  - Each game's Section mentions every recipient who wishlisted it
+    (`Wishlisted by @user1 @user2...`, capped at 10 with a "+N more"
+    tail), `allowed_mentions` scoped to exactly those recipients.
+    Header count is guild-wide ("N wishlisted games are on sale"),
+    not personalized — corrected from an earlier "on your wishlist"
+    wording that was misleading once per-game mentions made
+    per-user ownership visible in the card itself.
+  - Each Section carries a "Check price" accessory button
+    (`sale_check_price:{itadId}`) — new
+    `discord/components/saleAlert.ts`, reuses
+    `resolveGame → getGamePrices → buildPriceEmbed`. Always replies
+    with a fresh ephemeral message, never `UpdateMessage` — the
+    alert is shared by the whole channel, so rewriting it on one
+    person's click would erase it for everyone else who hasn't
+    clicked yet.
+  - "Remove from wishlist" accessory considered and dropped for v1
+    — a Section allows only one accessory (button or thumbnail),
+    and Check-price felt like the more urgent action right after a
+    ping (surfaces the full multi-store breakdown the lean alert
+    card deliberately omits); `/wishlist remove` already covers
+    removal.
+  - **Real bug fixed alongside**: nothing previously wrote
+    `lastNotifiedPrice` back after a cron alert fired, so an
+    unchanged sale would re-notify every single day. New
+    `updateLastNotifiedPrices()` repo helper, called from the cron
+    route once a guild's post succeeds (skipped on a failed post,
+    so tomorrow's run retries that guild rather than treating a
+    failed send as delivered).
+  - `shouldNotify` tightened from "any price change" to "genuine
+    improvement" (`currentPrice < lastNotifiedPrice`) — a shrinking
+    discount no longer re-triggers an alert. `getSaleAlerts` resets
+    `lastNotifiedPrice` to `null` once a wishlisted game's cut
+    returns to 0, so a future sale at the same price still counts
+    as fresh instead of being filtered forever by the strict `<`
+    check.
+  - Verified live end-to-end via ngrok: grouped card posted with
+    correct mentions and formatting; re-running cron immediately
+    produced zero new alerts (confirms the no-repeat-until-improved
+    logic); Check price button opened a correct ephemeral embed
+    without disturbing the original alert message.
+  - Full test coverage across `shouldNotify.test.ts`,
+    `repositories/wishlist.test.ts` (`updateLastNotifiedPrices`),
+    `services/cron.test.ts` (grouping, reset branch), new
+    `discord/views/saleAlert.test.ts` and
+    `discord/components/saleAlert.test.ts`, plus updated
+    `route.test.ts` for the cron endpoint. 285/285 passing
+    project-wide, ~98.6% coverage.
 
 ## Later / backlog
 
