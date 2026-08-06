@@ -14,8 +14,12 @@ describe('shouldNotify', () => {
     expect(shouldNotify(25, 1499, 1499)).toBe(false)
   })
 
-  it('returns true when the price has changed since the last notification', () => {
+  it('returns true when the price has dropped below the last notification', () => {
     expect(shouldNotify(40, 999, 1499)).toBe(true)
+  })
+
+  it('returns false when the price has risen since the last notification (worse deal)', () => {
+    expect(shouldNotify(10, 1299, 999)).toBe(false)
   })
 
   it('returns false when cut is 0 even if the price differs from last notified', () => {

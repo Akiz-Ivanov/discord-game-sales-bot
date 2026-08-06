@@ -7,6 +7,7 @@ import {
   listWishlistItems,
   getWishlistedGamesByGuild,
   countWishlistItems,
+  updateLastNotifiedPrices,
 } from './wishlist'
 import { upsertUser } from './users'
 import { upsertGame } from './games'
@@ -296,5 +297,62 @@ describe('countWishlistItems', () => {
     await addWishlistItem(otherUser.id, gameId)
 
     expect(await countWishlistItems(userId)).toBe(1)
+  })
+})
+
+describe('updateLastNotifiedPrices', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('sets lastNotifiedPrice to the given value for each entry', async () => {
+    const { userId, gameId } = await setup()
+    const item = await addWishlistItem(userId, gameId)
+
+    await updateLastNotifiedPrices([{ wishlistItemId: item!.id, price: 999 }])
+
+    const [row] = await db
+      .select()
+      .from(wishlistItems)
+      .where(eq(wishlistItems.id, item!.id))
+    expect(row.lastNotifiedPrice).toBe(999)
+  })
+
+  it('resets lastNotifiedPrice to null when price is null', async () => {
+    const { userId, gameId } = await setup()
+    const item = await addWishlistItem(userId, gameId, 1499)
+
+    await updateLastNotifiedPrices([{ wishlistItemId: item!.id, price: null }])
+
+    const [row] = await db
+      .select()
+      .from(wishlistItems)
+      .where(eq(wishlistItems.id, item!.id))
+    expect(row.lastNotifiedPrice).toBeNull()
+  })
+
+  it('updates multiple entries independently', async () => {
+    const { userId, gameId } = await setup()
+    const secondGame = await upsertGame({
+      ...game,
+      id: 'b1b2c3d4-0000-0000-0000-000000000000',
+      slug: 'second-game',
+      title: 'Second Game',
+    })
+    const itemA = await addWishlistItem(userId, gameId)
+    const itemB = await addWishlistItem(userId, secondGame.id)
+
+    await updateLastNotifiedPrices([
+      { wishlistItemId: itemA!.id, price: 500 },
+      { wishlistItemId: itemB!.id, price: 700 },
+    ])
+
+    const rows = await db.select().from(wishlistItems)
+    expect(rows.find((r) => r.id === itemA!.id)?.lastNotifiedPrice).toBe(500)
+    expect(rows.find((r) => r.id === itemB!.id)?.lastNotifiedPrice).toBe(700)
+  })
+
+  it('does nothing and does not throw when entries is empty', async () => {
+    await expect(updateLastNotifiedPrices([])).resolves.not.toThrow()
   })
 })

@@ -73,3 +73,22 @@ export const countWishlistItems = async (userId: number): Promise<number> => {
     .where(eq(wishlistItems.userId, userId))
   return row?.count ?? 0
 }
+
+//* Bulk-writes lastNotifiedPrice after a cron run — either to the price
+//* just alerted, or back to null when a game's dropped off sale (so a
+//* future sale at ANY price, even one identical to the last alert,
+//* counts as fresh). One UPDATE per row: Postgres has no single-statement
+//* "different SET value per row" without a CASE expression, and this only
+//* ever runs against however many rows a single cron pass actually touched.
+export const updateLastNotifiedPrices = async (
+  entries: { wishlistItemId: number; price: number | null }[]
+) => {
+  await Promise.all(
+    entries.map((e) =>
+      db
+        .update(wishlistItems)
+        .set({ lastNotifiedPrice: e.price })
+        .where(eq(wishlistItems.id, e.wishlistItemId))
+    )
+  )
+}

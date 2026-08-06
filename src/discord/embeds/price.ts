@@ -168,6 +168,7 @@ export const buildPriceEmbed = (
     historyLowInt,
     historyLowCurrency
   )
+
   if (historyLowField) fields.push(historyLowField)
   fields.push(...enrichmentFields)
 

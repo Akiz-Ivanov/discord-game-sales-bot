@@ -1,29 +1,38 @@
 import { getSaleAlerts } from '@/services/cron'
-import { buildSaleAlertMessage } from '@/discord/embeds/saleAlert'
+import { buildSaleAlertMessage } from '@/discord/views/saleAlert'
 import { postChannelMessage } from '@/discord/rest'
+import { updateLastNotifiedPrices } from '@/repositories/wishlist'
 
 export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET
   const authHeader = req.headers.get('authorization')
 
-  //* !cronSecret guards against an unset env var accidentally matching
-  //* an empty/missing header — fail closed, not open.
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response('unauthorized', { status: 401 })
   }
 
   const guildAlerts = await getSaleAlerts()
 
-  //* allSettled, not Promise.all — one guild's post failing (bot kicked,
-  //* channel deleted since /config was run) shouldn't block alerts to
-  //* every other guild in the same run.
   const results = await Promise.allSettled(
-    guildAlerts.map((guild) =>
-      postChannelMessage(
+    guildAlerts.map(async (guild) => {
+      await postChannelMessage(
         guild.notificationChannelId,
         buildSaleAlertMessage(guild.alerts)
       )
-    )
+
+      //* Only mark items notified once the post actually lands — if
+      //* Discord rejects it (channel deleted, bot kicked), tomorrow's
+      //* cron run should retry this guild at the same price rather than
+      //* silently treating a failed send as delivered.
+      await updateLastNotifiedPrices(
+        guild.alerts.flatMap((alert) =>
+          alert.recipients.map((r) => ({
+            wishlistItemId: r.wishlistItemId,
+            price: alert.deal.price.amountInt,
+          }))
+        )
+      )
+    })
   )
 
   const failed = results.filter((r) => r.status === 'rejected').length

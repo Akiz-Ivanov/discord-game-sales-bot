@@ -2,11 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { GET } from './route'
 import { getSaleAlerts } from '@/services/cron'
 import { postChannelMessage } from '@/discord/rest'
+import { updateLastNotifiedPrices } from '@/repositories/wishlist'
 
 vi.mock('@/services/cron', () => ({ getSaleAlerts: vi.fn() }))
 vi.mock('@/discord/rest', () => ({ postChannelMessage: vi.fn() }))
-vi.mock('@/discord/embeds/saleAlert', () => ({
-  buildSaleAlertMessage: vi.fn(() => ({ content: 'stub' })),
+vi.mock('@/discord/views/saleAlert', () => ({
+  buildSaleAlertMessage: vi.fn(() => ({ flags: 0, components: [] })),
+}))
+vi.mock('@/repositories/wishlist', () => ({
+  updateLastNotifiedPrices: vi.fn(),
 }))
 
 const buildRequest = (authHeader: string | null) =>
@@ -72,5 +76,59 @@ describe('GET /api/cron/price-check', () => {
     const body = await res.json()
 
     expect(body).toEqual({ guildsNotified: 1, guildsFailed: 1 })
+  })
+
+  it('marks every recipient as notified at the alerted price after a successful post', async () => {
+    vi.mocked(getSaleAlerts).mockResolvedValue([
+      {
+        guildId: 'g1',
+        notificationChannelId: 'c1',
+        alerts: [
+          {
+            gameId: 1,
+            itadId: 'itad-1',
+            title: 'Hollow Knight',
+            deal: { price: { amountInt: 999 } } as never,
+            recipients: [
+              { wishlistItemId: 10, discordId: 'user-1' },
+              { wishlistItemId: 11, discordId: 'user-2' },
+            ],
+          },
+        ],
+      },
+    ])
+    vi.mocked(postChannelMessage).mockResolvedValue(
+      {} as Awaited<ReturnType<typeof postChannelMessage>>
+    )
+
+    await GET(buildRequest('Bearer test-secret'))
+
+    expect(updateLastNotifiedPrices).toHaveBeenCalledWith([
+      { wishlistItemId: 10, price: 999 },
+      { wishlistItemId: 11, price: 999 },
+    ])
+  })
+
+  it('does not mark recipients as notified when the post fails', async () => {
+    vi.mocked(getSaleAlerts).mockResolvedValue([
+      {
+        guildId: 'g1',
+        notificationChannelId: 'c1',
+        alerts: [
+          {
+            gameId: 1,
+            itadId: 'itad-1',
+            title: 'Hollow Knight',
+            deal: { price: { amountInt: 999 } } as never,
+            recipients: [{ wishlistItemId: 10, discordId: 'user-1' }],
+          },
+        ],
+      },
+    ])
+    vi.mocked(postChannelMessage).mockRejectedValue(new Error('boom'))
+
+    await GET(buildRequest('Bearer test-secret'))
+
+    expect(updateLastNotifiedPrices).not.toHaveBeenCalled()
   })
 })

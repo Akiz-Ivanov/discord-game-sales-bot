@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { getSaleAlerts } from './cron'
-import { getWishlistedGamesByGuild } from '@/repositories/wishlist'
+import {
+  getWishlistedGamesByGuild,
+  updateLastNotifiedPrices,
+} from '@/repositories/wishlist'
 import { getPrices } from '@/itad/client'
 import { game, makeDeal } from '@/test/factories'
 
 vi.mock('@/repositories/wishlist', () => ({
   getWishlistedGamesByGuild: vi.fn(),
+  updateLastNotifiedPrices: vi.fn(),
 }))
 vi.mock('@/itad/client', () => ({ getPrices: vi.fn() }))
 
@@ -28,9 +32,7 @@ beforeEach(() => {
 describe('getSaleAlerts', () => {
   it('returns [] without calling getPrices when there are no wishlisted rows', async () => {
     vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([])
-
     const result = await getSaleAlerts()
-
     expect(result).toEqual([])
     expect(getPrices).not.toHaveBeenCalled()
   })
@@ -38,36 +40,68 @@ describe('getSaleAlerts', () => {
   it('dedupes itadIds before calling getPrices', async () => {
     vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([
       makeRow({ discordId: 'user-1' }),
-      makeRow({ discordId: 'user-2' }), // same game, different user
+      makeRow({ discordId: 'user-2', wishlistItemId: 2 }),
     ])
     vi.mocked(getPrices).mockResolvedValue([])
-
     await getSaleAlerts()
-
     expect(getPrices).toHaveBeenCalledWith([game.id])
   })
 
   it('skips a row when ITAD returns no price data for its itadId', async () => {
     vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([makeRow()])
     vi.mocked(getPrices).mockResolvedValue([])
-
     const result = await getSaleAlerts()
-
     expect(result).toEqual([])
+    expect(updateLastNotifiedPrices).not.toHaveBeenCalled()
   })
 
-  it('skips a row when there is no discount', async () => {
-    vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([makeRow()])
+  it('groups two users wishlisting the same game into one alert with both recipients', async () => {
+    vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([
+      makeRow({ wishlistItemId: 1, discordId: 'user-1' }),
+      makeRow({ wishlistItemId: 2, discordId: 'user-2' }),
+    ])
     vi.mocked(getPrices).mockResolvedValue([
-      { id: game.id, historyLow: {}, deals: [makeDeal({ cut: 0 })] },
+      { id: game.id, historyLow: {}, deals: [makeDeal({ cut: 25 })] },
     ])
 
     const result = await getSaleAlerts()
 
-    expect(result).toEqual([])
+    expect(result).toHaveLength(1)
+    expect(result[0].alerts).toHaveLength(1)
+    expect(result[0].alerts[0].recipients).toEqual([
+      { wishlistItemId: 1, discordId: 'user-1' },
+      { wishlistItemId: 2, discordId: 'user-2' },
+    ])
   })
 
-  it('skips a row when the price matches lastNotifiedPrice', async () => {
+  describe('cut === 0 (game not currently on sale)', () => {
+    it('resets lastNotifiedPrice back to null when it was previously set', async () => {
+      vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([
+        makeRow({ lastNotifiedPrice: 999 }),
+      ])
+      vi.mocked(getPrices).mockResolvedValue([
+        { id: game.id, historyLow: {}, deals: [makeDeal({ cut: 0 })] },
+      ])
+
+      const result = await getSaleAlerts()
+
+      expect(result).toEqual([])
+      expect(updateLastNotifiedPrices).toHaveBeenCalledWith([
+        { wishlistItemId: 1, price: null },
+      ])
+    })
+
+    it('does not call updateLastNotifiedPrices when lastNotifiedPrice is already null', async () => {
+      vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([makeRow()])
+      vi.mocked(getPrices).mockResolvedValue([
+        { id: game.id, historyLow: {}, deals: [makeDeal({ cut: 0 })] },
+      ])
+      await getSaleAlerts()
+      expect(updateLastNotifiedPrices).not.toHaveBeenCalled()
+    })
+  })
+
+  it('skips a row when the price has not improved since the last notification', async () => {
     vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([
       makeRow({ lastNotifiedPrice: 999 }),
     ])
@@ -83,59 +117,23 @@ describe('getSaleAlerts', () => {
         ],
       },
     ])
-
     const result = await getSaleAlerts()
-
     expect(result).toEqual([])
   })
 
-  it('includes a row that warrants notification, grouped under its guild', async () => {
-    vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([makeRow()])
-    const deal = makeDeal({ cut: 25 })
+  it('includes a row when the price has dropped below the last notification', async () => {
+    vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([
+      makeRow({ lastNotifiedPrice: 1499 }),
+    ])
+    const deal = makeDeal({
+      cut: 40,
+      price: { amount: 9.99, amountInt: 999, currency: 'USD' },
+    })
     vi.mocked(getPrices).mockResolvedValue([
       { id: game.id, historyLow: {}, deals: [deal] },
     ])
-
     const result = await getSaleAlerts()
-
-    expect(result).toEqual([
-      {
-        guildId: 'guild-1',
-        notificationChannelId: 'channel-1',
-        alerts: [
-          {
-            wishlistItemId: 1,
-            discordId: 'user-1',
-            gameId: 10,
-            itadId: game.id,
-            title: game.title,
-            deal,
-          },
-        ],
-      },
-    ])
-  })
-
-  it('groups multiple alerts for the same guild together', async () => {
-    const otherGame = { ...game, id: 'other-itad-id' }
-    vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([
-      makeRow(),
-      makeRow({
-        wishlistItemId: 2,
-        gameId: 20,
-        itadId: otherGame.id,
-        title: 'Other Game',
-      }),
-    ])
-    vi.mocked(getPrices).mockResolvedValue([
-      { id: game.id, historyLow: {}, deals: [makeDeal({ cut: 25 })] },
-      { id: otherGame.id, historyLow: {}, deals: [makeDeal({ cut: 50 })] },
-    ])
-
-    const result = await getSaleAlerts()
-
-    expect(result).toHaveLength(1)
-    expect(result[0].alerts).toHaveLength(2)
+    expect(result[0].alerts[0].deal).toEqual(deal)
   })
 
   it('separates alerts into different guilds', async () => {
@@ -145,14 +143,13 @@ describe('getSaleAlerts', () => {
         guildId: 'guild-2',
         notificationChannelId: 'channel-2',
         discordId: 'user-2',
+        wishlistItemId: 2,
       }),
     ])
     vi.mocked(getPrices).mockResolvedValue([
       { id: game.id, historyLow: {}, deals: [makeDeal({ cut: 25 })] },
     ])
-
     const result = await getSaleAlerts()
-
     expect(result).toHaveLength(2)
     expect(result.map((g) => g.guildId).sort()).toEqual(['guild-1', 'guild-2'])
   })
@@ -172,9 +169,7 @@ describe('getSaleAlerts', () => {
     vi.mocked(getPrices).mockResolvedValue([
       { id: game.id, historyLow: {}, deals: [expensive, cheap] },
     ])
-
     const result = await getSaleAlerts()
-
     expect(result[0].alerts[0].deal.shop.name).toBe('GOG')
   })
 })
