@@ -8,6 +8,7 @@ import {
   getWishlistedGamesByGuild,
   countWishlistItems,
   updateLastNotifiedPrices,
+  isGameWishlistedByDiscordId,
 } from './wishlist'
 import { upsertUser } from './users'
 import { upsertGame } from './games'
@@ -354,5 +355,29 @@ describe('updateLastNotifiedPrices', () => {
 
   it('does nothing and does not throw when entries is empty', async () => {
     await expect(updateLastNotifiedPrices([])).resolves.not.toThrow()
+  })
+})
+
+describe('isGameWishlistedByDiscordId', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('returns false when the game is not on the wishlist', async () => {
+    const { gameId } = await setup()
+    expect(await isGameWishlistedByDiscordId(discordId, gameId)).toBe(false)
+  })
+
+  it('returns true once the game has been added', async () => {
+    const { userId, gameId } = await setup()
+    await addWishlistItem(userId, gameId)
+    expect(await isGameWishlistedByDiscordId(discordId, gameId)).toBe(true)
+  })
+
+  it("does not treat another user's wishlist item as a match", async () => {
+    const { gameId } = await setup()
+    const otherUser = await upsertUser('987654321098765432', guildId)
+    await addWishlistItem(otherUser.id, gameId)
+    expect(await isGameWishlistedByDiscordId(discordId, gameId)).toBe(false)
   })
 })

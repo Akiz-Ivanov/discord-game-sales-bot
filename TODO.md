@@ -245,10 +245,13 @@
     id not list order, 8-item cap, Free/no-deal/discount-line
     formatting), plus command/component handler coverage. 221/221
     passing project-wide.
-  - **Not done yet, deliberately deferred**: pagination. Wishlist is
-    capped at 8 games/page (component budget), real test wishlists
-    have been at exactly 8 all session — no concrete need yet to build
-    against. Next up.
+  - **Not done yet, deliberately deferred**: Prev/Next currently use
+    plain `◀ ▶` Unicode glyphs, not emoji — these can render as thin
+    text-glyphs rather than filled triangles on some platforms.
+    Candidate follow-up: swap to `⬅️ ➡️` (real emoji codepoints, render
+    identically everywhere) or app-owned custom emoji matching the
+    Remove button's trash-icon style for full visual consistency.
+    Same treatment candidate for the wishlist toggle button's ➕/➖.
 - [x] `/wishlist list` pagination — Prev/Next buttons in a plain classic
       ActionRow below the Container (sibling component, not V2-specific).
       Component budget: `4N + 4 ≤ 40` → capped at 9 items/page, which
@@ -346,18 +349,107 @@
   - Full test coverage: `getFocusedOption.test.ts`,
     `gameSearch.test.ts`, route dispatch tests (success, unknown
     command, handler-throws branches). 269/269 passing project-wide.
-- [ ] Sale alert card v2 — first version is functional but bare
-      (single-line embeds, no interactivity). Ideas surfaced but not
-      decided: a "Check price" button per game (ephemeral reply,
-      reusing resolveGame → getGamePrices → buildPriceEmbed — does NOT
-      reuse handlePriceSelect's UpdateMessage pattern, since that would
-      wipe every other game's card in the same alert message); a
-      "Remove from wishlist" button (removeGameFromWishlist already
-      exists); @mention strategy (per-game vs. one combined line) —
-      needs to be seen live before deciding. Components V2 worth a
-      second look specifically for this card shape (unlike /wishlist
-      list's field-grid problem, a stacked list of games is exactly
-      what V2's Container/Section model suits)
+- [x] Sale alert card v2 — grouped by (guild, game) instead of one
+      row per (user, guild) — fixes a real bug where two users
+      wishlisting the same game produced two duplicate cards for
+      the same sale. New `discord/views/saleAlert.ts`
+      (`buildSaleAlertMessage`) — Components V2, one Container per
+      message, one Section per game, accent color matches the
+      existing on-sale green. Capped at `MAX_ALERTS_PER_MESSAGE = 9`
+      (component budget, same math as `/wishlist list`'s 9-item cap)
+      with a "+N more sales not shown" note.
+  - Each game's Section mentions every recipient who wishlisted it
+    (`Wishlisted by @user1 @user2...`, capped at 10 with a "+N more"
+    tail), `allowed_mentions` scoped to exactly those recipients.
+    Header count is guild-wide ("N wishlisted games are on sale"),
+    not personalized — corrected from an earlier "on your wishlist"
+    wording that was misleading once per-game mentions made
+    per-user ownership visible in the card itself.
+  - Each Section carries a "Check price" accessory button
+    (`sale_check_price:{itadId}`) — new
+    `discord/components/saleAlert.ts`, reuses
+    `resolveGame → getGamePrices → buildPriceEmbed`. Always replies
+    with a fresh ephemeral message, never `UpdateMessage` — the
+    alert is shared by the whole channel, so rewriting it on one
+    person's click would erase it for everyone else who hasn't
+    clicked yet.
+  - "Remove from wishlist" accessory considered and dropped for v1
+    — a Section allows only one accessory (button or thumbnail),
+    and Check-price felt like the more urgent action right after a
+    ping (surfaces the full multi-store breakdown the lean alert
+    card deliberately omits); `/wishlist remove` already covers
+    removal.
+  - **Real bug fixed alongside**: nothing previously wrote
+    `lastNotifiedPrice` back after a cron alert fired, so an
+    unchanged sale would re-notify every single day. New
+    `updateLastNotifiedPrices()` repo helper, called from the cron
+    route once a guild's post succeeds (skipped on a failed post,
+    so tomorrow's run retries that guild rather than treating a
+    failed send as delivered).
+  - `shouldNotify` tightened from "any price change" to "genuine
+    improvement" (`currentPrice < lastNotifiedPrice`) — a shrinking
+    discount no longer re-triggers an alert. `getSaleAlerts` resets
+    `lastNotifiedPrice` to `null` once a wishlisted game's cut
+    returns to 0, so a future sale at the same price still counts
+    as fresh instead of being filtered forever by the strict `<`
+    check.
+  - Verified live end-to-end via ngrok: grouped card posted with
+    correct mentions and formatting; re-running cron immediately
+    produced zero new alerts (confirms the no-repeat-until-improved
+    logic); Check price button opened a correct ephemeral embed
+    without disturbing the original alert message.
+  - Full test coverage across `shouldNotify.test.ts`,
+    `repositories/wishlist.test.ts` (`updateLastNotifiedPrices`),
+    `services/cron.test.ts` (grouping, reset branch), new
+    `discord/views/saleAlert.test.ts` and
+    `discord/components/saleAlert.test.ts`, plus updated
+    `route.test.ts` for the cron endpoint. 285/285 passing
+    project-wide, ~98.6% coverage.
+- [x] "Add to wishlist" toggle button on `/price` embed replies —
+      new `discord/interactions/buildWishlistToggleButton.ts` (single-
+      button ActionRow, `Primary`/blurple style for "Add" as the main
+      CTA, `Secondary` for "Remove"), wired into both `/price`'s
+      single-match reply and `handlePriceSelect`'s disambiguation
+      re-render. `custom_id: price_wishlist_toggle:{itadId}` re-checks
+      membership at click time rather than trusting the button's own
+      label.
+  - New `isGameWishlistedByDiscordId()` repo helper — a single joined
+    query (`wishlist_items` → `users` on `discord_id`) instead of a
+    separate user lookup followed by a membership check, cutting one
+    round trip per check. `services/wishlist.ts`'s `isGameWishlisted()`
+    is a thin passthrough.
+  - Cost pass before merging: `handlePriceWishlistToggle` reuses
+    `interaction.message.embeds` from the existing message instead of
+    re-fetching prices and rebuilding the embed after a toggle — the
+    price data didn't change just because the wishlist did, so this
+    cuts a `getGamePrices` call (and its `buildPriceEmbed` cost) out of
+    every click entirely.
+  - Button hidden in DMs (no `guild_id`) — wishlist add/remove needs a
+    guild context (`getInteractionGuildId` throws otherwise), so
+    showing a button that would error on click is worse than omitting
+    it.
+  - Full test coverage: `buildWishlistToggleButton.test.ts` (new),
+    repo/service tests for `isGameWishlistedByDiscordId`/
+    `isGameWishlisted`, updated `price.test.ts` and
+    `components/price.test.ts` covering both toggle directions,
+    limit-reached, and not-found branches. 297/297 passing
+    project-wide.
+  - Housekeeping alongside: removed two stale duplicate tests in
+    `saleAlert.test.ts` left over from last session's header-copy
+    change (asserted old wording that no longer matched
+    `buildSaleAlertMessage`'s actual output).
+  - **On a branch, not yet merged to `main`** — holding to watch real
+    Neon usage before committing to it long-term. Repo now requires a
+    PR to merge into `main` (previously self-bypass was allowed).
+  - **Deliberately deferred**: swap the ➕/➖ Unicode icons for
+    Discord's native button `emoji` field or app-owned custom emoji —
+    bundle this with the existing pagination-glyph polish item below
+    rather than doing icon work piecemeal.
+  - **Deliberately deferred**: per-user component interaction rate
+    limiting — same open risk already noted for `price_select`/
+    `wishlist_add_select`; this button doesn't introduce a new class
+    of exposure, just a slightly lower-friction path to the same
+    existing DB cost. Worth a real look if abuse is ever observed.
 
 ## Later / backlog
 
@@ -365,7 +457,6 @@
 - [ ] Web dashboard (tracked games + price history, reusing the same service layer as the bot)
 - [ ] Context-menu commands (type 2 "User" / type 3 "Message") — e.g. right-click a message → check price history
 - [ ] Global command registration (once ready to invite the bot to other servers)
-- [ ] "Add to wishlist" button on `/price` embed replies (Discord message component, same `/api/interactions` route, `MESSAGE_COMPONENT` type — build after `/price` and `/wishlist add` both work standalone)
 - [x] Message-component buttons for disambiguation replies (instead of listing
       ITAD IDs as visible text) — button `custom_id` holds the UUID (well
       under Discord's 100-char limit), click re-runs price lookup via
@@ -414,11 +505,6 @@
       handleRemove; no new state needed. Explicitly NOT auto-adding the
       pending game after a removal — keeps every wishlist mutation an
       explicit user action.
-- [ ] "Add to wishlist" button on `/price` embed replies — now unblocked
-      (`/wishlist add`/`addGameToWishlist` service both exist). Needs a
-      per-user wishlist-membership check at embed-build time to decide
-      button state (add vs. remove), and a `custom_id` carrying the
-      ITAD ID.
 - [ ] `/price` embed layout: reconsider Historical low's position — it
       currently sits alone on its own line above the 3-across
       Released/Reviews/Players inline-field row, which reads oddly.

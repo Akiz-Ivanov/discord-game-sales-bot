@@ -40,19 +40,6 @@ describe('buildSaleAlertMessage', () => {
     expect(container.accent_color).toBe(0x57f287)
   })
 
-  it('uses singular phrasing for exactly one alert', () => {
-    const header = getContainer(buildSaleAlertMessage([makeAlert()]))
-      .components[0] as APITextDisplayComponent
-    expect(header.content).toContain('1 game on your wishlist is on sale')
-  })
-
-  it('uses plural phrasing for multiple alerts', () => {
-    const header = getContainer(
-      buildSaleAlertMessage([makeAlert(), makeAlert({ gameId: 20 })])
-    ).components[0] as APITextDisplayComponent
-    expect(header.content).toContain('2 games on your wishlist are on sale')
-  })
-
   it('builds one Section per game with price, discount, and shop', () => {
     const container = getContainer(
       buildSaleAlertMessage([

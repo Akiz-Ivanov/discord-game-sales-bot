@@ -6,7 +6,7 @@ import {
   handleWishlistListPage,
   handleWishlistRemovePage,
 } from './wishlist'
-import { handlePriceSelect } from './price'
+import { handlePriceSelect, handlePriceWishlistToggle } from './price'
 import { handleSaleAlertCheckPrice } from './saleAlert'
 
 //* Keyed by the literal prefix before the first ':' in custom_id.
@@ -20,4 +20,5 @@ export const components: Record<string, ComponentHandler> = {
   wishlist_remove_page: handleWishlistRemovePage,
   price_select: handlePriceSelect,
   sale_check_price: handleSaleAlertCheckPrice,
+  price_wishlist_toggle: handlePriceWishlistToggle,
 }

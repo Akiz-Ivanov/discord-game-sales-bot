@@ -3,6 +3,7 @@ import {
   addGameToWishlist,
   removeGameFromWishlist,
   getWishlist,
+  isGameWishlisted,
 } from './wishlist'
 import { upsertUser, getUserByDiscordId } from '@/repositories/users'
 import { upsertGame } from '@/repositories/games'
@@ -12,6 +13,7 @@ import {
   removeWishlistItem,
   listWishlistItems,
   countWishlistItems,
+  isGameWishlistedByDiscordId,
 } from '@/repositories/wishlist'
 import { game, makeDeal, makeGameRow } from '@/test/factories'
 import { PriceSnapshot } from '@/types'
@@ -28,6 +30,7 @@ vi.mock('@/repositories/wishlist', () => ({
   removeWishlistItem: vi.fn(),
   listWishlistItems: vi.fn(),
   countWishlistItems: vi.fn(),
+  isGameWishlistedByDiscordId: vi.fn(),
 }))
 vi.mock('@/services/prices', () => ({
   getGamePrices: vi.fn(),
@@ -256,5 +259,19 @@ describe('getWishlist', () => {
     expect(listWishlistItems).toHaveBeenCalledWith(userRow.id)
     expect(result).toHaveLength(1)
     expect(result[0].game).toEqual(gameRow)
+  })
+})
+
+describe('isGameWishlisted', () => {
+  it('delegates straight through to the repository', async () => {
+    vi.mocked(isGameWishlistedByDiscordId).mockResolvedValue(true)
+
+    const result = await isGameWishlisted(discordId, gameRow.id)
+
+    expect(isGameWishlistedByDiscordId).toHaveBeenCalledWith(
+      discordId,
+      gameRow.id
+    )
+    expect(result).toBe(true)
   })
 })

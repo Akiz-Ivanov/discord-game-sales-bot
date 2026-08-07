@@ -92,3 +92,17 @@ export const updateLastNotifiedPrices = async (
     )
   )
 }
+
+export const isGameWishlistedByDiscordId = async (
+  discordId: string,
+  gameId: number
+): Promise<boolean> => {
+  const [row] = await db
+    .select({ id: wishlistItems.id })
+    .from(wishlistItems)
+    .innerJoin(users, eq(users.id, wishlistItems.userId))
+    .where(
+      and(eq(users.discordId, discordId), eq(wishlistItems.gameId, gameId))
+    )
+  return row !== undefined
+}

@@ -5,6 +5,7 @@ import {
   removeWishlistItem,
   listWishlistItems,
   countWishlistItems,
+  isGameWishlistedByDiscordId,
 } from '@/repositories/wishlist'
 import { getGamePrices } from '@/services/prices'
 import type {
@@ -54,3 +55,10 @@ export const getWishlist = async (discordId: string) => {
 
   return listWishlistItems(user.id)
 }
+
+//* Thin wrapper — the actual join lives in the repository layer so it can
+//* be one query instead of a user lookup followed by a second query.
+export const isGameWishlisted = (
+  discordId: string,
+  gameDbId: number
+): Promise<boolean> => isGameWishlistedByDiscordId(discordId, gameDbId)
