@@ -1,17 +1,37 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { handlePriceSelect } from './price'
+import { handlePriceSelect, handlePriceWishlistToggle } from './price'
 import { resolveGame } from '@/services/games'
 import { getGamePrices } from '@/services/prices'
 import { upsertGame } from '@/repositories/games'
 import { buildPriceEmbed } from '@/discord/embeds/price'
 import { InteractionResponseType } from 'discord-api-types/v10'
 import type { APIEmbed, APIInteractionResponse } from 'discord-api-types/v10'
-import { game } from '@/test/factories'
+import { game, makeGameRow } from '@/test/factories'
+import { getUserByDiscordId } from '@/repositories/users'
+import {
+  addGameToWishlist,
+  removeGameFromWishlist,
+  isGameWishlisted,
+} from '@/services/wishlist'
+import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
+import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
 
 vi.mock('@/services/games', () => ({ resolveGame: vi.fn() }))
 vi.mock('@/services/prices', () => ({ getGamePrices: vi.fn() }))
 vi.mock('@/repositories/games', () => ({ upsertGame: vi.fn() }))
 vi.mock('@/discord/embeds/price', () => ({ buildPriceEmbed: vi.fn() }))
+vi.mock('@/repositories/users', () => ({ getUserByDiscordId: vi.fn() }))
+vi.mock('@/services/wishlist', () => ({
+  addGameToWishlist: vi.fn(),
+  removeGameFromWishlist: vi.fn(),
+  isGameWishlisted: vi.fn(),
+}))
+vi.mock('@/discord/interactions/getInteractionUserId', () => ({
+  getInteractionUserId: vi.fn(),
+}))
+vi.mock('@/discord/interactions/getInteractionGuildId', () => ({
+  getInteractionGuildId: vi.fn(),
+}))
 
 const expectUpdateMessage = (result: APIInteractionResponse) => {
   if (result.type !== InteractionResponseType.UpdateMessage) {
@@ -26,7 +46,15 @@ const buildSelectInteraction = (customId: string) =>
     typeof handlePriceSelect
   >[0]
 
-beforeEach(() => vi.clearAllMocks())
+const discordId = '255361746758402048'
+const guildId = '999888777666555444'
+const userRow = { id: 1, discordId, guildId, createdAt: new Date() }
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.mocked(getInteractionUserId).mockReturnValue(discordId)
+  vi.mocked(getInteractionGuildId).mockReturnValue(guildId)
+})
 
 describe('handlePriceSelect', () => {
   it('re-resolves the chosen game and shows its price embed', async () => {
@@ -60,5 +88,93 @@ describe('handlePriceSelect', () => {
 
     expect(data.content).toContain("couldn't be found")
     expect(upsertGame).not.toHaveBeenCalled()
+  })
+})
+
+describe('handlePriceWishlistToggle', () => {
+  const buildToggleInteraction = (customId: string) =>
+    ({
+      guild_id: guildId,
+      message: { embeds: [{ title: 'Hollow Knight' } as APIEmbed] },
+      data: { custom_id: customId },
+    }) as unknown as Parameters<typeof handlePriceWishlistToggle>[0]
+
+  it('adds the game and flips the button to Remove when not previously wishlisted', async () => {
+    vi.mocked(resolveGame).mockResolvedValue([game])
+    vi.mocked(upsertGame).mockResolvedValue(makeGameRow({ id: 1 }))
+    vi.mocked(isGameWishlisted).mockResolvedValue(false)
+    vi.mocked(addGameToWishlist).mockResolvedValue({
+      status: 'added',
+      priceSnapshot: {
+        deals: [],
+        historyLowInt: undefined,
+        historyLowCurrency: undefined,
+      },
+    })
+
+    const data = expectUpdateMessage(
+      await handlePriceWishlistToggle(
+        buildToggleInteraction(`price_wishlist_toggle:${game.id}`)
+      )
+    )
+
+    expect(addGameToWishlist).toHaveBeenCalledWith(discordId, guildId, game)
+    expect(removeGameFromWishlist).not.toHaveBeenCalled()
+    expect(getGamePrices).not.toHaveBeenCalled() //* reuses the message's own embeds now
+    expect(data.embeds).toEqual([{ title: 'Hollow Knight' }])
+    const row = data.components?.[0]
+    const button = row && 'components' in row ? row.components[0] : undefined
+    expect(button).toMatchObject({ label: '➖ Remove from wishlist' })
+  })
+
+  it('removes the game and flips the button to Add when previously wishlisted', async () => {
+    vi.mocked(resolveGame).mockResolvedValue([game])
+    vi.mocked(upsertGame).mockResolvedValue(makeGameRow({ id: 1 }))
+    vi.mocked(isGameWishlisted).mockResolvedValue(true)
+    vi.mocked(getUserByDiscordId).mockResolvedValue(userRow)
+    vi.mocked(removeGameFromWishlist).mockResolvedValue({ status: 'removed' })
+
+    const data = expectUpdateMessage(
+      await handlePriceWishlistToggle(
+        buildToggleInteraction(`price_wishlist_toggle:${game.id}`)
+      )
+    )
+
+    expect(removeGameFromWishlist).toHaveBeenCalledWith(userRow.id, 1)
+    expect(addGameToWishlist).not.toHaveBeenCalled()
+    expect(getGamePrices).not.toHaveBeenCalled() //* reuses the message's own embeds now
+    expect(data.embeds).toEqual([{ title: 'Hollow Knight' }])
+    const row = data.components?.[0]
+    const button = row && 'components' in row ? row.components[0] : undefined
+    expect(button).toMatchObject({ label: '➕ Add to wishlist' })
+  })
+
+  it('reports the limit-reached message without touching the embed when the wishlist is full', async () => {
+    vi.mocked(resolveGame).mockResolvedValue([game])
+    vi.mocked(upsertGame).mockResolvedValue(makeGameRow({ id: 1 }))
+    vi.mocked(isGameWishlisted).mockResolvedValue(false)
+    vi.mocked(addGameToWishlist).mockResolvedValue({ status: 'limit_reached' })
+
+    const data = expectUpdateMessage(
+      await handlePriceWishlistToggle(
+        buildToggleInteraction(`price_wishlist_toggle:${game.id}`)
+      )
+    )
+
+    expect(data.content).toContain('limit')
+    expect(getGamePrices).not.toHaveBeenCalled()
+  })
+
+  it('reports a not-found fallback when the game no longer resolves', async () => {
+    vi.mocked(resolveGame).mockResolvedValue([])
+
+    const data = expectUpdateMessage(
+      await handlePriceWishlistToggle(
+        buildToggleInteraction(`price_wishlist_toggle:${game.id}`)
+      )
+    )
+
+    expect(data.content).toContain("couldn't be found")
+    expect(isGameWishlisted).not.toHaveBeenCalled()
   })
 })

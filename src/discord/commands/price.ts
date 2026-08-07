@@ -5,6 +5,9 @@ import { getGamePrices } from '@/services/prices'
 import { upsertGame } from '@/repositories/games'
 import { buildPriceEmbed } from '@/discord/embeds/price'
 import { buildGameSelectButtons } from '@/discord/interactions/buildGameSelectButtons'
+import { getInteractionUserId } from '../interactions/getInteractionUserId'
+import { isGameWishlisted } from '@/services/wishlist'
+import { buildWishlistToggleButton } from '../interactions/buildWishlistToggleButton'
 
 export const price: CommandHandler = async (interaction) => {
   const gameOption = interaction.data.options?.find((o) => o.name === 'game')
@@ -44,12 +47,25 @@ export const price: CommandHandler = async (interaction) => {
     match.id
   )
 
+  const embed = buildPriceEmbed(match, deals, historyLowInt, historyLowCurrency)
+
+  //* No guild context (DM) → wishlist add/remove would throw on click
+  //* (getInteractionGuildId), so don't offer a button that can't work.
+  if (!interaction.guild_id) {
+    return {
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: { embeds: [embed] },
+    }
+  }
+
+  const discordId = getInteractionUserId(interaction)
+  const inWishlist = await isGameWishlisted(discordId, gameRow.id)
+
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
-      embeds: [
-        buildPriceEmbed(match, deals, historyLowInt, historyLowCurrency),
-      ],
+      embeds: [embed],
+      components: [buildWishlistToggleButton(match.id, inWishlist)],
     },
   }
 }
