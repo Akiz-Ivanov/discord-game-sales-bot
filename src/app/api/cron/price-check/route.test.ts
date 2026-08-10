@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { GET } from './route'
-import { getSaleAlerts } from '@/services/cron'
+import { getSaleAlerts } from '@/services/saleAlerts'
 import { postChannelMessage } from '@/discord/rest'
 import { updateLastNotifiedPrices } from '@/repositories/wishlist'
 
-vi.mock('@/services/cron', () => ({ getSaleAlerts: vi.fn() }))
+vi.mock('@/services/saleAlerts', () => ({ getSaleAlerts: vi.fn() }))
 vi.mock('@/discord/rest', () => ({ postChannelMessage: vi.fn() }))
 vi.mock('@/discord/views/saleAlert', () => ({
   buildSaleAlertMessage: vi.fn(() => ({ flags: 0, components: [] })),

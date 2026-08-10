@@ -1,4 +1,4 @@
-import { getSaleAlerts } from '@/services/cron'
+import { getSaleAlerts } from '@/services/saleAlerts'
 import { buildSaleAlertMessage } from '@/discord/views/saleAlert'
 import { postChannelMessage } from '@/discord/rest'
 import { updateLastNotifiedPrices } from '@/repositories/wishlist'
