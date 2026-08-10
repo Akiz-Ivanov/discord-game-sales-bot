@@ -188,9 +188,12 @@ describe('wishlist command handler — add', () => {
     expect(buildPriceEmbed).not.toHaveBeenCalled()
   })
 
-  it('reports the limit-reached message without an embed when the wishlist is full', async () => {
+  it('reports the limit-reached message with a remove picker when the wishlist is full', async () => {
     vi.mocked(resolveGame).mockResolvedValue([game])
     vi.mocked(addGameToWishlist).mockResolvedValue({ status: 'limit_reached' })
+    vi.mocked(getWishlist).mockResolvedValue([
+      makeWishlistItemRow({ game: makeGameRow({ id: 2, title: 'Celeste' }) }),
+    ])
 
     const data = expectChannelMessage(
       await wishlist(buildAddInteraction('hollow knight'))
@@ -199,6 +202,9 @@ describe('wishlist command handler — add', () => {
     expect(data.content).toContain('limit')
     expect(data.embeds).toBeUndefined()
     expect(buildPriceEmbed).not.toHaveBeenCalled()
+    const row = data.components?.[0]
+    const select = row && 'components' in row ? row.components[0] : undefined
+    expect(select).toMatchObject({ custom_id: 'wishlist_remove_select' })
   })
 })
 

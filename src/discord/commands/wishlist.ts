@@ -11,7 +11,7 @@ import { getInteractionUserId } from '@/discord/interactions/getInteractionUserI
 import { buildGameSelectButtons } from '@/discord/interactions/buildGameSelectButtons'
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
 import { buildPriceEmbed } from '@/discord/embeds/price'
-import { wishlistLimitReachedMessage } from '@/lib/constants'
+import { wishlistLimitReachedWithRemoveMessage } from '@/lib/constants'
 import { buildWishlistListMessage } from '../views/wishlistList'
 import { getWishlistPrices } from '@/services/prices'
 import { buildWishlistRemoveMessage } from '../views/wishlistRemove'
@@ -80,12 +80,14 @@ const handleAdd: CommandHandler = async (interaction) => {
   }
 
   if (result.status === 'limit_reached') {
+    const items = await getWishlist(discordId)
     return {
       type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        flags: MessageFlags.Ephemeral,
-        content: wishlistLimitReachedMessage(),
-      },
+      data: buildWishlistRemoveMessage(
+        items,
+        0,
+        wishlistLimitReachedWithRemoveMessage()
+      ),
     }
   }
 

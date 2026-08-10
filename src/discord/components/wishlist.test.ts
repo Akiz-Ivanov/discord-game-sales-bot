@@ -188,10 +188,25 @@ describe('handleWishlistAddSelect', () => {
     expect(addGameToWishlist).not.toHaveBeenCalled()
   })
 
-  it('reports the limit-reached message without an embed when the wishlist is full', async () => {
+  it('reports the limit-reached message with a remove picker when the wishlist is full', async () => {
     vi.mocked(getInteractionUserId).mockReturnValue(discordId)
     vi.mocked(resolveGame).mockResolvedValue([game])
     vi.mocked(addGameToWishlist).mockResolvedValue({ status: 'limit_reached' })
+    vi.mocked(getWishlist).mockResolvedValue([
+      makeWishlistItemRow({ game: makeGameRow({ id: 2, title: 'Celeste' }) }),
+    ])
+    vi.mocked(buildWishlistRemoveMessage).mockReturnValue({
+      flags: MessageFlags.Ephemeral,
+      content: 'limit reached',
+      components: [
+        {
+          type: 1,
+          components: [
+            { type: 3, custom_id: 'wishlist_remove_select', options: [] },
+          ],
+        },
+      ],
+    } as never)
 
     const data = expectUpdateMessage(
       await handleWishlistAddSelect(
@@ -203,7 +218,9 @@ describe('handleWishlistAddSelect', () => {
 
     expect(data.content).toContain('limit')
     expect(data.embeds).toBeUndefined()
-    expect(data.components).toEqual([])
+    const row = data.components?.[0]
+    const select = row && 'components' in row ? row.components[0] : undefined
+    expect(select).toMatchObject({ custom_id: 'wishlist_remove_select' })
   })
 })
 

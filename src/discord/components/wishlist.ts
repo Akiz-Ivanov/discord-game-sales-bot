@@ -14,7 +14,7 @@ import {
 import { resolveGame } from '@/services/games'
 import { getInteractionGuildId } from '../interactions/getInteractionGuildId'
 import { buildPriceEmbed } from '@/discord/embeds/price'
-import { wishlistLimitReachedMessage } from '@/lib/constants'
+import { wishlistLimitReachedWithRemoveMessage } from '@/lib/constants'
 import { buildWishlistListMessage } from '../views/wishlistList'
 import { getWishlistPrices } from '@/services/prices'
 import { buildWishlistRemoveMessage } from '../views/wishlistRemove'
@@ -102,13 +102,14 @@ export const handleWishlistAddSelect: ComponentHandler = async (
   }
 
   if (result.status === 'limit_reached') {
+    const items = await getWishlist(discordId)
     return {
       type: InteractionResponseType.UpdateMessage,
-      data: {
-        flags: MessageFlags.Ephemeral,
-        content: wishlistLimitReachedMessage(),
-        components: [],
-      },
+      data: buildWishlistRemoveMessage(
+        items,
+        0,
+        wishlistLimitReachedWithRemoveMessage()
+      ),
     }
   }
 
