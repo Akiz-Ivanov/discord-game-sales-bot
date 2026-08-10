@@ -453,10 +453,6 @@
 
 ## Later / backlog
 
-- [ ] User-defined notification thresholds (min % off, price ceiling, historical-low-only, store filter)
-- [ ] Web dashboard (tracked games + price history, reusing the same service layer as the bot)
-- [ ] Context-menu commands (type 2 "User" / type 3 "Message") — e.g. right-click a message → check price history
-- [ ] Global command registration (once ready to invite the bot to other servers)
 - [x] Message-component buttons for disambiguation replies (instead of listing
       ITAD IDs as visible text) — button `custom_id` holds the UUID (well
       under Discord's 100-char limit), click re-runs price lookup via
@@ -570,6 +566,43 @@
 - [x] Sale alert card accent color changed from green to purple —
       cosmetic, decouples the alert card's color from `/price`'s own
       on-sale-green styling.
+- [x] Surface `/wishlist remove`'s select menu directly on the
+      limit-reached reply — lets a user free a slot without a second
+      command round-trip. Wired into all three places `limit_reached`
+      can fire: `/wishlist add` (command), its disambiguation-button
+      counterpart (`handleWishlistAddSelect`), and `/price`'s
+      "➕ Add to wishlist" toggle button (`handlePriceWishlistToggle`).
+  - `buildWishlistRemoveMessage()` gained an optional third `content`
+    param so the limit-reached message ("Your wishlist is at the
+    N-game limit — pick something to remove:") can override the
+    default "Select a game to remove:" line without a second render
+    path. New `wishlistLimitReachedWithRemoveMessage()` in
+    `lib/constants.ts` replaces the old plain
+    `wishlistLimitReachedMessage()`, which is now dead and removed.
+  - No new `custom_id` or component handler — selecting an option
+    still routes through the existing `wishlist_remove_select`
+    handler, which has no idea (and doesn't need to know) it was
+    opened from a limit-reached reply rather than `/wishlist remove`
+    directly. This is what keeps the "not auto-adding the pending
+    game after a removal" property automatic rather than something
+    that needed separate handling.
+  - `/price`'s toggle button changes response shape here: instead of
+    `UpdateMessage` on the original (often-public) `/price` embed, the
+    limit-reached case now replies with a **new, ephemeral** message
+    carrying the picker (`ChannelMessageWithSource`). Deliberate —
+    the old `UpdateMessage` path would have rewritten a public embed
+    to show one user's private wishlist contents to the whole
+    channel. The public embed and its button are now left untouched
+    on a limit-reached click; only the clicking user sees the picker.
+  - Full test coverage: `wishlistRemove.test.ts` (content override),
+    updated limit-reached assertions in `commands/wishlist.test.ts`,
+    `components/wishlist.test.ts`, and `components/price.test.ts`
+    (the last one rewritten for the new response type/flags rather
+    than extended). 331/331 passing project-wide, ~98.5% coverage.
+- [ ] User-defined notification thresholds (min % off, price ceiling, historical-low-only, store filter)
+- [ ] Web dashboard (tracked games + price history, reusing the same service layer as the bot)
+- [ ] Context-menu commands (type 2 "User" / type 3 "Message") — e.g. right-click a message → check price history
+- [ ] Global command registration (once ready to invite the bot to other servers)
 - [ ] Bundles integration (ITAD `GET /games/bundles/v2`) — shape
       undecided, several directions on the table: (a) a "Show bundles"
       button on /price and /wishlist add embeds, separate lookup +
@@ -598,12 +631,6 @@
       `addWishlistItem`/`getUserByDiscordId` null-inference bug
       retroactively). Do as its own pass: flip flag, run
       `tsc --noEmit`, fix each site on its own merits.
-- [ ] Surface `/wishlist remove`'s select menu directly on the
-      limit-reached reply — lets a user free a slot without a second
-      command round-trip. Reuses the existing select-menu builder from
-      handleRemove; no new state needed. Explicitly NOT auto-adding the
-      pending game after a removal — keeps every wishlist mutation an
-      explicit user action.
 - [ ] `/price` embed layout: reconsider Historical low's position — it
       currently sits alone on its own line above the 3-across
       Released/Reviews/Players inline-field row, which reads oddly.
