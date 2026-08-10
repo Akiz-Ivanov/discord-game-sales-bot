@@ -37,7 +37,7 @@ describe('buildSaleAlertMessage', () => {
   it('wraps everything in one Container with the on-sale accent color', () => {
     const container = getContainer(buildSaleAlertMessage([makeAlert()]))
     expect(container.type).toBe(ComponentType.Container)
-    expect(container.accent_color).toBe(0x57f287)
+    expect(container.accent_color).toBe(0x9b59b6)
   })
 
   it('builds one Section per game with price, discount, and shop', () => {

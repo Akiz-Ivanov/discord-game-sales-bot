@@ -3,10 +3,12 @@ import { ping } from './ping'
 import { price } from './price'
 import { wishlist } from './wishlist'
 import { config } from './config'
+import { free } from './free'
 
 export const commands: Record<string, CommandHandler> = {
   ping,
   price,
   wishlist,
   config,
+  free,
 }

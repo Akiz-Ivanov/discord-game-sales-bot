@@ -1,5 +1,6 @@
 import { db } from '@/db'
 import { guilds } from '@/db/schema'
+import { isNotNull } from 'drizzle-orm'
 
 export const upsertGuildChannel = async (
   guildId: string,
@@ -15,4 +16,22 @@ export const upsertGuildChannel = async (
     .returning()
 
   return row
+}
+
+export const getGuildsWithNotificationChannel = async (): Promise<
+  { guildId: string; notificationChannelId: string }[]
+> => {
+  const rows = await db
+    .select({
+      guildId: guilds.guildId,
+      notificationChannelId: guilds.notificationChannelId,
+    })
+    .from(guilds)
+    .where(isNotNull(guilds.notificationChannelId))
+
+  //* isNotNull() guarantees this at the SQL level, but Drizzle's inferred
+  //* return type still reflects the column's nullable declaration — same
+  //* explicit-annotation pattern already used elsewhere for narrowing a
+  //* nullable column post-filter.
+  return rows as { guildId: string; notificationChannelId: string }[]
 }

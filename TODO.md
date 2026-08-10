@@ -464,13 +464,112 @@
       ugly-UUID-in-chat problem and the "retype the command" friction in
       one move. Natural to build alongside the existing "Add to wishlist"
       button item once `/wishlist add` exists.
-- [ ] Free/100%-off games tracking via GamerPower API — a second daily
-      cron source alongside ITAD's sale checks. Start with no dedupe
-      table (just post whatever's currently free each cron run) to see
-      how repeat-posting actually feels in practice before deciding
-      whether a `free_games_seen`-style table is worth the extra
-      Postgres writes — open UX question, not an obvious yes on logging
-      from day one this time.
+- [x] Free games alerts via GamerPower API — second daily Vercel Cron
+      job alongside price-check (Hobby tier supports up to 100 cron
+      jobs/project now, confirmed against current docs), offset an
+      hour to avoid a simultaneous Neon cold-start.
+  - New `gamerpower/client.ts` — unauthenticated, no API key, scoped
+    to `type=game&platform=pc`. Explicit `status === 'Active'` filter
+    kept despite `/giveaways` being documented as active-only — a
+    single-giveaway lookup was confirmed live to return an expired
+    entry, so the endpoint's own description wasn't fully trusted.
+  - `services/freeGames.ts`'s `getSortedFreeGames()` sorts by
+    `published_date` descending — newest giveaways surface first
+    rather than getting buried by older still-running ones.
+  - Every guild with a configured `notificationChannelId` gets the
+    alert (new `repositories/guilds.ts`'s
+    `getGuildsWithNotificationChannel()`) — free games aren't
+    wishlist-scoped like sale alerts, so there's no per-user targeting
+    or `@mention`ing here, just a guild-wide post. One shared channel
+    for both sale alerts and free games in v1 (no separate
+    `/config` subcommand yet — deferred, see backlog).
+  - `discord/views/freeGames.ts`'s `buildFreeGamesMessage()` has two
+    render modes sharing one function: **lean** (plain `TextDisplay`
+    entries, no images — used for the cron-posted public message so
+    an automatic channel post stays compact for people who didn't ask
+    to see it) and **rich** (`Section` + `Thumbnail` accessory per
+    entry — reserved for the ephemeral `/free` command, where the
+    visual cost is only paid by whoever chose to look). Component
+    budget forced the split: rich mode costs 3 components/entry
+    versus lean's 1, so `MAX_GAMES_PER_MESSAGE` (8, lean) and
+    `MAX_GAMES_PER_MESSAGE_RICH` (5, rich) differ to stay under
+    Discord's 40-component ceiling with a nav row present.
+  - Pagination reuses the existing `buildPaginationRow`/`clampPage`/
+    `getTotalPages` primitives from the wishlist work rather than
+    duplicating them. Two separate component handlers
+    (`free_games_page`, `free_games_page_rich`), keyed by distinct
+    `custom_id` prefixes so a click always knows which render mode to
+    stay in without smuggling a flag through the payload. Both
+    live-refetch from GamerPower on every click rather than caching
+    the cron's snapshot — messages can sit in a channel for days, and
+    a stale "free" link pointing at an expired giveaway felt worse
+    than the extra fetch (GamerPower's 10 req/sec limit has plenty of
+    headroom; no DB involved in this path at all).
+  - `/free` command — ephemeral, rich mode, lets a user check current
+    giveaways on demand instead of waiting for the daily post.
+  - Title-links each entry to its own `open_giveaway_url` (a
+    `gamerpower.com` URL) — satisfies GamerPower's attribution ask
+    (an active hyperlink back to their site) automatically, no
+    separate "provided by" line needed. A `stripGiveawaySuffix()`
+    helper trims the redundant trailing `" Giveaway"` GamerPower bakes
+    into every title, kept local to the view (only one consumer).
+  - **Real bug caught and fixed before merging**: rich mode's
+    `Section` + `Thumbnail` accessory tripled the per-entry component
+    cost versus the original all-`TextDisplay` draft, which silently
+    pushed a 9-per-page cron message over Discord's 40-component cap
+    (`COMPONENT_MAX_TOTAL_COMPONENTS_EXCEEDED`, confirmed live) the
+    moment thumbnails were added — caught via a failed `postChannelMessage`
+    call once error logging was added to the cron route's
+    `Promise.allSettled` results (previously only counted failures,
+    didn't log the reason). Resolved by splitting lean/rich modes with
+    different page-size constants rather than a single shared cap.
+  - Live-tested end-to-end via ngrok: cron post renders correctly
+    (lean, 8/page, paginated), `/free` renders correctly (rich,
+    5/page, thumbnails, ephemeral "Only you can see this"), Prev/Next
+    updates the shared cron message for all viewers as expected
+    (confirmed this is standard Discord behavior for any public
+    message with buttons, not a bug — `/free`'s ephemeral response is
+    the private alternative for anyone who wants per-user control).
+  - Full test coverage across `gamerpower/client.test.ts`,
+    `services/freeGames.test.ts`, `discord/views/freeGames.test.ts`
+    (lean/rich rendering, pagination, title-stripping, thumbnail
+    accessory), `discord/components/freeGames.test.ts` (both handlers),
+    `app/api/cron/free-games/route.test.ts`. 330/330 passing
+    project-wide, ~98.5% coverage.
+  - **Deliberately deferred**: guild-level opt-out toggle for free
+    games alerts (needs a migration + `/config` subcommand — same
+    posture as the alert-visibility toggle already in backlog);
+    claim-count (`users` field) shown as supplementary per-entry text
+    rather than a sort key — new giveaways start at ~0 clicks
+    regardless of how big the title is, so sorting by it would
+    undercut the newest-first ordering that's the whole point of a
+    daily feed.
+  - **Considered and rejected**: baking GamerPower into the wishlist
+    sale-alert pipeline (a "this wishlisted game just went free!"
+    alert). ITAD already surfaces 100%-off promotions on major
+    storefronts as ordinary deals (confirmed live — a wishlisted
+    game's Ubisoft Store 100%-off promotion showed up as a normal
+    sale alert with zero special-casing needed), so the big-store
+    overlap between the two sources is already covered by existing
+    alerts. GamerPower's actual unique value is the long tail ITAD
+    doesn't track (itch.io, IndieGala, reward-point unlocks) — but
+    those have no shared canonical ID with `games.itad_id`, only a
+    free-text title, so any crossover matching would mean fuzzy
+    title-matching with real risk of false positives. Marked
+    long-term/maybe-never rather than near backlog specifically
+    because of the missing-ID problem.
+
+- [x] `/wishlist list` sorted by discount, highest first — free games
+      (100% cut) surface at the top automatically, since 100 is just
+      the highest number in the same descending sort; no special-
+      casing needed. Items with no live price data sink below even a
+      0%-cut game. Small addition alongside the free-games work,
+      `wishlistList.test.ts` updated to assert sort order rather than
+      input-order preservation.
+
+- [x] Sale alert card accent color changed from green to purple —
+      cosmetic, decouples the alert card's color from `/price`'s own
+      on-sale-green styling.
 - [ ] Bundles integration (ITAD `GET /games/bundles/v2`) — shape
       undecided, several directions on the table: (a) a "Show bundles"
       button on /price and /wishlist add embeds, separate lookup +
@@ -573,5 +672,5 @@
   individual files. Registry: `src/discord/commands/index.ts`, a
   `Record<string, CommandHandler>`. `discord-interactions` is still used,
   just only for `verifyKey()`.
-- Stack locked in: Next.js (App Router) + TS, Discord HTTP Interactions, Drizzle + Neon Postgres, Vercel Cron (daily), IsThereAnyDeal API, Vercel deploy, GitHub Actions for CI, Docker deferred until post-MVP, no Redis (SQL dedup via a `last_notified_price` column is enough).
+- Stack locked in: Next.js (App Router) + TS, Discord HTTP Interactions, Drizzle + Neon Postgres, Vercel Cron (daily), IsThereAnyDeal API, GamerPower API, Vercel deploy, GitHub Actions for CI, Docker deferred until post-MVP, no Redis (SQL dedup via a `last_notified_price` column is enough).
 - Testing: Vitest (`environment: 'node'`, no jsdom needed — no frontend yet), tests co-located as `*.test.ts` next to source. `vitest.config.ts` uses `projects` to isolate `repositories/**` tests with `fileParallelism: false` (they share one real Postgres instance via Docker + neon-proxy; unit tests elsewhere mock everything and stay parallel). MSW for mocking ITAD HTTP calls, not yet used.

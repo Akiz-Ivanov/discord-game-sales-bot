@@ -11,7 +11,7 @@ import type { GameSaleAlert } from '@/types'
 import { formatMoney } from '@/lib/money'
 import { getShopEmoji } from '@/discord/embeds/shopEmoji'
 
-const ACCENT_COLOR_ON_SALE = 0x57f287
+const ACCENT_COLOR_ON_SALE = 0x9b59b6
 export const MAX_ALERTS_PER_MESSAGE = 9 //* component budget, same math as wishlistList's 9-item cap
 const MAX_MENTIONS_SHOWN = 10 //* caps a wall of pings on a very-wishlisted game, not a component-budget concern
 

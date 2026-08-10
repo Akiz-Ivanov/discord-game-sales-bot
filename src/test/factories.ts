@@ -1,4 +1,4 @@
-import type { ItadGame, ItadDeal } from '@/types'
+import type { ItadGame, ItadDeal, GamerPowerGiveaway } from '@/types'
 import type { games, wishlistItems } from '@/db/schema'
 
 export const game: ItadGame = {
@@ -69,5 +69,28 @@ export const makeWishlistItemRow = (
   lastNotifiedPrice: null,
   createdAt: new Date(),
   game: makeGameRow(),
+  ...overrides,
+})
+
+export const makeGiveaway = (
+  overrides: Partial<GamerPowerGiveaway> = {}
+): GamerPowerGiveaway => ({
+  id: 1,
+  title: 'Moonlighter',
+  worth: '$19.99',
+  thumbnail: '',
+  image: '',
+  description: '',
+  instructions: '',
+  open_giveaway_url:
+    'https://www.gamerpower.com/open/moonlighter-steam-giveawaway',
+  published_date: '2026-08-05 14:23:24',
+  type: 'Game',
+  platforms: 'PC, Steam',
+  end_date: '2026-08-09 23:59:00',
+  users: 21630,
+  status: 'Active',
+  gamerpower_url: 'https://www.gamerpower.com/moonlighter-steam-giveawaway',
+  open_giveaway: 'https://www.gamerpower.com/open/moonlighter-steam-giveawaway',
   ...overrides,
 })

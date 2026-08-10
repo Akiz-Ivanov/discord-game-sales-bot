@@ -9,6 +9,11 @@ const commands = [
     type: 1, //* CHAT_INPUT (slash command)
   },
   {
+    name: 'free',
+    description: 'Show currently free PC games',
+    type: 1,
+  },
+  {
     name: 'price',
     description: 'Get the current price for a game',
     options: [
