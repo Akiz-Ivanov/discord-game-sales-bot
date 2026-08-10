@@ -75,4 +75,13 @@ describe('buildWishlistRemoveMessage', () => {
     const select = getSelect(buildWishlistRemoveMessage(items, 1))
     expect(select.custom_id).toBe('wishlist_remove_select')
   })
+
+  it('uses a custom content string when provided', () => {
+    const result = buildWishlistRemoveMessage(
+      buildItems(1),
+      0,
+      'Custom message:'
+    )
+    expect(result.content).toBe('Custom message:')
+  })
 })

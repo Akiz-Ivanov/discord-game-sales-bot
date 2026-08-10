@@ -17,7 +17,8 @@ export const MAX_REMOVE_OPTIONS_PER_PAGE = 25
 
 export const buildWishlistRemoveMessage = (
   items: WishlistItemWithGame[],
-  page = 0
+  page = 0,
+  content?: string
 ) => {
   const totalPages = getTotalPages(items.length, MAX_REMOVE_OPTIONS_PER_PAGE)
   const clampedPage = clampPage(page, totalPages)
@@ -45,12 +46,14 @@ export const buildWishlistRemoveMessage = (
     )
   }
 
+  const defaultContent =
+    totalPages > 1
+      ? `Select a game to remove (${start + 1}–${end} of ${items.length}):`
+      : 'Select a game to remove:'
+
   return {
     flags: MessageFlags.Ephemeral,
-    content:
-      totalPages > 1
-        ? `Select a game to remove (${start + 1}–${end} of ${items.length}):`
-        : 'Select a game to remove:',
+    content: content ?? defaultContent,
     components,
   }
 }
