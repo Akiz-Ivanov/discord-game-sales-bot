@@ -1,0 +1,13 @@
+@baseUrl = https://www.gamerpower.com/api
+
+### All active giveaways, unfiltered — see the full raw shape once
+GET {{baseUrl}}/giveaways
+
+### Games only, PC platforms — likely what the cron actually queries
+GET {{baseUrl}}/giveaways?type=game&platform=pc
+
+### Single giveaway by ID (once we have one from the above)
+GET {{baseUrl}}/giveaway?id=525
+
+### No active giveaways sanity check — total $ value, cheap way to see if anything's live
+GET {{baseUrl}}/worth?platform=pc&type=game
