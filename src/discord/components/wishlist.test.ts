@@ -15,7 +15,12 @@ import {
 } from '@/services/wishlist'
 import { InteractionResponseType, MessageFlags } from 'discord-api-types/v10'
 import type { APIInteractionResponse, APIEmbed } from 'discord-api-types/v10'
-import { game, makeGameRow, makeWishlistItemRow } from '@/test/factories'
+import {
+  game,
+  makeGameRow,
+  makeWishlistItemRow,
+  buildComponentInteraction,
+} from '@/test/factories'
 import { resolveGame } from '@/services/games'
 import { buildPriceEmbed } from '@/discord/embeds/price'
 import { buildWishlistListMessage } from '../views/wishlistList'
@@ -57,16 +62,6 @@ const expectUpdateMessage = (result: APIInteractionResponse) => {
   return result.data
 }
 
-const buildSelectInteraction = (value: string) =>
-  ({
-    data: { custom_id: 'wishlist_remove_select', values: [value] },
-  }) as unknown as Parameters<typeof handleWishlistRemoveSelect>[0]
-
-const buildRemoveButtonInteraction = (customId: string) =>
-  ({ data: { custom_id: customId } }) as unknown as Parameters<
-    typeof handleWishlistItemRemove
-  >[0]
-
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(getInteractionUserId).mockReturnValue(discordId)
@@ -74,6 +69,12 @@ beforeEach(() => {
 })
 
 describe('handleWishlistRemoveSelect', () => {
+  const buildSelect = (value: string) =>
+    buildComponentInteraction<typeof handleWishlistRemoveSelect>(
+      'wishlist_remove_select',
+      { data: { values: [value] } }
+    )
+
   it('removes the selected game and confirms with its title', async () => {
     vi.mocked(getUserByDiscordId).mockResolvedValue(userRow)
     vi.mocked(getWishlist).mockResolvedValue([
@@ -84,7 +85,7 @@ describe('handleWishlistRemoveSelect', () => {
     vi.mocked(removeGameFromWishlist).mockResolvedValue({ status: 'removed' })
 
     const data = expectUpdateMessage(
-      await handleWishlistRemoveSelect(buildSelectInteraction('2'))
+      await handleWishlistRemoveSelect(buildSelect('2'))
     )
 
     expect(removeGameFromWishlist).toHaveBeenCalledWith(userRow.id, 2)
@@ -98,7 +99,7 @@ describe('handleWishlistRemoveSelect', () => {
     vi.mocked(removeGameFromWishlist).mockResolvedValue({ status: 'not_found' })
 
     const data = expectUpdateMessage(
-      await handleWishlistRemoveSelect(buildSelectInteraction('2'))
+      await handleWishlistRemoveSelect(buildSelect('2'))
     )
 
     expect(data.content).toContain('already off your wishlist')
@@ -108,18 +109,13 @@ describe('handleWishlistRemoveSelect', () => {
     vi.mocked(getUserByDiscordId).mockResolvedValue(null)
 
     const data = expectUpdateMessage(
-      await handleWishlistRemoveSelect(buildSelectInteraction('2'))
+      await handleWishlistRemoveSelect(buildSelect('2'))
     )
 
     expect(removeGameFromWishlist).not.toHaveBeenCalled()
     expect(data.content).toContain('Something went wrong')
   })
 })
-
-const buildButtonInteraction = (customId: string) =>
-  ({ data: { custom_id: customId } }) as unknown as Parameters<
-    typeof handleWishlistAddSelect
-  >[0]
 
 describe('handleWishlistAddSelect', () => {
   it('adds the chosen game, confirms, and includes the price embed', async () => {
@@ -139,7 +135,9 @@ describe('handleWishlistAddSelect', () => {
 
     const data = expectUpdateMessage(
       await handleWishlistAddSelect(
-        buildButtonInteraction(`wishlist_add_select:${game.id}`)
+        buildComponentInteraction<typeof handleWishlistAddSelect>(
+          `wishlist_add_select:${game.id}`
+        )
       )
     )
 
@@ -164,7 +162,9 @@ describe('handleWishlistAddSelect', () => {
 
     const data = expectUpdateMessage(
       await handleWishlistAddSelect(
-        buildButtonInteraction(`wishlist_add_select:${game.id}`)
+        buildComponentInteraction<typeof handleWishlistAddSelect>(
+          `wishlist_add_select:${game.id}`
+        )
       )
     )
 
@@ -178,7 +178,9 @@ describe('handleWishlistAddSelect', () => {
 
     const data = expectUpdateMessage(
       await handleWishlistAddSelect(
-        buildButtonInteraction(`wishlist_add_select:${game.id}`)
+        buildComponentInteraction<typeof handleWishlistAddSelect>(
+          `wishlist_add_select:${game.id}`
+        )
       )
     )
 
@@ -193,7 +195,9 @@ describe('handleWishlistAddSelect', () => {
 
     const data = expectUpdateMessage(
       await handleWishlistAddSelect(
-        buildButtonInteraction(`wishlist_add_select:${game.id}`)
+        buildComponentInteraction<typeof handleWishlistAddSelect>(
+          `wishlist_add_select:${game.id}`
+        )
       )
     )
 
@@ -218,7 +222,9 @@ describe('handleWishlistItemRemove', () => {
 
     const data = expectUpdateMessage(
       await handleWishlistItemRemove(
-        buildRemoveButtonInteraction('wishlist_item_remove:5:2')
+        buildComponentInteraction<typeof handleWishlistItemRemove>(
+          'wishlist_item_remove:5:2'
+        )
       )
     )
 
@@ -245,7 +251,9 @@ describe('handleWishlistItemRemove', () => {
     } as never)
 
     await handleWishlistItemRemove(
-      buildRemoveButtonInteraction('wishlist_item_remove:5')
+      buildComponentInteraction<typeof handleWishlistItemRemove>(
+        'wishlist_item_remove:5'
+      )
     )
 
     expect(buildWishlistListMessage).toHaveBeenCalledWith(
@@ -259,7 +267,9 @@ describe('handleWishlistItemRemove', () => {
     vi.mocked(getUserByDiscordId).mockResolvedValue(null)
 
     const result = await handleWishlistItemRemove(
-      buildRemoveButtonInteraction('wishlist_item_remove:5')
+      buildComponentInteraction<typeof handleWishlistItemRemove>(
+        'wishlist_item_remove:5'
+      )
     )
 
     expect(removeGameFromWishlist).not.toHaveBeenCalled()
@@ -277,10 +287,8 @@ describe('handleWishlistListPage', () => {
     vi.mocked(getWishlistPrices).mockResolvedValue(new Map())
   })
 
-  const buildPageInteraction = (customId: string) =>
-    ({ data: { custom_id: customId } }) as unknown as Parameters<
-      typeof handleWishlistListPage
-    >[0]
+  const buildPage = (customId: string) =>
+    buildComponentInteraction<typeof handleWishlistListPage>(customId)
 
   it('parses the target page and re-renders without removing anything', async () => {
     vi.mocked(getWishlist).mockResolvedValue([
@@ -290,7 +298,7 @@ describe('handleWishlistListPage', () => {
     vi.mocked(buildWishlistListMessage).mockReturnValue(fakeMessage as never)
 
     const data = expectUpdateMessage(
-      await handleWishlistListPage(buildPageInteraction('wishlist_list_page:2'))
+      await handleWishlistListPage(buildPage('wishlist_list_page:2'))
     )
 
     expect(removeGameFromWishlist).not.toHaveBeenCalled()
@@ -307,10 +315,8 @@ describe('handleWishlistListPage', () => {
 })
 
 describe('handleWishlistRemovePage', () => {
-  const buildPageInteraction = (customId: string) =>
-    ({ data: { custom_id: customId } }) as unknown as Parameters<
-      typeof handleWishlistRemovePage
-    >[0]
+  const buildPage = (customId: string) =>
+    buildComponentInteraction<typeof handleWishlistRemovePage>(customId)
 
   it('parses the target page and re-renders the select menu', async () => {
     vi.mocked(getWishlist).mockResolvedValue([
@@ -320,9 +326,7 @@ describe('handleWishlistRemovePage', () => {
     vi.mocked(buildWishlistRemoveMessage).mockReturnValue(fakeMessage as never)
 
     const data = expectUpdateMessage(
-      await handleWishlistRemovePage(
-        buildPageInteraction('wishlist_remove_page:1')
-      )
+      await handleWishlistRemovePage(buildPage('wishlist_remove_page:1'))
     )
 
     expect(buildWishlistRemoveMessage).toHaveBeenCalledWith(

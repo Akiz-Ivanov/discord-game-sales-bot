@@ -1,6 +1,17 @@
 import type { ItadGame, ItadDeal, GamerPowerGiveaway } from '@/types'
 import type { games, wishlistItems } from '@/db/schema'
 
+export const buildComponentInteraction = <
+  T extends (...args: never[]) => unknown,
+>(
+  customId: string,
+  overrides: Record<string, unknown> = {}
+) =>
+  ({
+    ...overrides,
+    data: { custom_id: customId, ...(overrides.data as object | undefined) },
+  }) as unknown as Parameters<T>[0]
+
 export const game: ItadGame = {
   id: '018d937f-1ae9-734c-ba47-bd357cf07edd',
   slug: 'hollow-knight',

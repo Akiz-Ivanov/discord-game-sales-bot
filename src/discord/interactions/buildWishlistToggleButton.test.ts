@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildWishlistToggleButton } from './buildWishlistToggleButton'
-import { ComponentType, ButtonStyle } from 'discord-api-types/v10'
+import { ButtonStyle } from 'discord-api-types/v10'
 
 describe('buildWishlistToggleButton', () => {
   it('builds an Add button with Primary style when the game is not wishlisted', () => {

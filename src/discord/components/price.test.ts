@@ -6,7 +6,7 @@ import { upsertGame } from '@/repositories/games'
 import { buildPriceEmbed } from '@/discord/embeds/price'
 import { InteractionResponseType } from 'discord-api-types/v10'
 import type { APIEmbed, APIInteractionResponse } from 'discord-api-types/v10'
-import { game, makeGameRow } from '@/test/factories'
+import { game, makeGameRow, buildComponentInteraction } from '@/test/factories'
 import { getUserByDiscordId } from '@/repositories/users'
 import {
   addGameToWishlist,
@@ -41,11 +41,6 @@ const expectUpdateMessage = (result: APIInteractionResponse) => {
   return result.data
 }
 
-const buildSelectInteraction = (customId: string) =>
-  ({ data: { custom_id: customId } }) as unknown as Parameters<
-    typeof handlePriceSelect
-  >[0]
-
 const discordId = '255361746758402048'
 const guildId = '999888777666555444'
 const userRow = { id: 1, discordId, guildId, createdAt: new Date() }
@@ -71,7 +66,11 @@ describe('handlePriceSelect', () => {
     vi.mocked(buildPriceEmbed).mockReturnValue(fakeEmbed)
 
     const data = expectUpdateMessage(
-      await handlePriceSelect(buildSelectInteraction(`price_select:${game.id}`))
+      await handlePriceSelect(
+        buildComponentInteraction<typeof handlePriceSelect>(
+          `price_select:${game.id}`
+        )
+      )
     )
 
     expect(resolveGame).toHaveBeenCalledWith(game.id)
@@ -83,7 +82,11 @@ describe('handlePriceSelect', () => {
     vi.mocked(resolveGame).mockResolvedValue([])
 
     const data = expectUpdateMessage(
-      await handlePriceSelect(buildSelectInteraction(`price_select:${game.id}`))
+      await handlePriceSelect(
+        buildComponentInteraction<typeof handlePriceSelect>(
+          `price_select:${game.id}`
+        )
+      )
     )
 
     expect(data.content).toContain("couldn't be found")
@@ -92,12 +95,11 @@ describe('handlePriceSelect', () => {
 })
 
 describe('handlePriceWishlistToggle', () => {
-  const buildToggleInteraction = (customId: string) =>
-    ({
+  const buildToggle = (customId: string) =>
+    buildComponentInteraction<typeof handlePriceWishlistToggle>(customId, {
       guild_id: guildId,
       message: { embeds: [{ title: 'Hollow Knight' } as APIEmbed] },
-      data: { custom_id: customId },
-    }) as unknown as Parameters<typeof handlePriceWishlistToggle>[0]
+    })
 
   it('adds the game and flips the button to Remove when not previously wishlisted', async () => {
     vi.mocked(resolveGame).mockResolvedValue([game])
@@ -114,7 +116,7 @@ describe('handlePriceWishlistToggle', () => {
 
     const data = expectUpdateMessage(
       await handlePriceWishlistToggle(
-        buildToggleInteraction(`price_wishlist_toggle:${game.id}`)
+        buildToggle(`price_wishlist_toggle:${game.id}`)
       )
     )
 
@@ -136,7 +138,7 @@ describe('handlePriceWishlistToggle', () => {
 
     const data = expectUpdateMessage(
       await handlePriceWishlistToggle(
-        buildToggleInteraction(`price_wishlist_toggle:${game.id}`)
+        buildToggle(`price_wishlist_toggle:${game.id}`)
       )
     )
 
@@ -157,7 +159,7 @@ describe('handlePriceWishlistToggle', () => {
 
     const data = expectUpdateMessage(
       await handlePriceWishlistToggle(
-        buildToggleInteraction(`price_wishlist_toggle:${game.id}`)
+        buildToggle(`price_wishlist_toggle:${game.id}`)
       )
     )
 
@@ -170,7 +172,7 @@ describe('handlePriceWishlistToggle', () => {
 
     const data = expectUpdateMessage(
       await handlePriceWishlistToggle(
-        buildToggleInteraction(`price_wishlist_toggle:${game.id}`)
+        buildToggle(`price_wishlist_toggle:${game.id}`)
       )
     )
 

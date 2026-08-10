@@ -6,7 +6,7 @@ import { upsertGame } from '@/repositories/games'
 import { buildPriceEmbed } from '@/discord/embeds/price'
 import { InteractionResponseType, MessageFlags } from 'discord-api-types/v10'
 import type { APIEmbed, APIInteractionResponse } from 'discord-api-types/v10'
-import { game } from '@/test/factories'
+import { game, buildComponentInteraction } from '@/test/factories'
 
 vi.mock('@/services/games', () => ({ resolveGame: vi.fn() }))
 vi.mock('@/services/prices', () => ({ getGamePrices: vi.fn() }))
@@ -22,11 +22,6 @@ const expectChannelMessage = (result: APIInteractionResponse) => {
   if (!result.data) throw new Error('Expected response data to be present')
   return result.data
 }
-
-const buildInteraction = (customId: string) =>
-  ({ data: { custom_id: customId } }) as unknown as Parameters<
-    typeof handleSaleAlertCheckPrice
-  >[0]
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -46,7 +41,9 @@ describe('handleSaleAlertCheckPrice', () => {
 
     const data = expectChannelMessage(
       await handleSaleAlertCheckPrice(
-        buildInteraction(`sale_check_price:${game.id}`)
+        buildComponentInteraction<typeof handleSaleAlertCheckPrice>(
+          `sale_check_price:${game.id}`
+        )
       )
     )
 
@@ -60,7 +57,9 @@ describe('handleSaleAlertCheckPrice', () => {
 
     const data = expectChannelMessage(
       await handleSaleAlertCheckPrice(
-        buildInteraction(`sale_check_price:${game.id}`)
+        buildComponentInteraction<typeof handleSaleAlertCheckPrice>(
+          `sale_check_price:${game.id}`
+        )
       )
     )
 
