@@ -31,6 +31,16 @@ const formatDealLine = (deal: ItadDeal | undefined): string => {
     : `${price} · ${shop}`
 }
 
+//* Free games sort to the top
+const sortByDiscount = (
+  items: WishlistItemWithGame[],
+  prices: Map<number, ItadDeal | undefined>
+): WishlistItemWithGame[] =>
+  [...items].sort(
+    (a, b) =>
+      (prices.get(b.game.id)?.cut ?? -1) - (prices.get(a.game.id)?.cut ?? -1)
+  )
+
 //* Remove button's custom_id carries the current page alongside the
 //* gameId (`wishlist_item_remove:{gameId}:{page}`) — this is what lets
 //* the handler re-render the same page after removal instead of
@@ -60,10 +70,11 @@ export const buildWishlistListMessage = (
   prices: Map<number, ItadDeal | undefined>,
   page = 0
 ) => {
-  const totalPages = getTotalPages(items.length, MAX_ITEMS_PER_PAGE)
+  const sorted = sortByDiscount(items, prices)
+  const totalPages = getTotalPages(sorted.length, MAX_ITEMS_PER_PAGE)
   const clampedPage = clampPage(page, totalPages)
   const start = clampedPage * MAX_ITEMS_PER_PAGE
-  const shown = items.slice(start, start + MAX_ITEMS_PER_PAGE)
+  const shown = sorted.slice(start, start + MAX_ITEMS_PER_PAGE)
 
   const children: (APISectionComponent | APISeparatorComponent)[] = []
   shown.forEach((item, idx) => {

@@ -162,8 +162,37 @@ describe('buildWishlistListMessage', () => {
     const container = getContainer(buildWishlistListMessage(items, prices))
     const sections = getSections(container)
 
-    expect(getContent(sections[0])).toContain('−10%')
-    expect(getContent(sections[1])).toContain('−90%')
+    // Sorted descending by cut now, so Game B (90%) leads, Game A (10%) follows
+    expect(getContent(sections[0])).toContain('−90%')
+    expect(getContent(sections[1])).toContain('−10%')
+  })
+
+  it('sorts items by discount descending, free games first', () => {
+    const items = [
+      makeWishlistItemRow({
+        id: 1,
+        game: makeGameRow({ id: 1, title: 'Full Price' }),
+      }),
+      makeWishlistItemRow({
+        id: 2,
+        game: makeGameRow({ id: 2, title: 'Free Game' }),
+      }),
+      makeWishlistItemRow({
+        id: 3,
+        game: makeGameRow({ id: 3, title: 'No Data' }),
+      }),
+    ]
+    const prices = new Map<number, ItadDeal | undefined>([
+      [1, makeDeal({ cut: 0 })],
+      [2, makeDeal({ cut: 100 })],
+      // game 3 intentionally has no entry — should sink to the bottom
+    ])
+    const container = getContainer(buildWishlistListMessage(items, prices))
+    const titles = getSections(container).map(getContent)
+
+    expect(titles[0]).toContain('Free Game')
+    expect(titles[1]).toContain('Full Price')
+    expect(titles[2]).toContain('No Data')
   })
 
   it('builds a Remove button keyed by the game id, not the wishlist item id', () => {
