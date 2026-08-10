@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { db } from '@/db'
 import { guilds } from '@/db/schema'
-import { upsertGuildChannel } from './guilds'
+import { getGuildsWithNotificationChannel, upsertGuildChannel } from './guilds'
 import { resetDb } from '@/test/db-reset'
 
 const guildId = '999888777666555444'
@@ -40,5 +40,24 @@ describe('upsertGuildChannel', () => {
 
     const all = await db.select().from(guilds)
     expect(all).toHaveLength(2)
+  })
+})
+
+describe('getGuildsWithNotificationChannel', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('returns [] when no guild has a configured channel', async () => {
+    expect(await getGuildsWithNotificationChannel()).toEqual([])
+  })
+
+  it('returns only guilds with a configured channel', async () => {
+    await upsertGuildChannel(guildId, channelId)
+    await db.insert(guilds).values({ guildId: 'no-channel-guild' }) // no channel set
+
+    const result = await getGuildsWithNotificationChannel()
+
+    expect(result).toEqual([{ guildId, notificationChannelId: channelId }])
   })
 })
