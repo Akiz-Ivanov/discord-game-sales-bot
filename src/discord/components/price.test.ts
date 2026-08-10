@@ -4,14 +4,20 @@ import { resolveGame } from '@/services/games'
 import { getGamePrices } from '@/services/prices'
 import { upsertGame } from '@/repositories/games'
 import { buildPriceEmbed } from '@/discord/embeds/price'
-import { InteractionResponseType } from 'discord-api-types/v10'
+import { InteractionResponseType, MessageFlags } from 'discord-api-types/v10'
 import type { APIEmbed, APIInteractionResponse } from 'discord-api-types/v10'
-import { game, makeGameRow, buildComponentInteraction } from '@/test/factories'
+import {
+  game,
+  makeGameRow,
+  buildComponentInteraction,
+  makeWishlistItemRow,
+} from '@/test/factories'
 import { getUserByDiscordId } from '@/repositories/users'
 import {
   addGameToWishlist,
   removeGameFromWishlist,
   isGameWishlisted,
+  getWishlist,
 } from '@/services/wishlist'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
@@ -25,6 +31,7 @@ vi.mock('@/services/wishlist', () => ({
   addGameToWishlist: vi.fn(),
   removeGameFromWishlist: vi.fn(),
   isGameWishlisted: vi.fn(),
+  getWishlist: vi.fn(),
 }))
 vi.mock('@/discord/interactions/getInteractionUserId', () => ({
   getInteractionUserId: vi.fn(),
@@ -151,19 +158,23 @@ describe('handlePriceWishlistToggle', () => {
     expect(button).toMatchObject({ label: '➕ Add to wishlist' })
   })
 
-  it('reports the limit-reached message without touching the embed when the wishlist is full', async () => {
+  it('replies with an ephemeral remove picker as a new message, leaving the original embed untouched', async () => {
     vi.mocked(resolveGame).mockResolvedValue([game])
     vi.mocked(upsertGame).mockResolvedValue(makeGameRow({ id: 1 }))
     vi.mocked(isGameWishlisted).mockResolvedValue(false)
     vi.mocked(addGameToWishlist).mockResolvedValue({ status: 'limit_reached' })
+    vi.mocked(getWishlist).mockResolvedValue([
+      makeWishlistItemRow({ game: makeGameRow({ id: 2, title: 'Celeste' }) }),
+    ])
 
-    const data = expectUpdateMessage(
-      await handlePriceWishlistToggle(
-        buildToggle(`price_wishlist_toggle:${game.id}`)
-      )
+    const result = await handlePriceWishlistToggle(
+      buildToggle(`price_wishlist_toggle:${game.id}`)
     )
 
-    expect(data.content).toContain('limit')
+    expect(result.type).toBe(InteractionResponseType.ChannelMessageWithSource)
+    if (result.type !== InteractionResponseType.ChannelMessageWithSource) return
+    expect(result.data?.content).toContain('limit')
+    expect(result.data?.flags).toBe(MessageFlags.Ephemeral)
     expect(getGamePrices).not.toHaveBeenCalled()
   })
 

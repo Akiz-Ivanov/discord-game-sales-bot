@@ -8,12 +8,14 @@ import {
   addGameToWishlist,
   removeGameFromWishlist,
   isGameWishlisted,
+  getWishlist,
 } from '@/services/wishlist'
 import { buildPriceEmbed } from '@/discord/embeds/price'
 import { buildWishlistToggleButton } from '@/discord/interactions/buildWishlistToggleButton'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
-import { wishlistLimitReachedMessage } from '@/lib/constants'
+import { buildWishlistRemoveMessage } from '@/discord/views/wishlistRemove'
+import { wishlistLimitReachedWithRemoveMessage } from '@/lib/constants' // replaces wishlistLimitReachedMessage
 
 //* custom_id: "price_select:{itadId}". The itadId is UUID-shaped, so
 //* running it back through resolveGame() naturally lands on the same
@@ -91,9 +93,14 @@ export const handlePriceWishlistToggle: ComponentHandler = async (
   } else {
     const result = await addGameToWishlist(discordId, guildId, match)
     if (result.status === 'limit_reached') {
+      const items = await getWishlist(discordId)
       return {
-        type: InteractionResponseType.UpdateMessage,
-        data: { content: wishlistLimitReachedMessage(), components: [] },
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: buildWishlistRemoveMessage(
+          items,
+          0,
+          wishlistLimitReachedWithRemoveMessage()
+        ),
       }
     }
   }
