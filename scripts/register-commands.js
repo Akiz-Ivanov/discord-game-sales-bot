@@ -9,6 +9,11 @@ const commands = [
     type: 1, //* CHAT_INPUT (slash command)
   },
   {
+    name: 'help',
+    description: 'Show available commands and how the bot works',
+    type: 1,
+  },
+  {
     name: 'free',
     description: 'Show currently free PC games',
     type: 1,

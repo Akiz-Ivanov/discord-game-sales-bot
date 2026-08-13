@@ -4,6 +4,7 @@ import { price } from './price'
 import { wishlist } from './wishlist'
 import { config } from './config'
 import { free } from './free'
+import { help } from './help'
 
 export const commands: Record<string, CommandHandler> = {
   ping,
@@ -11,4 +12,5 @@ export const commands: Record<string, CommandHandler> = {
   wishlist,
   config,
   free,
+  help,
 }
