@@ -8,7 +8,7 @@ GET {{baseUrl}}/games/search/v1?key={{apiKey}}&title=Wild%20Hunt
 GET {{baseUrl}}/games/info/v2?key={{apiKey}}&id=018d937f-1ae9-734c-ba47-bd357cf07edd
 
 ### Get active bundles containing a game (used by the "Bundles" button, backlog)
-GET {{baseUrl}}/games/bundles/v2?key={{apiKey}}&id=018d937f-1ae9-734c-ba47-bd357cf07edd
+GET {{baseUrl}}/games/bundles/v2?key={{apiKey}}&id=018d937e-e9db-717a-baeb-62a6513d146c
 
 ### Lookup exact match by Steam appid
 GET {{baseUrl}}/games/lookup/v1?key={{apiKey}}&appid=367520
@@ -37,3 +37,85 @@ Content-Type: application/json
 [
   "018d937f-1ae9-734c-ba47-bd357cf07edd"
 ]
+
+### === Recon: new endpoints, 2026-08-11 ===
+
+### Global bundle list — no game ID needed, sidesteps per-game sparsity
+GET {{baseUrl}}/bundles/v1?key={{apiKey}}&limit=10
+
+### Global bundle list — including expired, to see what a "finished" bundle looks like
+GET {{baseUrl}}/bundles/v1?key={{apiKey}}&limit=5&expired=true
+
+### Price overview (batched) — best price + historyLow + active bundles, all in one call
+POST {{baseUrl}}/games/overview/v2?key={{apiKey}}
+Content-Type: application/json
+
+[
+  "018d937f-1ae9-734c-ba47-bd357cf07edd",
+  "018d937f-6136-71e4-a7d4-088a2e8f58ad"
+]
+
+### Game subscriptions — is this game in Game Pass / EA Play / etc?
+POST {{baseUrl}}/games/subs/v1?key={{apiKey}}
+Content-Type: application/json
+
+[
+  "018d937f-1f0a-73a6-a3aa-b861902b50a6"
+]
+
+### Price history log — full log, default last 3 months
+GET {{baseUrl}}/games/history/v2?key={{apiKey}}&id=018d937f-1ae9-734c-ba47-bd357cf07edd
+
+### Price history log — explicit since, further back than the 3-month default
+GET {{baseUrl}}/games/history/v2?key={{apiKey}}&id=018d937f-1ae9-734c-ba47-bd357cf07edd&since=2026-01-01T00:00:00Z
+
+### Per-store historical low (vs. the single cross-store historyLow you already cache)
+POST {{baseUrl}}/games/storelow/v2?key={{apiKey}}
+Content-Type: application/json
+
+[
+  "018d937f-1ae9-734c-ba47-bd357cf07edd"
+]
+
+### Price overview (batched) — price + historyLow + active bundles in one call
+### Dead Cells is confirmed in "Humble Choice August 2026" from /bundles/v1 —
+### included specifically to force a non-empty bundles field in the response
+POST {{baseUrl}}/games/overview/v2?key={{apiKey}}
+Content-Type: application/json
+
+[
+  "018d937f-1ae9-734c-ba47-bd357cf07edd",
+  "018d937f-1f0a-73a6-a3aa-b861902b50a6",
+  "018d937f-2b4b-72f9-ab75-bc33784a295d"
+]
+
+### === Recon round 2: expiry field + deals feed ===
+
+### Does /games/prices/v3's per-shop deal carry expiry? (Hollow Knight)
+POST {{baseUrl}}/games/prices/v3?key={{apiKey}}
+Content-Type: application/json
+
+[
+  "018d937f-1ae9-734c-ba47-bd357cf07edd"
+]
+
+### Same, but a game more likely to have an active time-limited deal
+### (Sea of Thieves — had a live Steam deal with expiry in yesterday's overview call)
+POST {{baseUrl}}/games/prices/v3?key={{apiKey}}
+Content-Type: application/json
+
+[
+  "018d937f-1f0a-73a6-a3aa-b861902b50a6"
+]
+
+### Top current deals, biggest discount first — candidate for /top-deals
+GET {{baseUrl}}/deals/v2?key={{apiKey}}&sort=-cut&limit=10
+
+### Top current deals, US-scoped
+GET {{baseUrl}}/deals/v2?key={{apiKey}}&country=US&sort=-cut&limit=10
+
+### Bundles sorted — testing likely sort values
+GET {{baseUrl}}/bundles/v1?key={{apiKey}}&limit=10&sort=-expiry
+
+### Does the active bundle count exceed one page?
+GET {{baseUrl}}/bundles/v1?key={{apiKey}}&limit=10&offset=10&sort=-expiry

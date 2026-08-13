@@ -4,8 +4,9 @@ import {
   lookupBySteamAppId,
   lookupByItadId,
   getPrices,
+  getBundlesForGame,
 } from './client'
-import { game } from '@/test/factories'
+import { game, makeBundle } from '@/test/factories'
 import type { ItadGamePrices } from '@/types'
 
 const dlc = {
@@ -215,6 +216,60 @@ describe('getPrices', () => {
 
     await expect(getPrices([game.id])).rejects.toThrow(
       'ITAD prices failed: 500'
+    )
+  })
+})
+
+describe('getBundlesForGame', () => {
+  const uuid = '018d937f-1ae9-734c-ba47-bd357cf07edd'
+
+  it('builds the request URL with id and key params', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ data: [] }))
+
+    await getBundlesForGame(uuid)
+
+    const calledUrl = vi.mocked(fetch).mock.calls[0][0] as URL
+    expect(calledUrl.pathname).toBe('/games/bundles/v2')
+    expect(calledUrl.searchParams.get('id')).toBe(uuid)
+    expect(calledUrl.searchParams.get('key')).toBe('test-key')
+  })
+
+  it('returns bundles on a successful response', async () => {
+    const bundle = makeBundle()
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ data: [bundle] }))
+
+    const result = await getBundlesForGame(uuid)
+
+    expect(result).toEqual([bundle])
+  })
+
+  it('filters out bundles whose expiry has already passed', async () => {
+    const active = makeBundle({ id: 1, expiry: '2099-01-01T00:00:00+02:00' })
+    const expired = makeBundle({ id: 2, expiry: '2020-01-01T00:00:00+02:00' })
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ data: [active, expired] })
+    )
+
+    const result = await getBundlesForGame(uuid)
+
+    expect(result).toEqual([active])
+  })
+
+  it('returns an empty array when nothing is active', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ data: [] }))
+
+    const result = await getBundlesForGame(uuid)
+
+    expect(result).toEqual([])
+  })
+
+  it('throws with status and body text when the response is not ok', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ ok: false, status: 500, data: 'server error' })
+    )
+
+    await expect(getBundlesForGame(uuid)).rejects.toThrow(
+      'ITAD bundles failed: 500'
     )
   })
 })

@@ -1,4 +1,9 @@
-import type { ItadGame, ItadDeal, GamerPowerGiveaway } from '@/types'
+import type {
+  ItadGame,
+  ItadDeal,
+  GamerPowerGiveaway,
+  ItadBundle,
+} from '@/types'
 import type { games, wishlistItems } from '@/db/schema'
 
 export const buildComponentInteraction = <
@@ -103,5 +108,21 @@ export const makeGiveaway = (
   status: 'Active',
   gamerpower_url: 'https://www.gamerpower.com/moonlighter-steam-giveawaway',
   open_giveaway: 'https://www.gamerpower.com/open/moonlighter-steam-giveawaway',
+  ...overrides,
+})
+
+export const makeBundle = (
+  overrides: Partial<ItadBundle> = {}
+): ItadBundle => ({
+  id: 1,
+  title: 'Humble Choice August 2026',
+  page: { id: 1, name: 'Humble Bundle', shopId: 37 },
+  url: 'https://humblebundle.com/membership/august-2026',
+  details: 'https://isthereanydeal.com/bundles/1/',
+  expiry: '2026-09-01T16:59:00+02:00',
+  counts: { games: 9, media: 3 },
+  tiers: [
+    { price: { amount: 14.99, amountInt: 1499, currency: 'USD' }, games: [] },
+  ],
   ...overrides,
 })
