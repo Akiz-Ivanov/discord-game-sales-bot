@@ -115,3 +115,23 @@ export interface PriceSnapshot {
   historyLowInt?: number
   historyLowCurrency?: string
 }
+
+export interface ItadBundleGame {
+  title: string
+}
+
+export interface ItadBundleTier {
+  price: { amount: number; amountInt: number; currency: string } | null
+  games: ItadBundleGame[]
+}
+
+export interface ItadBundle {
+  id: number
+  title: string
+  page: { id: number; name: string; shopId: number | null }
+  url: string
+  details: string
+  expiry: string
+  counts: { games: number; media: number }
+  tiers: ItadBundleTier[]
+}
