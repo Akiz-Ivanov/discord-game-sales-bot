@@ -1,4 +1,4 @@
-import { InteractionResponseType } from 'discord-api-types/v10'
+import { ComponentType, InteractionResponseType } from 'discord-api-types/v10'
 import type { ComponentHandler } from '@/types'
 import { resolveGame } from '@/services/games'
 import { getGamePrices } from '@/services/prices'
@@ -16,6 +16,7 @@ import { getInteractionUserId } from '@/discord/interactions/getInteractionUserI
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
 import { buildWishlistRemoveMessage } from '@/discord/views/wishlistRemove'
 import { wishlistLimitReachedWithRemoveMessage } from '@/lib/constants' // replaces wishlistLimitReachedMessage
+import { buildBundlesButton } from '../interactions/buildBundlesButton'
 
 //* custom_id: "price_select:{itadId}". The itadId is UUID-shaped, so
 //* running it back through resolveGame() naturally lands on the same
@@ -46,7 +47,11 @@ export const handlePriceSelect: ComponentHandler = async (interaction) => {
   if (!interaction.guild_id) {
     return {
       type: InteractionResponseType.UpdateMessage,
-      data: { content: '', embeds: [embed], components: [] },
+      data: {
+        content: '',
+        embeds: [embed],
+        components: [buildBundlesButton(match.id)],
+      },
     }
   }
 
@@ -58,7 +63,15 @@ export const handlePriceSelect: ComponentHandler = async (interaction) => {
     data: {
       content: '',
       embeds: [embed],
-      components: [buildWishlistToggleButton(match.id, inWishlist)],
+      components: [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            ...buildWishlistToggleButton(match.id, inWishlist).components,
+            ...buildBundlesButton(match.id).components,
+          ],
+        },
+      ],
     },
   }
 }
@@ -112,7 +125,15 @@ export const handlePriceWishlistToggle: ComponentHandler = async (
     type: InteractionResponseType.UpdateMessage,
     data: {
       embeds: interaction.message.embeds,
-      components: [buildWishlistToggleButton(match.id, !wasWishlisted)],
+      components: [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            ...buildWishlistToggleButton(match.id, !wasWishlisted).components,
+            ...buildBundlesButton(match.id).components,
+          ],
+        },
+      ],
     },
   }
 }

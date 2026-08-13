@@ -138,7 +138,7 @@ describe('price command handler', () => {
     expect(button).toMatchObject({ label: '➖ Remove from wishlist' })
   })
 
-  it('omits the wishlist button entirely in a DM (no guild_id)', async () => {
+  it('shows only the bundles button in a DM (no guild_id)', async () => {
     vi.mocked(resolveGame).mockResolvedValue([game])
     vi.mocked(upsertGame).mockResolvedValue(makeGameRow({ id: 1 }))
     vi.mocked(getGamePrices).mockResolvedValue({
@@ -152,7 +152,9 @@ describe('price command handler', () => {
       await price(buildInteraction('hollow knight', null))
     )
 
-    expect(data.components).toBeUndefined()
+    const row = data.components?.[0]
+    const button = row && 'components' in row ? row.components[0] : undefined
+    expect(button).toMatchObject({ custom_id: `price_bundles:${game.id}` })
     expect(isGameWishlisted).not.toHaveBeenCalled()
   })
 })

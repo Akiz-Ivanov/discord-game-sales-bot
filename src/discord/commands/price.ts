@@ -1,4 +1,4 @@
-import { InteractionResponseType } from 'discord-api-types/v10'
+import { ComponentType, InteractionResponseType } from 'discord-api-types/v10'
 import type { CommandHandler } from '@/types'
 import { resolveGame } from '@/services/games'
 import { getGamePrices } from '@/services/prices'
@@ -8,6 +8,7 @@ import { buildGameSelectButtons } from '@/discord/interactions/buildGameSelectBu
 import { getInteractionUserId } from '../interactions/getInteractionUserId'
 import { isGameWishlisted } from '@/services/wishlist'
 import { buildWishlistToggleButton } from '../interactions/buildWishlistToggleButton'
+import { buildBundlesButton } from '../interactions/buildBundlesButton'
 
 export const price: CommandHandler = async (interaction) => {
   const gameOption = interaction.data.options?.find((o) => o.name === 'game')
@@ -54,7 +55,7 @@ export const price: CommandHandler = async (interaction) => {
   if (!interaction.guild_id) {
     return {
       type: InteractionResponseType.ChannelMessageWithSource,
-      data: { embeds: [embed] },
+      data: { embeds: [embed], components: [buildBundlesButton(match.id)] },
     }
   }
 
@@ -65,7 +66,15 @@ export const price: CommandHandler = async (interaction) => {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       embeds: [embed],
-      components: [buildWishlistToggleButton(match.id, inWishlist)],
+      components: [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            ...buildWishlistToggleButton(match.id, inWishlist).components,
+            ...buildBundlesButton(match.id).components,
+          ],
+        },
+      ],
     },
   }
 }

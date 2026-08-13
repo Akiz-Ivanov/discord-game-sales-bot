@@ -554,7 +554,6 @@
     title-matching with real risk of false positives. Marked
     long-term/maybe-never rather than near backlog specifically
     because of the missing-ID problem.
-
 - [x] `/wishlist list` sorted by discount, highest first — free games
       (100% cut) surface at the top automatically, since 100 is just
       the highest number in the same descending sort; no special-
@@ -562,7 +561,6 @@
       0%-cut game. Small addition alongside the free-games work,
       `wishlistList.test.ts` updated to assert sort order rather than
       input-order preservation.
-
 - [x] Sale alert card accent color changed from green to purple —
       cosmetic, decouples the alert card's color from `/price`'s own
       on-sale-green styling.
@@ -599,18 +597,81 @@
     `components/wishlist.test.ts`, and `components/price.test.ts`
     (the last one rewritten for the new response type/flags rather
     than extended). 331/331 passing project-wide, ~98.5% coverage.
+- [x] Bundles integration, phase 1 — "Show bundles" button on `/price`
+      embed replies. New `itad/client.ts`'s `getBundlesForGame()`
+      (`GET /games/bundles/v2`), filtered client-side by `expiry`
+      since this endpoint isn't guaranteed active-only (confirmed
+      during recon: returned bundles as old as 2018 alongside live
+      ones). New `discord/views/bundles.ts` (`buildBundlesMessage`)
+      — plain embed, amber accent (`0xe67e22`, distinct from
+      `/price`'s blue/green and sale alerts' purple), capped at 5
+      bundles shown with a "+N more" footer note; shows each bundle's
+      shop, game count, and starting tier price (tiers are
+      cumulative, so the first tier is always the cheapest entry
+      point). New `discord/components/bundles.ts`
+      (`handleShowBundles`) mirrors `handleSaleAlertCheckPrice`'s
+      always-fresh-ephemeral posture — never `UpdateMessage`, since
+      the underlying `/price` embed is often public.
+  - Button (`buildBundlesButton.ts`, 📦 icon, `Primary`/blurple)
+    shown **unconditionally** on every `/price` reply, including
+    DMs — no way to know in advance whether a game has an active
+    bundle without a second lookup, which would defeat the point of
+    an on-demand button. An empty "no active bundles" reply is a
+    normal, low-stakes outcome, same posture as `/free`'s "no
+    options match your search" empty state.
+  - Merged into the same `ActionRow` as the wishlist toggle button
+    rather than a second row (Discord allows 5 buttons/row, plenty
+    of headroom) — `buildWishlistToggleButton`/`buildBundlesButton`
+    stay independent single-responsibility builders, callers spread
+    both `.components` arrays into one row when both apply.
+  - Wishlist toggle button recolored `Success`(green)/`Secondary`
+    (gray) instead of `Primary`, freeing up blurple for the bundles
+    button so the row reads as three distinct, purposeful colors
+    rather than two buttons competing for the same blurple.
+  - 📦 chosen over 🎁 specifically to avoid clashing with
+    `freeGames.ts`'s existing 🎁 header icon — two different
+    messages using the same emoji for different meanings would be
+    confusing.
+  - **Real bug caught and fixed before merging**: the wishlist-toggle
+    handler's `UpdateMessage` branch rebuilt its component row with
+    only the toggle button, silently dropping the bundles button on
+    every Add/Remove click (confirmed live via screenshot — button
+    vanished on toggle). Fixed with the same row-merge pattern used
+    in the initial render path. Test coverage gap that let this
+    through: existing toggle tests only asserted on
+    `components?.[0]` (the single button) rather than checking the
+    row contained both buttons — added `toHaveLength(2)` +
+    second-button assertions to both toggle-direction tests to
+    close the gap.
+  - Full test coverage: `buildBundlesButton.test.ts`,
+    `views/bundles.test.ts` (empty state, plural phrasing, tier
+    price formatting, free-tier fallback, 5-bundle cap + footer),
+    `components/bundles.test.ts` (found/not-found branches),
+    `itad/client.test.ts` (URL/param construction, expiry filtering,
+    error paths), updated `commands/price.test.ts` and
+    `components/price.test.ts` for the new button/merged-row shape.
+    348/348 passing project-wide, 98.56% coverage.
+  - **Deliberately deferred to phase 2**: caching `bundledCount` (and
+    a refresh timestamp) on the `games` table, populated by the
+    `overview/v2` cron swap below rather than by the on-demand
+    button click — a click-triggered cache write was considered and
+    rejected: the click that would trigger it already shows the live
+    list directly, so the only benefit is a future `/price` lookup
+    on the same game, which doesn't justify a second writer touching
+    the same DB column as the cron path. No TTL/auto-deletion
+    needed either way — tomorrow's cron run naturally corrects a
+    stale count back to 0 once a bundle expires, same self-healing
+    pattern `historyLow` already relies on.
+  - **Still open**: `POST /games/overview/v2` cron-swap (bundle count
+    for free, same batch call, no new rate-limit cost) and the
+    `bundledCount` caching above; standalone `/bundles` command
+    riding `GET /bundles/v1` (confirmed reliably non-empty, unlike
+    per-game lookups — 7-10 active bundles seen live across several
+    test calls). Neither started yet.
 - [ ] User-defined notification thresholds (min % off, price ceiling, historical-low-only, store filter)
 - [ ] Web dashboard (tracked games + price history, reusing the same service layer as the bot)
 - [ ] Context-menu commands (type 2 "User" / type 3 "Message") — e.g. right-click a message → check price history
 - [ ] Global command registration (once ready to invite the bot to other servers)
-- [ ] Bundles integration (ITAD `GET /games/bundles/v2`) — shape
-      undecided, several directions on the table: (a) a "Show bundles"
-      button on /price and /wishlist add embeds, separate lookup +
-      separate embed on click; (b) surface a bundle proactively during
-      the daily cron check when a wishlisted game appears in one; (c)
-      fetch bundle data alongside the initial ITAD call but keep it
-      collapsed until a user expands it. Needs to be prototyped/seen
-      live before choosing, same posture as sale alert card v2.
 - [ ] Additional `/config` subcommands (currency, stores, role) — deferred post-MVP
   - alert-visibility toggle: admin-set per-guild flag for whether sale
     alerts post as ephemeral or visible-to-all (some guilds may want
@@ -668,6 +729,21 @@
 
 ## Possible future upgrades (not needed yet — revisit only if usage justifies it)
 
+- [ ] Game subscription availability (`POST /games/subs/v1`) —
+      confirmed live (Sea of Thieves → Game Pass), clean
+      `{id, subs: [{id, name, leaving}]}` shape, same batched-by-`gid`
+      pattern as the other endpoints. Candidate: a subscription line
+      on `/price`'s embed ("🎮 Available on Game Pass") when `subs` is
+      non-empty. `leaving` field untested against a game actually
+      scheduled to leave a service — worth confirming before building
+      any "leaving soon" callout on top of it.
+- [ ] Per-store historical low (`POST /games/storelow/v2`) —
+      confirmed live, per-shop lows with timestamps vs. the single
+      cross-store number `/price` shows today. Candidate: sharpen the
+      "Historical low" field to name the shop and date
+      ("$5.09 · GOG, Nov 2020"). Low priority — natural to bundle with
+      the existing "Historical low field layout" item below rather
+      than doing icon/layout work twice.
 - [ ] Display price history (data's already being logged from MVP)
 - [ ] Local trigram-indexed game catalog mirror for autocomplete — if
       ITAD's shared app-wide rate limit (1000 req/5min, shared with

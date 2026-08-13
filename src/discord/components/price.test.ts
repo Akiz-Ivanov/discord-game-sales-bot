@@ -82,7 +82,9 @@ describe('handlePriceSelect', () => {
 
     expect(resolveGame).toHaveBeenCalledWith(game.id)
     expect(data.embeds).toEqual([fakeEmbed])
-    expect(data.components).toEqual([])
+    const row = data.components?.[0]
+    const button = row && 'components' in row ? row.components[0] : undefined
+    expect(button).toMatchObject({ custom_id: `price_bundles:${game.id}` })
   })
 
   it('reports a not-found fallback when the game no longer resolves', async () => {
@@ -134,6 +136,9 @@ describe('handlePriceWishlistToggle', () => {
     const row = data.components?.[0]
     const button = row && 'components' in row ? row.components[0] : undefined
     expect(button).toMatchObject({ label: '➖ Remove from wishlist' })
+    const buttons = row && 'components' in row ? row.components : []
+    expect(buttons).toHaveLength(2)
+    expect(buttons[1]).toMatchObject({ custom_id: `price_bundles:${game.id}` })
   })
 
   it('removes the game and flips the button to Add when previously wishlisted', async () => {
@@ -156,6 +161,9 @@ describe('handlePriceWishlistToggle', () => {
     const row = data.components?.[0]
     const button = row && 'components' in row ? row.components[0] : undefined
     expect(button).toMatchObject({ label: '➕ Add to wishlist' })
+    const buttons = row && 'components' in row ? row.components : []
+    expect(buttons).toHaveLength(2)
+    expect(buttons[1]).toMatchObject({ custom_id: `price_bundles:${game.id}` })
   })
 
   it('replies with an ephemeral remove picker as a new message, leaving the original embed untouched', async () => {

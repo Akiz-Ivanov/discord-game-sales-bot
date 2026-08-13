@@ -3,6 +3,7 @@ import type {
   ItadLookupResponse,
   ItadSearchResponse,
   ItadGamePrices,
+  ItadBundle,
 } from '@/types'
 
 const BASE_URL = 'https://api.isthereanydeal.com'
@@ -14,6 +15,7 @@ const LOOKUP_URL = `${BASE_URL}/games/lookup/v1`
 //* Exact match by ITAD's own UUID — richer payload, we only need `id`/`slug`/`title` from it here.
 const INFO_URL = `${BASE_URL}/games/info/v2`
 const PRICES_URL = `${BASE_URL}/games/prices/v3`
+const BUNDLES_URL = `${BASE_URL}/games/bundles/v2`
 
 const getApiKey = (): string => {
   const key = process.env.ITAD_API_KEY
@@ -100,4 +102,23 @@ export const getPrices = async (
   }
 
   return res.json()
+}
+
+//* This endpoint's activeness isn't guaranteed
+//* filtered client-side by expiry as a defensive measure
+export const getBundlesForGame = async (
+  itadId: string
+): Promise<ItadBundle[]> => {
+  const url = new URL(BUNDLES_URL)
+  url.searchParams.set('key', getApiKey())
+  url.searchParams.set('id', itadId)
+
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw new Error(`ITAD bundles failed: ${res.status} ${await res.text()}`)
+  }
+
+  const bundles: ItadBundle[] = await res.json()
+  const now = Date.now()
+  return bundles.filter((b) => new Date(b.expiry).getTime() > now)
 }

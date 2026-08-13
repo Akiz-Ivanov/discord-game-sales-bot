@@ -16,7 +16,7 @@ export const buildWishlistToggleButton = (
   components: [
     {
       type: ComponentType.Button,
-      style: inWishlist ? ButtonStyle.Secondary : ButtonStyle.Primary,
+      style: inWishlist ? ButtonStyle.Secondary : ButtonStyle.Success,
       custom_id: `price_wishlist_toggle:${itadId}`,
       label: inWishlist ? '➖ Remove from wishlist' : '➕ Add to wishlist',
     },

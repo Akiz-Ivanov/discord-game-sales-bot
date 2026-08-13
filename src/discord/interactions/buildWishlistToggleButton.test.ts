@@ -3,10 +3,10 @@ import { buildWishlistToggleButton } from './buildWishlistToggleButton'
 import { ButtonStyle } from 'discord-api-types/v10'
 
 describe('buildWishlistToggleButton', () => {
-  it('builds an Add button with Primary style when the game is not wishlisted', () => {
+  it('builds an Add button with Success style when the game is not wishlisted', () => {
     const row = buildWishlistToggleButton('itad-1', false)
     expect(row.components[0]).toMatchObject({
-      style: ButtonStyle.Primary,
+      style: ButtonStyle.Success,
       label: '➕ Add to wishlist',
     })
   })
