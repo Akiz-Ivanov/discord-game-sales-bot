@@ -5,13 +5,10 @@ import type {
   APITextDisplayComponent,
 } from 'discord-api-types/v10'
 
-const ACCENT_COLOR = 0x5865f2 // same blurple as /price's no-sale color — keeps a consistent bot identity
+const ACCENT_COLOR = 0x5865f2 // blurple
 
 const HEADER =
   '### Game Sales Bot\nTrack game prices across stores and get notified when something on your wishlist goes on sale.'
-
-const FOOTER =
-  '-# Powered by [IsThereAnyDeal](https://isthereanydeal.com) & [GamerPower](https://www.gamerpower.com)'
 
 const COMMAND_ENTRIES = [
   '> **/price `<game>`**\n> -# Look up current prices for a game across stores.',
@@ -36,9 +33,6 @@ export const buildHelpMessage = () => {
       children.push({ type: ComponentType.Separator })
     }
   })
-
-  children.push({ type: ComponentType.Separator })
-  children.push(textDisplay(FOOTER))
 
   const container: APIContainerComponent = {
     type: ComponentType.Container,

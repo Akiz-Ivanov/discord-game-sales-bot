@@ -9,6 +9,7 @@ import { formatMoney } from '@/lib/money'
 import { getShopEmoji } from './shopEmoji'
 import { getDiscountEmoji } from './discountEmoji'
 import { customEmojiTag } from './discordEmoji'
+import { formatCompactNumber } from '@/lib/formatCompactNumber'
 
 const EMBED_COLOR_ON_SALE = 0x57f287
 const EMBED_COLOR_NO_SALE = 0x5865f2
@@ -34,13 +35,12 @@ const pickPrimaryReview = (
   reviews.find((r) => r.source === PREFERRED_REVIEW_SOURCE) ?? reviews[0]
 
 const formatReviewScore = (review: ItadGameReview): string => {
-  const count = new Intl.NumberFormat('en-US').format(review.count)
+  const count = formatCompactNumber(review.count)
   return `${review.score}% (${review.source} · ${count})`
 }
 
 const formatPlayerCounts = (players: ItadGamePlayers): string => {
-  const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n)
-  return `${fmt(players.recent)} now · ${fmt(players.peak)} peak`
+  return `${formatCompactNumber(players.recent)} now · ${formatCompactNumber(players.peak)} peak`
 }
 
 const formatTags = (tags: string[]): string =>
@@ -103,16 +103,21 @@ const pickEmbedColor = (deals: DealSummary[]) => {
 
 const CHART_LINE_DOWN_ID = '1530575847679856821'
 
-const buildDealField = (deal: DealSummary): APIEmbedField => {
+const buildDealField = (
+  deal: DealSummary,
+  moreStoresLine: string | null
+): APIEmbedField => {
   const price = formatMoney(deal.price.amountInt, deal.price.currency)
   const priceLine =
     deal.cut > 0
       ? `${price} (−${deal.cut}%, was ${formatMoney(deal.regular.amountInt, deal.regular.currency)}) ${getDiscountEmoji(deal.cut)}`
       : price
 
+  const trailer = moreStoresLine ? `\n-# ${moreStoresLine}` : ''
+
   return {
     name: `${getShopEmoji(deal.shop.name)} ${deal.shop.name}`,
-    value: `> [${priceLine}](${deal.url})`,
+    value: `> [${priceLine}](${deal.url})${trailer}`,
     inline: false,
   }
 }
@@ -129,8 +134,14 @@ const buildHistoryLowField = (
   }
 }
 
-const buildFooterText = (id: string, remaining: number): string =>
-  remaining > 0 ? `+${remaining} more shop(s) · ID ${id}` : `ID ${id}`
+const buildMoreStoresField = (remaining: number): APIEmbedField | null => {
+  if (remaining <= 0) return null
+  return {
+    name: '\u200b', // zero-width space — unlabeled line, same read as the old footer text
+    value: `+${remaining} more stores`,
+    inline: false,
+  }
+}
 
 export const buildPriceEmbed = (
   game: ItadGame,
@@ -152,7 +163,6 @@ export const buildPriceEmbed = (
       color,
       image,
       fields: enrichmentFields.length > 0 ? enrichmentFields : undefined,
-      footer: { text: buildFooterText(game.id, 0) },
     }
   }
 
@@ -162,13 +172,17 @@ export const buildPriceEmbed = (
   const shown = sorted.slice(0, MAX_SHOPS_SHOWN)
   const remaining = sorted.length - shown.length
 
-  const fields: APIEmbedField[] = shown.map(buildDealField)
+  const fields: APIEmbedField[] = shown.map((deal, idx) => {
+    const isLast = idx === shown.length - 1
+    const moreStoresLine =
+      isLast && remaining > 0 ? `+${remaining} more stores` : null
+    return buildDealField(deal, moreStoresLine)
+  })
 
   const historyLowField = buildHistoryLowField(
     historyLowInt,
     historyLowCurrency
   )
-
   if (historyLowField) fields.push(historyLowField)
   fields.push(...enrichmentFields)
 
@@ -178,6 +192,5 @@ export const buildPriceEmbed = (
     color,
     image,
     fields,
-    footer: { text: buildFooterText(game.id, remaining) },
   }
 }

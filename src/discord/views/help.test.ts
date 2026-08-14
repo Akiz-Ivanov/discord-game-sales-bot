@@ -56,14 +56,7 @@ describe('buildHelpMessage', () => {
     expect(configText?.content).toContain('Admin only')
   })
 
-  it('credits IsThereAnyDeal and GamerPower with links in the footer', () => {
-    const texts = getTexts(getContainer(buildHelpMessage()))
-    const footer = texts[texts.length - 1]
-    expect(footer.content).toContain('isthereanydeal.com')
-    expect(footer.content).toContain('gamerpower.com')
-  })
-
-  it('separates each entry with a Separator, none trailing after the footer', () => {
+  it('has no trailing separator after the last command entry', () => {
     const container = getContainer(buildHelpMessage())
     const last = container.components[container.components.length - 1]
     expect(last.type).toBe(ComponentType.TextDisplay)

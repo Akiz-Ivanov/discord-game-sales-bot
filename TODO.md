@@ -668,6 +668,40 @@
     riding `GET /bundles/v1` (confirmed reliably non-empty, unlike
     per-game lookups — 7-10 active bundles seen live across several
     test calls). Neither started yet.
+- [x] `/help` command — Components V2, ephemeral. Lists all commands
+      (`/price`, `/wishlist`, `/free`, `/config alerts-channel`) grouped
+      in blockquote blocks for visual separation (matches the pattern
+      other Discord help bots use). No ITAD/GamerPower credits line here
+      — moved to the privacy-policy page instead, since attribution
+      belongs somewhere someone would actually go looking for it, not a
+      quick command reference.
+  - `discord/views/help.ts` (`buildHelpMessage`), `discord/commands/help.ts`
+- [x] `/price` embed cleanup pass — compact numbers for review counts and
+      player counts (`Intl.NumberFormat`'s `notation: 'compact'`, no new
+      dependency); "+N more shop(s)" reworded to "+N more stores" and
+      relocated from the footer into the last shown deal's own field
+      (appended as a `-#` subtext line) rather than a separate field —
+      avoids the phantom-row problem a zero-width-space field name causes.
+      Footer dropped entirely as a side effect: Discord always renders
+      fields → image → footer regardless of build order, so removing the
+      footer is what actually makes the banner image the last thing on
+      the card.
+  - Also dropped the game ID from the visible embed — no longer needed
+    now that disambiguation is button-driven (the button's own
+    `custom_id` already carries it); kept it out rather than giving the
+    footer a reason to exist again.
+- [ ] Consider migrating `/price` to Components V2 — the inline 3-across
+      Released/Reviews/Players field grid is the one thing keeping it on
+      classic embeds today (V2 has no equivalent to Discord's automatic
+      inline-field layout). V2 would unlock real spacing control
+      (`Separator` has small/large size options — classic embeds have no
+      margin/spacing property between fields at all), which came up
+      wanting more breathing room between the store list, Historical low,
+      and the metadata row. Undecided whether losing the 3-across grid is
+      worth it for one row's layout — needs its own look once there's
+      time, not urgent. Bundle with the existing "Historical low field
+      layout" item above if/when this happens, since both touch the same
+      area of the embed.
 - [ ] User-defined notification thresholds (min % off, price ceiling, historical-low-only, store filter)
 - [ ] Web dashboard (tracked games + price history, reusing the same service layer as the bot)
 - [ ] Context-menu commands (type 2 "User" / type 3 "Message") — e.g. right-click a message → check price history

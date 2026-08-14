@@ -56,7 +56,7 @@ describe('buildPriceEmbed', () => {
     expect(embed.title).toBe('Hollow Knight')
   })
 
-  it('caps display at 5 shops and notes how many more exist in the footer', () => {
+  it('caps display at 5 shops', () => {
     const deals = Array.from({ length: 8 }, (_, i) =>
       makeDeal({
         shop: { id: i, name: `Shop${i}` },
@@ -65,7 +65,25 @@ describe('buildPriceEmbed', () => {
     )
     const embed = buildPriceEmbed(game, deals)
     expect(embed.fields?.some((f) => f.name.includes('Shop7'))).toBe(false)
-    expect(embed.footer?.text).toBe(`+3 more shop(s) · ID ${game.id}`)
+    expect(embed.fields).toHaveLength(5)
+  })
+
+  it('appends a "+N more stores" line to the last shown deal field when more exist', () => {
+    const deals = Array.from({ length: 8 }, (_, i) =>
+      makeDeal({
+        shop: { id: i, name: `Shop${i}` },
+        price: { amount: 10 + i, amountInt: 1000 + i * 100, currency: 'USD' },
+      })
+    )
+    const embed = buildPriceEmbed(game, deals)
+    const lastDealField = embed.fields?.[4]
+    expect(lastDealField?.name).toContain('Shop4')
+    expect(lastDealField?.value).toContain('+3 more stores')
+  })
+
+  it('omits the "+N more stores" line when everything fits', () => {
+    const embed = buildPriceEmbed(game, [makeDeal({})])
+    expect(embed.fields?.[0].value).not.toContain('more stores')
   })
 
   it('includes a historical low field when provided', () => {
@@ -81,16 +99,6 @@ describe('buildPriceEmbed', () => {
     expect(embed.fields?.some((f) => f.name.includes('Historical low'))).toBe(
       false
     )
-  })
-
-  it('includes the game ID in the footer', () => {
-    const embed = buildPriceEmbed(game, [makeDeal({})])
-    expect(embed.footer?.text).toBe(`ID ${game.id}`)
-  })
-
-  it('includes the game ID in the footer even when no store lists a price', () => {
-    const embed = buildPriceEmbed(game, [])
-    expect(embed.footer?.text).toBe(`ID ${game.id}`)
   })
 
   it('links the title to the ITAD game page when urls.game is present', () => {
@@ -137,10 +145,10 @@ describe('buildPriceEmbed', () => {
         embed.fields?.find((f) => f.name.includes('Released'))?.value
       ).toBe('Feb 24, 2017')
       expect(embed.fields?.find((f) => f.name.includes('Reviews'))?.value).toBe(
-        '96% (Steam · 489,363)'
+        '96% (Steam · 489.4K)'
       )
       expect(embed.fields?.find((f) => f.name.includes('Players'))?.value).toBe(
-        '10,021 now · 95,655 peak'
+        '10K now · 95.7K peak'
       )
       const tagsValue = embed.fields?.find((f) =>
         f.name.includes('Tags')
