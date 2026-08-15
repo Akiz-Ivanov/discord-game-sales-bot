@@ -757,9 +757,39 @@
     (remove-alerts branches), `components/config.test.ts` (confirm,
     double-click race, cancel), `views/help.test.ts` updated for the
     fifth command entry. 374/374 passing project-wide, 98.32% coverage.
-  - **Not done yet**: the privacy-policy page — was deliberately waiting
-    on both this and `/forget-me` existing first, so it could describe
-    real deletion mechanisms instead of a placeholder.
+- [x] `/privacy-policy` command + `/privacy` web page — completes the
+      privacy-policy work `/forget-me` and `/config remove-alerts` were
+      deliberately blocking on. Two-part split: `src/app/privacy/page.tsx`
+      is the canonical, full-detail policy (static Next.js route, no
+      client JS); `/privacy-policy` is a Components V2 Discord command
+      (`discord/views/privacyPolicy.ts`) that gives a short in-Discord
+      summary plus a Link-style button out to the full page — link
+      buttons need no component handler at all, Discord opens the URL
+      directly.
+  - Data breakdown accurate to the schema, not generic boilerplate:
+    Discord ID, last-touched guild, wishlist entries + last-alerted
+    price, daily price-history log (retention window intentionally
+    left as "limited period, not forever, TBD" rather than committing
+    to a number not yet decided), shared game-catalog data, and
+    per-guild alert config.
+  - ITAD/GamerPower attribution lives on `/privacy` under "Third
+    parties," per each API's ToS (ITAD: "Data from X," never
+    "Powered by X"; GamerPower: active hyperlink). No "support these
+    sources" language added — that register felt out of place in a
+    data/legal document; parked as a candidate for a future `/about`
+    command instead.
+  - `globals.css` dark-mode background swapped from flat `#0a0a0a` to
+    `oklch(21% 0.006 285.885)` (zinc-950) — matches the zinc-700/300
+    text tones already used on `/privacy` rather than mixing a
+    generic near-black with Tailwind's oklch-based palette.
+  - `/help` updated with the new command per the standing invariant.
+  - Full test coverage: `commands/privacyPolicy.test.ts` (response
+    shape/flags), `views/privacyPolicy.test.ts` (content, Link button
+    target), `views/help.test.ts` updated for the sixth entry.
+    379/379 passing project-wide, 98.35% coverage.
+  - **Not done yet**: `/about` command (bot identity, GitHub link,
+    future home for a "support the dev" / ITAD-GamerPower shoutout
+    line) — deliberately scoped out of this session.
 - [ ] Consider migrating `/price` to Components V2 — the inline 3-across
       Released/Reviews/Players field grid is the one thing keeping it on
       classic embeds today (V2 has no equivalent to Discord's automatic
