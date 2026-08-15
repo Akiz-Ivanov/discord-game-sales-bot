@@ -14,6 +14,11 @@ const commands = [
     type: 1,
   },
   {
+    name: 'forget-me',
+    description: 'Permanently delete your wishlist and stored data',
+    type: 1,
+  },
+  {
     name: 'free',
     description: 'Show currently free PC games',
     type: 1,
