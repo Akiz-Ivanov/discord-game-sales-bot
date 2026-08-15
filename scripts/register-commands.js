@@ -87,6 +87,11 @@ const commands = [
           },
         ],
       },
+      {
+        type: 1, //* SUB_COMMAND
+        name: 'remove-alerts',
+        description: "Remove this server's alert configuration",
+      },
     ],
   },
 ]

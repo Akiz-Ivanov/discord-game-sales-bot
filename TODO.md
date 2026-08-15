@@ -724,6 +724,42 @@
     row only, leaving personal wishlists untouched — already scoped
     last session) and the privacy-policy page itself, which was
     deliberately waiting on this command existing first.
+- [x] `/config remove-alerts` — per-guild alert config removal. Deletes
+      the `guilds` row for the invoking guild; `notificationChannelId`
+      goes with it, stopping sale and free-game alerts. `users`/
+      `wishlist_items` are untouched — `users.guildId` has no FK to
+      `guilds`, so there's no cascade risk, and a user's next
+      guild-scoped command elsewhere just overwrites `guildId` naturally
+      (confirmed, no code needed for that recovery path).
+  - Admin-gated via the same `default_member_permissions: '32'` already
+    set on the parent `/config` command — no extra permission wiring
+    needed for the new sibling subcommand. Confirmed live: `/config`
+    doesn't even appear as an option for a non-admin test account.
+  - Same two-button confirm/cancel pattern as `/forget-me`
+    (`config_remove_alerts_confirm`/`config_remove_alerts_cancel`,
+    static custom_ids, re-derives `guildId` from the interaction rather
+    than trusting anything encoded client-side). Warning copy avoids
+    saying "can't be undone" — a config reset genuinely can be undone by
+    re-running `/config alerts-channel`, unlike `/forget-me`'s actual
+    data deletion, so the wording says exactly that instead.
+  - Same double-click race handling as `/forget-me`: confirm reports an
+    honest "nothing to remove" instead of a false success if the row's
+    already gone by the second click.
+  - `/help` updated to cover both `/config` subcommands in one line, and
+    gained a missing `/forget-me` entry that had been left out when that
+    command shipped last session.
+  - Verified live via ngrok: no-config case, cancel case, confirm case
+    (row confirmed gone via dev server query logs and a follow-up
+    re-run), non-admin permission gating.
+  - Full test coverage: `repositories/guilds.test.ts`
+    (`getGuildByGuildId`/`deleteGuildByGuildId` — delete-existing,
+    delete-nonexistent, cross-guild isolation), `commands/config.test.ts`
+    (remove-alerts branches), `components/config.test.ts` (confirm,
+    double-click race, cancel), `views/help.test.ts` updated for the
+    fifth command entry. 374/374 passing project-wide, 98.32% coverage.
+  - **Not done yet**: the privacy-policy page — was deliberately waiting
+    on both this and `/forget-me` existing first, so it could describe
+    real deletion mechanisms instead of a placeholder.
 - [ ] Consider migrating `/price` to Components V2 — the inline 3-across
       Released/Reviews/Players field grid is the one thing keeping it on
       classic embeds today (V2 has no equivalent to Discord's automatic
