@@ -14,7 +14,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: oklch(21% 0.015 265);
+    /* zinc-950, matches the zinc-700/300 text tones on /privacy */
     --foreground: #ededed;
   }
 }
