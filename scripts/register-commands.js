@@ -19,6 +19,11 @@ const commands = [
     type: 1,
   },
   {
+    name: 'privacy-policy',
+    description: 'Show what data this bot stores and how to remove it',
+    type: 1,
+  },
+  {
     name: 'free',
     description: 'Show currently free PC games',
     type: 1,
