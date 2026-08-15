@@ -15,6 +15,7 @@ const COMMAND_ENTRIES = [
   '> **/wishlist `add` `remove` `list`**\n> -# Add, remove, or view games on your personal wishlist.',
   '> **/free**\n> -# Show currently free PC games.',
   '> **/forget-me**\n> -# Permanently delete your wishlist and any data stored about you.',
+  "> **/privacy-policy**\n> -# See what data this bot stores and how it's used.",
   '> **/config `alerts-channel` `remove-alerts`**\n> -# *(Admin only)* Set or remove the channel where sale and free-game alerts get posted.',
 ]
 const textDisplay = (content: string): APITextDisplayComponent => ({

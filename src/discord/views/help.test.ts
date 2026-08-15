@@ -39,7 +39,7 @@ describe('buildHelpMessage', () => {
     expect(header.content).toContain('Track game prices')
   })
 
-  it('lists all five commands', () => {
+  it('lists all six commands', () => {
     const texts = getTexts(getContainer(buildHelpMessage())).map(
       (t) => t.content
     )
@@ -47,6 +47,7 @@ describe('buildHelpMessage', () => {
     expect(texts.some((t) => t.includes('/wishlist'))).toBe(true)
     expect(texts.some((t) => t.includes('/free'))).toBe(true)
     expect(texts.some((t) => t.includes('/forget-me'))).toBe(true)
+    expect(texts.some((t) => t.includes('/privacy-policy'))).toBe(true)
     expect(texts.some((t) => t.includes('/config'))).toBe(true)
   })
 
