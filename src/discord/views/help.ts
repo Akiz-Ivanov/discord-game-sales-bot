@@ -14,7 +14,8 @@ const COMMAND_ENTRIES = [
   '> **/price `<game>`**\n> -# Look up current prices for a game across stores.',
   '> **/wishlist `add` `remove` `list`**\n> -# Add, remove, or view games on your personal wishlist.',
   '> **/free**\n> -# Show currently free PC games.',
-  '> **/config `alerts-channel`**\n> -# *(Admin only)* Set the channel where sale and free-game alerts get posted.',
+  '> **/forget-me**\n> -# Permanently delete your wishlist and any data stored about you.',
+  '> **/config `alerts-channel` `remove-alerts`**\n> -# *(Admin only)* Set or remove the channel where sale and free-game alerts get posted.',
 ]
 const textDisplay = (content: string): APITextDisplayComponent => ({
   type: ComponentType.TextDisplay,

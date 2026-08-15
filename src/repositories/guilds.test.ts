@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { db } from '@/db'
 import { guilds } from '@/db/schema'
-import { getGuildsWithNotificationChannel, upsertGuildChannel } from './guilds'
+import {
+  getGuildsWithNotificationChannel,
+  getGuildByGuildId,
+  deleteGuildByGuildId,
+  upsertGuildChannel,
+} from './guilds'
 import { resetDb } from '@/test/db-reset'
 
 const guildId = '999888777666555444'
@@ -59,5 +64,51 @@ describe('getGuildsWithNotificationChannel', () => {
     const result = await getGuildsWithNotificationChannel()
 
     expect(result).toEqual([{ guildId, notificationChannelId: channelId }])
+  })
+})
+
+describe('getGuildByGuildId', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('returns null when no guild row exists for that guildId', async () => {
+    expect(await getGuildByGuildId(guildId)).toBeNull()
+  })
+
+  it('returns the existing row when one exists', async () => {
+    const created = await upsertGuildChannel(guildId, channelId)
+
+    const result = await getGuildByGuildId(guildId)
+
+    expect(result?.id).toBe(created.id)
+  })
+})
+
+describe('deleteGuildByGuildId', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('deletes an existing guild row and returns true', async () => {
+    await upsertGuildChannel(guildId, channelId)
+
+    expect(await deleteGuildByGuildId(guildId)).toBe(true)
+    expect(await getGuildByGuildId(guildId)).toBeNull()
+  })
+
+  it('returns false when no guild row exists for that guildId', async () => {
+    expect(await deleteGuildByGuildId(guildId)).toBe(false)
+  })
+
+  it("does not delete a different guild's row", async () => {
+    await upsertGuildChannel(guildId, channelId)
+    await upsertGuildChannel('other-guild-id', channelId)
+
+    await deleteGuildByGuildId(guildId)
+
+    const remaining = await db.select().from(guilds)
+    expect(remaining).toHaveLength(1)
+    expect(remaining[0].guildId).toBe('other-guild-id')
   })
 })

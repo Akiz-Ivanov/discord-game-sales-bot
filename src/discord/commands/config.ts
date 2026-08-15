@@ -5,7 +5,8 @@ import {
 } from 'discord-api-types/v10'
 import type { CommandHandler } from '@/types'
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
-import { upsertGuildChannel } from '@/repositories/guilds'
+import { upsertGuildChannel, getGuildByGuildId } from '@/repositories/guilds'
+import { buildRemoveAlertsConfirmButtons } from '@/discord/interactions/buildRemoveAlertsConfirmButtons'
 
 const getSubcommand = (interaction: Parameters<CommandHandler>[0]) => {
   const sub = interaction.data.options?.[0]
@@ -46,6 +47,31 @@ const handleAlertsChannel: CommandHandler = async (interaction) => {
   }
 }
 
+const handleRemoveAlerts: CommandHandler = async (interaction) => {
+  const guildId = getInteractionGuildId(interaction)
+  const existing = await getGuildByGuildId(guildId)
+
+  if (!existing) {
+    return {
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        flags: MessageFlags.Ephemeral,
+        content: "This server doesn't have any alert configuration to remove.",
+      },
+    }
+  }
+
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      flags: MessageFlags.Ephemeral,
+      content:
+        "⚠️ This will stop sale and free-game alerts for this server by removing its configured alert channel. You'll need to run `/config alerts-channel` again to set it back up. Are you sure?",
+      components: [buildRemoveAlertsConfirmButtons()],
+    },
+  }
+}
+
 export const config: CommandHandler = (interaction) => {
   const sub = getSubcommand(interaction)
   if (!sub) {
@@ -55,6 +81,7 @@ export const config: CommandHandler = (interaction) => {
     }
   }
   if (sub.name === 'alerts-channel') return handleAlertsChannel(interaction)
+  if (sub.name === 'remove-alerts') return handleRemoveAlerts(interaction)
 
   return {
     type: InteractionResponseType.ChannelMessageWithSource,

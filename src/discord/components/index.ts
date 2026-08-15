@@ -11,6 +11,7 @@ import { handleSaleAlertCheckPrice } from './saleAlert'
 import { handleFreeGamesPage, handleFreeGamesPageRich } from './freeGames'
 import { handleShowBundles } from './bundles'
 import { handleForgetMeConfirm, handleForgetMeCancel } from './forgetMe'
+import { handleRemoveAlertsConfirm, handleRemoveAlertsCancel } from './config'
 
 //* Keyed by the literal prefix before the first ':' in custom_id.
 //* e.g. custom_id "wishlist_remove_select" or "wishlist_remove_page:2"
@@ -29,4 +30,6 @@ export const components: Record<string, ComponentHandler> = {
   price_bundles: handleShowBundles,
   forget_me_confirm: handleForgetMeConfirm,
   forget_me_cancel: handleForgetMeCancel,
+  config_remove_alerts_confirm: handleRemoveAlertsConfirm,
+  config_remove_alerts_cancel: handleRemoveAlertsCancel,
 }
