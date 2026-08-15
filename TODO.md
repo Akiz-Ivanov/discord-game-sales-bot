@@ -690,6 +690,40 @@
     now that disambiguation is button-driven (the button's own
     `custom_id` already carries it); kept it out rather than giving the
     footer a reason to exist again.
+- [x] `/forget-me` command — per-user data deletion. Deletes the `users`
+      row for the invoking Discord ID; `wishlist_items.userId`'s existing
+      `onDelete: 'cascade'` FK handles the rest, no separate cleanup step
+      needed. `games`/`prices` rows are untouched — shared catalog data,
+      not personal data, so nothing of the user's remains in them once
+      their row is gone.
+  - Works in DMs too — first command with no guild-context dependency at
+    all (doesn't touch `getInteractionGuildId`).
+  - Two-step confirmation via buttons rather than a typed "CONFIRM"
+    string: `/forget-me` with no existing row replies with a plain
+    "nothing to delete" message; with a row, replies with a warning and
+    a Danger/Secondary button pair (`forget_me_confirm`/
+    `forget_me_cancel`). `custom_id`s are static — no suffix needed,
+    since the message is ephemeral and only the invoker can ever see or
+    click it. The confirm handler still re-derives the Discord ID from
+    the interaction itself rather than trusting anything encoded in
+    `custom_id`, same posture as every other handler in this codebase.
+  - Handles the double-click race explicitly: if `deleteUserByDiscordId`
+    finds no row (already deleted by an earlier click), the confirm
+    handler reports the honest "nothing to delete" message instead of a
+    false "deleted" success.
+  - Verified live via ngrok: no-data case, confirm case (row confirmed
+    gone via a follow-up lookup logged in dev output), ran from a
+    second test account to keep a full wishlist around for other
+    testing.
+  - Full test coverage: `repositories/users.test.ts`
+    (`deleteUserByDiscordId` — delete-existing, delete-nonexistent,
+    cascade-to-wishlist_items), `commands/forgetMe.test.ts`,
+    `components/forgetMe.test.ts` (confirm/cancel, double-click race).
+    364/364 passing project-wide, 98.28% coverage.
+  - **Not done yet**: per-guild data wipe (delete the `guilds` config
+    row only, leaving personal wishlists untouched — already scoped
+    last session) and the privacy-policy page itself, which was
+    deliberately waiting on this command existing first.
 - [ ] Consider migrating `/price` to Components V2 — the inline 3-across
       Released/Reviews/Players field grid is the one thing keeping it on
       classic embeds today (V2 has no equivalent to Discord's automatic

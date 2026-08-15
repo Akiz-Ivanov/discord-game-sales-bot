@@ -26,3 +26,16 @@ export const getUserByDiscordId = async (
     .where(eq(users.discordId, discordId))
   return row ?? null
 }
+
+export const deleteUserByDiscordId = async (
+  discordId: string
+): Promise<boolean> => {
+  const deleted = await db
+    .delete(users)
+    .where(eq(users.discordId, discordId))
+    .returning({ id: users.id })
+
+  //* wishlist_items.userId has onDelete: 'cascade', so this single delete
+  //* is all that's needed — no separate wishlist cleanup step.
+  return deleted.length > 0
+}

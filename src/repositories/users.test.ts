@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { db } from '@/db'
-import { users } from '@/db/schema'
-import { getUserByDiscordId, upsertUser } from './users'
+import { users, wishlistItems } from '@/db/schema'
+import { deleteUserByDiscordId, getUserByDiscordId, upsertUser } from './users'
 import { resetDb } from '@/test/db-reset'
 import { beforeEach } from 'vitest'
+import { upsertGame } from './games'
+import { game } from '@/test/factories'
+import { addWishlistItem } from './wishlist'
+import { eq } from 'drizzle-orm'
 
 const discordId = '123456789012345678' //* snowflake, stored as text
 const guildId = '999888777666555444'
@@ -57,5 +61,36 @@ describe('getUserByDiscordId', () => {
     const result = await getUserByDiscordId(discordId)
 
     expect(result?.id).toBe(created.id)
+  })
+})
+
+describe('deleteUserByDiscordId', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('deletes an existing user row and returns true', async () => {
+    await upsertUser(discordId, guildId)
+
+    expect(await deleteUserByDiscordId(discordId)).toBe(true)
+    expect(await getUserByDiscordId(discordId)).toBeNull()
+  })
+
+  it('returns false when no user row exists for that discordId', async () => {
+    expect(await deleteUserByDiscordId(discordId)).toBe(false)
+  })
+
+  it("cascades to delete the user's wishlist_items too", async () => {
+    const user = await upsertUser(discordId, guildId)
+    const gameRow = await upsertGame(game)
+    await addWishlistItem(user.id, gameRow.id)
+
+    await deleteUserByDiscordId(discordId)
+
+    const remaining = await db
+      .select()
+      .from(wishlistItems)
+      .where(eq(wishlistItems.userId, user.id))
+    expect(remaining).toHaveLength(0)
   })
 })

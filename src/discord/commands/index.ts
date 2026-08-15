@@ -5,6 +5,7 @@ import { wishlist } from './wishlist'
 import { config } from './config'
 import { free } from './free'
 import { help } from './help'
+import { forgetMe } from './forgetMe'
 
 export const commands: Record<string, CommandHandler> = {
   ping,
@@ -13,4 +14,5 @@ export const commands: Record<string, CommandHandler> = {
   config,
   free,
   help,
+  'forget-me': forgetMe,
 }
