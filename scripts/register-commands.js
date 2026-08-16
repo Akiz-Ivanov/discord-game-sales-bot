@@ -24,6 +24,11 @@ const commands = [
     type: 1,
   },
   {
+    name: 'feedback',
+    description: 'Report a bug or suggest something for the bot',
+    type: 1,
+  },
+  {
     name: 'free',
     description: 'Show currently free PC games',
     type: 1,

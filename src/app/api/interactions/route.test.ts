@@ -5,6 +5,7 @@ import { InteractionType, MessageFlags } from 'discord-api-types/v10'
 import { commands } from '@/discord/commands'
 import { components } from '@/discord/components'
 import { autocomplete } from '@/discord/autocomplete'
+import { modals } from '@/discord/modals'
 
 vi.mock('discord-interactions', () => ({ verifyKey: vi.fn() }))
 vi.mock('@/discord/commands', () => ({ commands: { ping: vi.fn() } }))
@@ -14,6 +15,7 @@ vi.mock('@/discord/components', () => ({
 vi.mock('@/discord/autocomplete', () => ({
   autocomplete: { price: vi.fn() },
 }))
+vi.mock('@/discord/modals', () => ({ modals: { feedback_modal: vi.fn() } }))
 
 const buildRequest = (body: unknown) =>
   new Request('http://localhost/api/interactions', {
@@ -212,6 +214,56 @@ describe('POST /api/interactions — autocomplete', () => {
 
     expect(res.status).toBe(200)
     expect(body.data.choices).toEqual([])
+    consoleSpy.mockRestore()
+  })
+})
+
+describe('POST /api/interactions — modals', () => {
+  it('dispatches a ModalSubmit interaction to the matching modal handler', async () => {
+    vi.mocked(verifyKey).mockResolvedValue(true)
+    vi.mocked(modals.feedback_modal).mockResolvedValue({
+      type: 4,
+      data: { content: 'Thanks!' },
+    })
+
+    const res = await POST(
+      buildRequest({
+        type: InteractionType.ModalSubmit,
+        data: { custom_id: 'feedback_modal' },
+      })
+    )
+    const body = await res.json()
+
+    expect(modals.feedback_modal).toHaveBeenCalled()
+    expect(body).toEqual({ type: 4, data: { content: 'Thanks!' } })
+  })
+
+  it('returns 400 for an unregistered modal prefix', async () => {
+    vi.mocked(verifyKey).mockResolvedValue(true)
+    const res = await POST(
+      buildRequest({
+        type: InteractionType.ModalSubmit,
+        data: { custom_id: 'does_not_exist' },
+      })
+    )
+    expect(res.status).toBe(400)
+  })
+
+  it('returns a friendly ephemeral message when a modal handler throws', async () => {
+    vi.mocked(verifyKey).mockResolvedValue(true)
+    vi.mocked(modals.feedback_modal).mockRejectedValue(new Error('DB down'))
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const res = await POST(
+      buildRequest({
+        type: InteractionType.ModalSubmit,
+        data: { custom_id: 'feedback_modal' },
+      })
+    )
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.data.content).toContain('Something went wrong')
     consoleSpy.mockRestore()
   })
 })

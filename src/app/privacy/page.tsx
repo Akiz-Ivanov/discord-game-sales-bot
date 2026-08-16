@@ -39,9 +39,9 @@ const SECTIONS = [
         <li>
           <strong>Price history</strong> — we check prices once a day for every
           tracked game and log the result, which is how &quot;historical
-          low&quot; prices are shown. This log is kept for a limited period, not
-          forever — the exact retention window is still being finalized, and
-          this page will be updated once it&apos;s locked in.
+          low&quot; prices are shown. This log is kept for a limited period, the
+          exact retention window is still being finalized, and this page will be
+          updated once it&apos;s locked in.
         </li>
         <li>
           <strong>Game catalog data</strong> — titles, store IDs, and cached low
@@ -53,6 +53,14 @@ const SECTIONS = [
           <strong>Server alert settings</strong> — which channel a server&apos;s
           admin has chosen for sale and free-game alerts. Set by an admin, not
           personal to any one user.
+        </li>
+        <li>
+          <strong>Feedback submissions</strong> — if you use{' '}
+          <code>/feedback</code>, your message, category, Discord ID, and server
+          context (plus an optional screenshot) are posted to a private channel
+          only the bot owner can see. This isn&apos;t stored in the bot&apos;s
+          database and isn&apos;t deleted by <code>/forget-me</code> — it
+          remains as a message in that channel until manually removed.
         </li>
       </ul>
     ),

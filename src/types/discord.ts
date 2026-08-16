@@ -3,6 +3,7 @@ import type {
   APIMessageComponentInteraction,
   APIApplicationCommandAutocompleteInteraction,
   APIInteractionResponse,
+  APIModalSubmitInteraction,
 } from 'discord-api-types/v10'
 
 export type CommandHandler = (
@@ -16,3 +17,7 @@ export type ComponentHandler = (
 export type AutocompleteHandler = (
   interaction: APIApplicationCommandAutocompleteInteraction
 ) => APIInteractionResponse | Promise<APIInteractionResponse>
+
+export type ModalHandler = (
+  interaction: APIModalSubmitInteraction
+) => Promise<APIInteractionResponse> | APIInteractionResponse

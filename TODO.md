@@ -790,6 +790,55 @@
   - **Not done yet**: `/about` command (bot identity, GitHub link,
     future home for a "support the dev" / ITAD-GamerPower shoutout
     line) — deliberately scoped out of this session.
+- [x] `/feedback` command — modal-based bug reports and suggestions.
+      Opens a Label-wrapped modal directly from `/feedback` (no
+      intermediate button step) with a category `StringSelect`
+      (bug/suggestion/other), a required `TextInput` (Paragraph,
+      capped at 1000 chars to stay comfortably under the embed
+      description limit), and an optional `FileUpload` for a
+      screenshot — Discord's newer modal component model (Label
+      wrapping Select/TextInput/FileUpload) rather than the legacy
+      ActionRow+TextInput-only modals.
+  - New `discord/modals/` registry (mirrors `discord/commands/`/
+    `discord/components/`/`discord/autocomplete/`, keyed by
+    `custom_id` prefix), dispatched from a new
+    `InteractionType.ModalSubmit` branch in `route.ts`.
+  - Submissions post as a classic `APIEmbed` (not Components V2 —
+    matches `discord/embeds/`'s existing scope: a one-shot admin log
+    entry, no pagination/interactivity) to a new private
+    `FEEDBACK_CHANNEL_ID` channel, footer carries the submitter's
+    Discord ID and guild/DM origin, description carries a clickable
+    `<@id>` mention (embed footers don't render markdown, embed
+    descriptions do).
+  - **Real bug caught and fixed live**: fetching the screenshot off
+    Discord's ephemeral CDN plus re-uploading it as a real multipart
+    attachment (`postChannelMessageWithFile`, new sibling to
+    `postChannelMessage`) risks exceeding Discord's 3-second
+    interaction ACK window, confirmed live via a "Something went
+    wrong" client-side error despite the message still landing
+    server-side. Fixed with `InteractionResponseType.DeferredChannelMessageWithSource`
+    - Next's `after()` for the screenshot path only — text-only
+      submissions stay synchronous since they comfortably fit the
+      window. New `editOriginalInteractionResponse()` (PATCH
+      `/webhooks/{app_id}/{token}/messages/@original`) finalizes the
+      deferred reply once the upload completes.
+  - Screenshot re-upload deliberately doesn't trust Discord's signed
+    ephemeral CDN URL long-term (`ex`/`is`/`hm` expiry params) —
+    fetches the bytes server-side and re-uploads as a permanent
+    attachment on the feedback-channel message instead.
+  - `/privacy` updated to note `/feedback` submissions aren't covered
+    by `/forget-me` (not DB-stored — live as a channel message only).
+  - Full test coverage: `buildFeedbackModal.test.ts`,
+    `commands/feedback.test.ts`, `modals/feedback.test.ts` (all
+    validation/no-screenshot/screenshot branches, including the
+    deferred-error path), `rest.test.ts` additions for
+    `postChannelMessageWithFile`/`editOriginalInteractionResponse`,
+    `route.test.ts` additions for `ModalSubmit` dispatch. 402/402
+    passing project-wide, ~98.4% coverage.
+  - **Not done yet**: `file_types` restriction on the screenshot
+    `FileUpload` (shipped in Discord's API Aug 5, 2026 — worth
+    confirming `discord-api-types` has caught up before relying on
+    it) to scope uploads to actual images.
 - [ ] Consider migrating `/price` to Components V2 — the inline 3-across
       Released/Reviews/Players field grid is the one thing keeping it on
       classic embeds today (V2 has no equivalent to Discord's automatic
@@ -860,6 +909,53 @@
       mocked boundaries + DB-backed repository integration tests; this
       would be the one missing tier. Not urgent, current coverage is
       97%+ and fast.
+- [ ] Auto-posted pinned welcome interface in the alerts channel —
+      on a successful `/config alerts-channel`, post a real (non-
+      ephemeral) Components V2 card into that channel via the
+      existing `postChannelMessage()`, that the admin can pin
+      themselves (no extra bot permission needed — whoever ran the
+      command already has pin rights in that channel). Card: 3
+      Sections (text + button accessory each) for zero-input actions
+      that reuse existing view builders directly — "My wishlist"
+      (`buildWishlistListMessage`), "Free games" (`buildFreeGamesMessage`)
+      — plus a "Check price" button that opens a modal (one TextInput,
+      no autocomplete possible from a button click) feeding into the
+      existing `resolveGame()` pipeline. Tone: warm/plain, game-first,
+      no `/forget-me` button (wrong first impression on a welcome
+      card — already reachable via `/privacy-policy`), `/help`
+      referenced as a text pointer rather than a 4th button. Optional
+      bot auto-pin is now cheap permission-wise (`PIN_MESSAGES` split
+      from `MANAGE_MESSAGES` as of Feb 23, 2026 — narrow, single-
+      purpose grant) but not required for the flow to work.
+- [ ] Context-menu commands, refined scope — Message command
+      ("check price") is the stronger fit over User commands: right-
+      click any message → modal opens with a TextInput pre-filled via
+      the message's own content (`.setValue(message.content)`), user
+      edits down to just the game title, submits into the existing
+      `resolveGame()` pipeline. No MESSAGE_CONTENT intent needed —
+      context-menu targets are handed over in full specifically
+      because the user explicitly selected that message. Right-
+      clicking the bot itself (User command, bot as target) is also
+      viable and would show the same 3-button interface card as the
+      pinned-message idea above — needs a quick empirical check
+      (register guild-scoped, right-click the bot, confirm the Apps
+      submenu appears same as for a regular member) before committing
+      to it. No autocomplete possible either way — context commands
+      take zero options, modal text inputs are fully client-side
+      until submit.
+- [ ] Modal-based settings UI, reminder only (not scoped) — Discord
+      shipped Radio Group/Checkbox Group/Checkbox components for
+      modals in Feb 2026, on top of the Select/TextInput/FileUpload
+      already used by `/feedback`. Strongest fit: "User-defined
+      notification thresholds" above — TextInput for min%/price
+      ceiling, Checkbox for historical-low-only, CheckboxGroup for
+      store filter, one form instead of several command options.
+      Also considered for per-guild alert-type toggles (sale/free-
+      game/GamerPower on-off) if `/config` grows a second or third
+      toggle — not worth it for just one. Deliberately NOT used for
+      pure confirm/cancel flows (`/forget-me`, `/config remove-alerts`)
+      — a modal adds friction for a decision needing zero text input;
+      buttons stay correct there.
 
 ## Possible future upgrades (not needed yet — revisit only if usage justifies it)
 
