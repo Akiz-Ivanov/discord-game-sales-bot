@@ -17,6 +17,7 @@ const COMMAND_ENTRIES = [
   '> **/forget-me**\n> -# Permanently delete your wishlist and any data stored about you.',
   "> **/privacy-policy**\n> -# See what data this bot stores and how it's used.",
   '> **/config `alerts-channel` `remove-alerts`**\n> -# *(Admin only)* Set or remove the channel where sale and free-game alerts get posted.',
+  '> **/feedback**\n> -# Report a bug or suggest something for the bot.',
 ]
 const textDisplay = (content: string): APITextDisplayComponent => ({
   type: ComponentType.TextDisplay,
