@@ -7,6 +7,7 @@ import { free } from './free'
 import { help } from './help'
 import { forgetMe } from './forgetMe'
 import { privacyPolicy } from './privacyPolicy'
+import { feedback } from './feedback'
 
 export const commands: Record<string, CommandHandler> = {
   ping,
@@ -17,4 +18,5 @@ export const commands: Record<string, CommandHandler> = {
   help,
   'forget-me': forgetMe,
   'privacy-policy': privacyPolicy,
+  feedback,
 }

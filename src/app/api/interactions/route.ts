@@ -7,6 +7,7 @@ import {
 import { commands } from '@/discord/commands'
 import { components } from '@/discord/components'
 import { autocomplete } from '@/discord/autocomplete'
+import { modals } from '@/discord/modals'
 
 export async function POST(req: Request) {
   const sig = req.headers.get('x-signature-ed25519')!
@@ -75,6 +76,24 @@ export async function POST(req: Request) {
     } catch (err) {
       console.error('Autocomplete handler error:', err)
       return Response.json(emptyResult) //* no ephemeral text option here — empty choices is the only valid fallback shape
+    }
+  }
+
+  if (interaction.type === InteractionType.ModalSubmit) {
+    const prefix = interaction.data?.custom_id?.split(':')[0]
+    const handler = modals[prefix as keyof typeof modals]
+    if (!handler) return new Response('unknown modal', { status: 400 })
+    try {
+      return Response.json(await handler(interaction))
+    } catch (err) {
+      console.error('Modal handler error:', err)
+      return Response.json({
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: {
+          flags: MessageFlags.Ephemeral,
+          content: '⚠️ Something went wrong — please try that again.',
+        },
+      })
     }
   }
 
