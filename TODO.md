@@ -835,10 +835,77 @@
     `postChannelMessageWithFile`/`editOriginalInteractionResponse`,
     `route.test.ts` additions for `ModalSubmit` dispatch. 402/402
     passing project-wide, ~98.4% coverage.
-  - **Not done yet**: `file_types` restriction on the screenshot
-    `FileUpload` (shipped in Discord's API Aug 5, 2026 — worth
-    confirming `discord-api-types` has caught up before relying on
-    it) to scope uploads to actual images.
+  - `file_types` restriction on the screenshot
+    `FileUpload` (shipped in Discord's API Aug 5, 2026) to scope uploads to actual images.
+- [x] Auto-posted welcome interface on `/config alerts-channel` — on
+      success, posts a real (non-ephemeral, pinnable) Components V2
+      card into the newly configured channel via the existing
+      `postChannelMessage()`. Three headline Sections (text + button
+      accessory each): "Check a price" (opens a modal, no autocomplete
+      possible from a button click), "Build your wishlist", "Free
+      games right now" — plus a quieter utility `ActionRow` below the
+      Container for Help/Feedback. Re-running the command against a
+      channel that's already configured skips reposting the card
+      rather than throwing a duplicate.
+  - Two new shared response builders, extracted so the welcome card's
+    modals reuse the exact pipelines `/price` and `/wishlist add`
+    already use rather than duplicating them:
+    `discord/interactions/buildPriceLookupResponse.ts` (resolve →
+    single/multi branch → embed + toggle/bundles buttons) and
+    `discord/interactions/buildWishlistAddResponse.ts` (resolve →
+    addGameToWishlist → status branch). `commands/price.ts` and
+    `commands/wishlist.ts`'s `handleAdd` both shrank to thin wrappers
+    around these. A multi-match submitted through either welcome modal
+    naturally routes through the _existing_ `price_select`/
+    `wishlist_add_select` component handlers with zero new wiring,
+    since both builders reuse `buildGameSelectButtons` with the same
+    prefixes those handlers already listen for.
+  - Empty-wishlist click (a likely first interaction on a fresh
+    server) offers an "Add a game" button rather than dead-ending —
+    opens a dedicated modal (`welcome_add_modal`) built on
+    `buildWishlistAddResponse`, same as `/wishlist add` itself.
+  - `discord/modals/shared.ts` (new) — `findLabelComponent`/
+    `findLabelTextInputValue` extracted out of `feedback.ts` so both
+    new welcome modals and `/feedback` share one Label-unwrapping
+    implementation instead of drifting apart.
+  - `buildWelcomeMessage(ephemeral)` takes one parameter deliberately:
+    the pinned/public card gets a fuller pitch (header + intro
+    sentence + footer + utility row); passing `true` yields a leaner
+    variant with no footer/utility row, intended for a future
+    right-click-the-bot User command (still backlogged, not built) so
+    that surface won't need a second implementation later.
+  - **Real bug caught mid-session, unrelated to this feature but
+    surfaced by testing it live**: `buildWishlistListMessage` returned
+    a `Container` with zero child components once a wishlist was
+    emptied via the trash button — Discord silently rejects this,
+    producing a live "application did not respond" error despite the
+    route itself returning 200. Fixed with an early return rendering
+    the existing empty-wishlist message; affected any caller that
+    discovers the list is empty only _after_ removal
+    (`handleWishlistItemRemove`, `handleWishlistListPage`), not
+    `handleList` itself (which already guarded this before calling
+    the builder).
+  - Accent color `0x00d4ff` (electric cyan) — deliberately distinct
+    from every other accent color already in use elsewhere in the bot
+    (green/purple/orange/gold/blurple), so the welcome card reads as
+    visually its own thing rather than blending into the rest.
+  - Verified live via ngrok: fresh `/config alerts-channel` posts the
+    card correctly; all five buttons plus both modals (price-check,
+    add-game — including the multi-match → disambiguation → confirm
+    chain) work end-to-end; delete-last-wishlist-item now shows the
+    empty state instead of erroring; re-running the command against
+    the same channel skips the repost.
+  - Full test coverage: `views/welcome.test.ts`, `components/welcome.test.ts`,
+    `modals/welcomePrice.test.ts`, `modals/welcomeAddGame.test.ts`,
+    `modals/shared.test.ts`, `interactions/buildPriceLookupResponse.test.ts`,
+    `interactions/buildWishlistAddResponse.test.ts`, plus trimmed/updated
+    `commands/price.test.ts`, `commands/wishlist.test.ts`,
+    `commands/config.test.ts`, `views/wishlistList.test.ts`. 439/439
+    passing project-wide, 98.49% coverage.
+  - **Deliberately deferred**: bot auto-pin (cheap permission-wise now
+    per the `PIN_MESSAGES` split noted above, but the admin can pin it
+    themselves for free — no reason to spend the extra OAuth scope
+    yet)
 - [ ] Consider migrating `/price` to Components V2 — the inline 3-across
       Released/Reviews/Players field grid is the one thing keeping it on
       classic embeds today (V2 has no equivalent to Discord's automatic

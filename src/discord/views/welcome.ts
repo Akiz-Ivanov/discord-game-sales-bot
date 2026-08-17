@@ -79,7 +79,7 @@ const buildUtilityRow =
         style: ButtonStyle.Secondary,
         custom_id: 'welcome_help',
         label: 'Help',
-        emoji: { id: '1538723192707743827', name: 'help' },
+        emoji: { id: '1538930395347947671', name: 'help' },
       },
       {
         type: ComponentType.Button,
