@@ -15,6 +15,7 @@ import { wishlistLimitReachedWithRemoveMessage } from '@/lib/constants'
 import { buildWishlistListMessage } from '../views/wishlistList'
 import { getWishlistPrices } from '@/services/prices'
 import { buildWishlistRemoveMessage } from '../views/wishlistRemove'
+import { buildWishlistAddResponse } from '../interactions/buildWishlistAddResponse'
 
 const getSubcommand = (interaction: Parameters<CommandHandler>[0]) => {
   const sub = interaction.data.options?.[0]
@@ -41,70 +42,12 @@ const handleAdd: CommandHandler = async (interaction) => {
     }
   }
 
-  const matches = await resolveGame(query)
-
-  if (matches.length === 0) {
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        flags: MessageFlags.Ephemeral,
-        content: `Couldn't find a game matching "${query}".`,
-      },
-    }
-  }
-
-  if (matches.length > 1) {
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        flags: MessageFlags.Ephemeral,
-        content: 'Multiple games found — pick one:',
-        components: [buildGameSelectButtons(matches, 'wishlist_add_select')],
-      },
-    }
-  }
-
   const discordId = getInteractionUserId(interaction)
   const guildId = getInteractionGuildId(interaction)
-  const [match] = matches
-  const result = await addGameToWishlist(discordId, guildId, match)
-
-  if (result.status === 'already_exists') {
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        flags: MessageFlags.Ephemeral,
-        content: `**${match.title}** is already on your wishlist.`,
-      },
-    }
-  }
-
-  if (result.status === 'limit_reached') {
-    const items = await getWishlist(discordId)
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: buildWishlistRemoveMessage(
-        items,
-        0,
-        wishlistLimitReachedWithRemoveMessage()
-      ),
-    }
-  }
 
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
-    data: {
-      flags: MessageFlags.Ephemeral,
-      content: `✅ Added **${match.title}** to your wishlist.`,
-      embeds: [
-        buildPriceEmbed(
-          match,
-          result.priceSnapshot.deals,
-          result.priceSnapshot.historyLowInt,
-          result.priceSnapshot.historyLowCurrency
-        ),
-      ],
-    },
+    data: await buildWishlistAddResponse(query, discordId, guildId, true),
   }
 }
 
