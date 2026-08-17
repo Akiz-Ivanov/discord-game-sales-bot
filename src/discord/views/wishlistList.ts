@@ -70,6 +70,23 @@ export const buildWishlistListMessage = (
   prices: Map<number, ItadDeal | undefined>,
   page = 0
 ) => {
+  if (items.length === 0) {
+    const container: APIContainerComponent = {
+      type: ComponentType.Container,
+      accent_color: ACCENT_COLOR,
+      components: [
+        {
+          type: ComponentType.TextDisplay,
+          content: 'Your wishlist is empty. Add a game with `/wishlist add`.',
+        },
+      ],
+    }
+    return {
+      flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+      components: [container],
+    }
+  }
+
   const sorted = sortByDiscount(items, prices)
   const totalPages = getTotalPages(sorted.length, MAX_ITEMS_PER_PAGE)
   const clampedPage = clampPage(page, totalPages)
