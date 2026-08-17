@@ -13,24 +13,11 @@ import {
 } from '@/discord/rest'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { FEEDBACK_CATEGORIES } from '@/discord/interactions/buildFeedbackModal'
+import { findLabelComponent } from './shared'
 
 const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
   FEEDBACK_CATEGORIES.map((c) => [c.value, `${c.emoji.name} ${c.label}`])
 )
-
-type SubmitComponents = APIModalSubmitInteraction['data']['components']
-
-const findLabelComponent = (components: SubmitComponents, customId: string) => {
-  for (const item of components) {
-    if (
-      item.type === ComponentType.Label &&
-      item.component.custom_id === customId
-    ) {
-      return item.component
-    }
-  }
-  return undefined
-}
 
 export const handleFeedbackModalSubmit: ModalHandler = async (interaction) => {
   const { components, resolved } = interaction.data
