@@ -7,6 +7,8 @@ import type { CommandHandler } from '@/types'
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
 import { upsertGuildChannel, getGuildByGuildId } from '@/repositories/guilds'
 import { buildRemoveAlertsConfirmButtons } from '@/discord/interactions/buildRemoveAlertsConfirmButtons'
+import { buildWelcomeMessage } from '@/discord/views/welcome'
+import { postChannelMessage } from '@/discord/rest'
 
 const getSubcommand = (interaction: Parameters<CommandHandler>[0]) => {
   const sub = interaction.data.options?.[0]
@@ -36,13 +38,38 @@ const handleAlertsChannel: CommandHandler = async (interaction) => {
   }
 
   const guildId = getInteractionGuildId(interaction)
+  const existing = await getGuildByGuildId(guildId)
+  const alreadyConfiguredHere = existing?.notificationChannelId === channelId
+
   await upsertGuildChannel(guildId, channelId)
+
+  if (alreadyConfiguredHere) {
+    return {
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        flags: MessageFlags.Ephemeral,
+        content: `✅ Sale alerts are already being posted in <#${channelId}> — no changes made.`,
+      },
+    }
+  }
+
+  let welcomeCardPosted = true
+  try {
+    await postChannelMessage(channelId, buildWelcomeMessage())
+  } catch (err) {
+    console.error('Failed to post welcome card after alerts-channel set:', err)
+    welcomeCardPosted = false
+  }
+
+  const confirmation = welcomeCardPosted
+    ? `✅ Sale alerts will now be posted in <#${channelId}> — I've also posted a getting-started message there you can pin.`
+    : `✅ Sale alerts will now be posted in <#${channelId}>. I couldn't post the getting-started message there — check that I have permission to send messages in that channel.`
 
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       flags: MessageFlags.Ephemeral,
-      content: `✅ Sale alerts will now be posted in <#${channelId}>.`,
+      content: confirmation,
     },
   }
 }

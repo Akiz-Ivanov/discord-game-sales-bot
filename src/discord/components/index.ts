@@ -12,6 +12,14 @@ import { handleFreeGamesPage, handleFreeGamesPageRich } from './freeGames'
 import { handleShowBundles } from './bundles'
 import { handleForgetMeConfirm, handleForgetMeCancel } from './forgetMe'
 import { handleRemoveAlertsConfirm, handleRemoveAlertsCancel } from './config'
+import {
+  handleWelcomeMyWishlist,
+  handleWelcomeFreeGames,
+  handleWelcomeCheckPrice,
+  handleWelcomeHelp,
+  handleWelcomeFeedback,
+  handleWelcomeAddGame,
+} from './welcome'
 
 //* Keyed by the literal prefix before the first ':' in custom_id.
 //* e.g. custom_id "wishlist_remove_select" or "wishlist_remove_page:2"
@@ -32,4 +40,10 @@ export const components: Record<string, ComponentHandler> = {
   forget_me_cancel: handleForgetMeCancel,
   config_remove_alerts_confirm: handleRemoveAlertsConfirm,
   config_remove_alerts_cancel: handleRemoveAlertsCancel,
+  welcome_my_wishlist: handleWelcomeMyWishlist,
+  welcome_free_games: handleWelcomeFreeGames,
+  welcome_check_price: handleWelcomeCheckPrice,
+  welcome_help: handleWelcomeHelp,
+  welcome_feedback: handleWelcomeFeedback,
+  welcome_add_game: handleWelcomeAddGame,
 }

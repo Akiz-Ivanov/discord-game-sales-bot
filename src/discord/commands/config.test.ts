@@ -8,6 +8,7 @@ import {
   ApplicationCommandOptionType,
 } from 'discord-api-types/v10'
 import type { APIInteractionResponse } from 'discord-api-types/v10'
+import { postChannelMessage } from '@/discord/rest'
 
 vi.mock('@/repositories/guilds', () => ({
   upsertGuildChannel: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock('@/repositories/guilds', () => ({
 vi.mock('@/discord/interactions/getInteractionGuildId', () => ({
   getInteractionGuildId: vi.fn(),
 }))
+vi.mock('@/discord/rest', () => ({ postChannelMessage: vi.fn() }))
 
 const guildId = '999888777666555444'
 const channelId = '111222333444555666'
@@ -68,6 +70,9 @@ const buildRemoveAlertsInteraction = () =>
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(getInteractionGuildId).mockReturnValue(guildId)
+  vi.mocked(postChannelMessage).mockResolvedValue(
+    {} as Awaited<ReturnType<typeof postChannelMessage>>
+  )
 })
 
 describe('config command handler — alerts-channel', () => {
@@ -94,6 +99,93 @@ describe('config command handler — alerts-channel', () => {
     expect(upsertGuildChannel).toHaveBeenCalledWith(guildId, channelId)
     expect(data.flags).toBe(MessageFlags.Ephemeral)
     expect(data.content).toContain(`<#${channelId}>`)
+  })
+
+  it('posts the welcome card to the newly configured channel', async () => {
+    vi.mocked(upsertGuildChannel).mockResolvedValue({
+      id: 1,
+      guildId,
+      notificationChannelId: channelId,
+      createdAt: new Date(),
+    })
+
+    const data = expectChannelMessage(
+      await config(buildAlertsChannelInteraction(channelId))
+    )
+
+    expect(postChannelMessage).toHaveBeenCalledWith(
+      channelId,
+      expect.anything()
+    )
+    expect(data.content).toContain('getting-started message')
+  })
+
+  it('still confirms the channel was set even if posting the welcome card fails', async () => {
+    vi.mocked(upsertGuildChannel).mockResolvedValue({
+      id: 1,
+      guildId,
+      notificationChannelId: channelId,
+      createdAt: new Date(),
+    })
+    vi.mocked(postChannelMessage).mockRejectedValue(
+      new Error('missing permission')
+    )
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const data = expectChannelMessage(
+      await config(buildAlertsChannelInteraction(channelId))
+    )
+
+    expect(upsertGuildChannel).toHaveBeenCalled()
+    expect(data.content).toContain("couldn't post")
+    consoleSpy.mockRestore()
+  })
+
+  it('skips reposting the welcome card when the channel is already configured', async () => {
+    vi.mocked(getGuildByGuildId).mockResolvedValue({
+      id: 1,
+      guildId,
+      notificationChannelId: channelId,
+      createdAt: new Date(),
+    })
+    vi.mocked(upsertGuildChannel).mockResolvedValue({
+      id: 1,
+      guildId,
+      notificationChannelId: channelId,
+      createdAt: new Date(),
+    })
+
+    const data = expectChannelMessage(
+      await config(buildAlertsChannelInteraction(channelId))
+    )
+
+    expect(postChannelMessage).not.toHaveBeenCalled()
+    expect(data.content).toContain('already being posted')
+  })
+
+  it('still posts the welcome card when switching to a different channel', async () => {
+    vi.mocked(getGuildByGuildId).mockResolvedValue({
+      id: 1,
+      guildId,
+      notificationChannelId: 'old-channel-id',
+      createdAt: new Date(),
+    })
+    vi.mocked(upsertGuildChannel).mockResolvedValue({
+      id: 1,
+      guildId,
+      notificationChannelId: channelId,
+      createdAt: new Date(),
+    })
+
+    const data = expectChannelMessage(
+      await config(buildAlertsChannelInteraction(channelId))
+    )
+
+    expect(postChannelMessage).toHaveBeenCalledWith(
+      channelId,
+      expect.anything()
+    )
+    expect(data.content).toContain('getting-started message')
   })
 })
 
