@@ -315,4 +315,16 @@ describe('pagination', () => {
       custom_id: `wishlist_item_remove:${MAX_ITEMS_PER_PAGE}:1`,
     })
   })
+
+  it('shows an empty-wishlist message instead of an empty container when items is empty', () => {
+    const result = buildWishlistListMessage([], new Map())
+    const container = getContainer(result)
+    const texts = container.components.filter(
+      (c): c is APITextDisplayComponent => c.type === ComponentType.TextDisplay
+    )
+
+    expect(texts).toHaveLength(1)
+    expect(texts[0].content).toContain('empty')
+    expect(result.components).toHaveLength(1)
+  })
 })

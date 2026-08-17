@@ -15,6 +15,7 @@ import type { APIEmbed, APIInteractionResponse } from 'discord-api-types/v10'
 import { game, makeGameRow, makeWishlistItemRow } from '@/test/factories'
 import { buildPriceEmbed } from '../embeds/price'
 import { getWishlistPrices } from '@/services/prices'
+import { buildWishlistAddResponse } from '../interactions/buildWishlistAddResponse'
 
 vi.mock('@/services/games', () => ({ resolveGame: vi.fn() }))
 vi.mock('@/services/wishlist', () => ({
@@ -31,6 +32,9 @@ vi.mock('@/discord/interactions/getInteractionGuildId', () => ({
 }))
 vi.mock('@/discord/embeds/price', () => ({ buildPriceEmbed: vi.fn() }))
 vi.mock('@/services/prices', () => ({ getWishlistPrices: vi.fn() }))
+vi.mock('@/discord/interactions/buildWishlistAddResponse', () => ({
+  buildWishlistAddResponse: vi.fn(),
+}))
 
 const discordId = '255361746758402048'
 const guildId = '999888777666555444'
@@ -107,104 +111,25 @@ describe('wishlist command handler — add', () => {
       content: 'Please provide a game to add.',
       flags: MessageFlags.Ephemeral,
     })
-    expect(resolveGame).not.toHaveBeenCalled()
+    expect(buildWishlistAddResponse).not.toHaveBeenCalled()
   })
 
-  it('reports no match found', async () => {
-    vi.mocked(resolveGame).mockResolvedValue([])
-    const data = expectChannelMessage(
-      await wishlist(buildAddInteraction('nonexistent'))
-    )
-    expect(data.content).toBe(`Couldn't find a game matching "nonexistent".`)
-    expect(addGameToWishlist).not.toHaveBeenCalled()
-  })
-
-  it('offers candidates as buttons (capped at 5) when multiple matches are found', async () => {
-    const matches = Array.from({ length: 7 }, (_, i) => ({
-      ...game,
-      id: `id-${i}`,
-      title: `Game ${i}`,
-    }))
-    vi.mocked(resolveGame).mockResolvedValue(matches)
-
-    const data = expectChannelMessage(
-      await wishlist(buildAddInteraction('game'))
-    )
-
-    expect(data.content).toContain('Multiple games found')
-    expect(data.flags).toBe(MessageFlags.Ephemeral)
-    const row = data.components?.[0]
-    const buttons = row && 'components' in row ? row.components : []
-    expect(buttons).toHaveLength(5)
-    expect(buttons[0]).toMatchObject({
-      type: ComponentType.Button,
-      label: 'Game 0',
-      custom_id: 'wishlist_add_select:id-0',
-    })
-    expect(addGameToWishlist).not.toHaveBeenCalled()
-  })
-
-  it('adds a single match, confirms, and includes the price embed', async () => {
-    vi.mocked(resolveGame).mockResolvedValue([game])
-    const snapshot = {
-      deals: [],
-      historyLowInt: 509,
-      historyLowCurrency: 'USD',
-    }
-    vi.mocked(addGameToWishlist).mockResolvedValue({
-      status: 'added',
-      priceSnapshot: snapshot,
-    })
-    const fakeEmbed = { title: game.title } as APIEmbed
-    vi.mocked(buildPriceEmbed).mockReturnValue(fakeEmbed)
-
-    const data = expectChannelMessage(
-      await wishlist(buildAddInteraction('hollow knight'))
-    )
-
-    expect(addGameToWishlist).toHaveBeenCalledWith(discordId, guildId, game)
-    expect(buildPriceEmbed).toHaveBeenCalledWith(game, [], 509, 'USD')
-    expect(data.content).toContain(`Added **${game.title}**`)
-    expect(data.embeds).toEqual([fakeEmbed])
-  })
-
-  it('reports already-on-wishlist for a duplicate add without an embed', async () => {
-    vi.mocked(resolveGame).mockResolvedValue([game])
-    vi.mocked(addGameToWishlist).mockResolvedValue({
-      status: 'already_exists',
-      priceSnapshot: {
-        deals: [],
-        historyLowInt: undefined,
-        historyLowCurrency: undefined,
-      },
+  it('delegates to buildWishlistAddResponse with the parsed query', async () => {
+    vi.mocked(buildWishlistAddResponse).mockResolvedValue({
+      content: 'fake response',
     })
 
     const data = expectChannelMessage(
       await wishlist(buildAddInteraction('hollow knight'))
     )
 
-    expect(data.content).toContain('already on your wishlist')
-    expect(data.embeds).toBeUndefined()
-    expect(buildPriceEmbed).not.toHaveBeenCalled()
-  })
-
-  it('reports the limit-reached message with a remove picker when the wishlist is full', async () => {
-    vi.mocked(resolveGame).mockResolvedValue([game])
-    vi.mocked(addGameToWishlist).mockResolvedValue({ status: 'limit_reached' })
-    vi.mocked(getWishlist).mockResolvedValue([
-      makeWishlistItemRow({ game: makeGameRow({ id: 2, title: 'Celeste' }) }),
-    ])
-
-    const data = expectChannelMessage(
-      await wishlist(buildAddInteraction('hollow knight'))
+    expect(buildWishlistAddResponse).toHaveBeenCalledWith(
+      'hollow knight',
+      discordId,
+      guildId,
+      true
     )
-
-    expect(data.content).toContain('limit')
-    expect(data.embeds).toBeUndefined()
-    expect(buildPriceEmbed).not.toHaveBeenCalled()
-    const row = data.components?.[0]
-    const select = row && 'components' in row ? row.components[0] : undefined
-    expect(select).toMatchObject({ custom_id: 'wishlist_remove_select' })
+    expect(data).toEqual({ content: 'fake response' })
   })
 })
 

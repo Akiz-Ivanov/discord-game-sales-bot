@@ -8,11 +8,15 @@ describe('getShopEmoji', () => {
 
   it('strips spaces from multi-word shop names', () => {
     expect(getShopEmoji('Humble Store')).toBe(
-      '<:humblestore:1530582729173897306> '
+      '<:humblestore:1538946695029850313> '
     )
   })
 
+  it('returns a formatted custom emoji tag for Fanatical', () => {
+    expect(getShopEmoji('Fanatical')).toBe('<:fanatical:1538944690303406080> ')
+  })
+
   it('returns an empty string for a shop without a mapped emoji', () => {
-    expect(getShopEmoji('Fanatical')).toBe('')
+    expect(getShopEmoji('Green Man Gaming')).toBe('')
   })
 })
