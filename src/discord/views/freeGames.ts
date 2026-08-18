@@ -44,14 +44,20 @@ const formatDetailsLine = (giveaway: GamerPowerGiveaway): string =>
 const stripGiveawaySuffix = (title: string): string =>
   title.replace(/\s+Giveaway$/i, '')
 
+//* Bumped one size step in each direction from the original design:
+//* title from bold-only text up to a level-3 heading (biggest jump
+//* available short of a heading that reads like a page title), and the
+//* details/end-date lines from Discord's small "-# " subtext style down
+//* to plain body text — there's no "medium" size in between either
+//* direction, these are the two fixed steps available.
 const buildEntryLines = (giveaway: GamerPowerGiveaway): string => {
   const endDateLine = formatEndDate(giveaway.end_date)
   const title = stripGiveawaySuffix(giveaway.title)
   const lines = [
-    `**[${title}](${giveaway.open_giveaway_url})**`,
-    `-# ${formatDetailsLine(giveaway)}`,
+    `### [${title}](${giveaway.open_giveaway_url})`,
+    formatDetailsLine(giveaway),
   ]
-  if (endDateLine) lines.push(`-# ${endDateLine}`)
+  if (endDateLine) lines.push(endDateLine)
   return lines.join('\n')
 }
 
