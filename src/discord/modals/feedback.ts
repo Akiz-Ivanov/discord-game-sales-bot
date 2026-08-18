@@ -3,7 +3,6 @@ import {
   MessageFlags,
   ComponentType,
 } from 'discord-api-types/v10'
-import type { APIModalSubmitInteraction } from 'discord-api-types/v10'
 import { after } from 'next/server'
 import type { ModalHandler } from '@/types'
 import {

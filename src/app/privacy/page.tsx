@@ -116,6 +116,11 @@ const SECTIONS = [
           .
         </li>
         <li>
+          Store names and logos shown in price listings belong to their
+          respective owners; this bot is not affiliated with or endorsed by any
+          of them.
+        </li>
+        <li>
           Infrastructure: hosted on Vercel, database on Neon (Frankfurt, EU),
           delivered via Discord.
         </li>
