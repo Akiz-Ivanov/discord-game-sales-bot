@@ -976,24 +976,6 @@
       mocked boundaries + DB-backed repository integration tests; this
       would be the one missing tier. Not urgent, current coverage is
       97%+ and fast.
-- [ ] Auto-posted pinned welcome interface in the alerts channel —
-      on a successful `/config alerts-channel`, post a real (non-
-      ephemeral) Components V2 card into that channel via the
-      existing `postChannelMessage()`, that the admin can pin
-      themselves (no extra bot permission needed — whoever ran the
-      command already has pin rights in that channel). Card: 3
-      Sections (text + button accessory each) for zero-input actions
-      that reuse existing view builders directly — "My wishlist"
-      (`buildWishlistListMessage`), "Free games" (`buildFreeGamesMessage`)
-      — plus a "Check price" button that opens a modal (one TextInput,
-      no autocomplete possible from a button click) feeding into the
-      existing `resolveGame()` pipeline. Tone: warm/plain, game-first,
-      no `/forget-me` button (wrong first impression on a welcome
-      card — already reachable via `/privacy-policy`), `/help`
-      referenced as a text pointer rather than a 4th button. Optional
-      bot auto-pin is now cheap permission-wise (`PIN_MESSAGES` split
-      from `MANAGE_MESSAGES` as of Feb 23, 2026 — narrow, single-
-      purpose grant) but not required for the flow to work.
 - [ ] Context-menu commands, refined scope — Message command
       ("check price") is the stronger fit over User commands: right-
       click any message → modal opens with a TextInput pre-filled via
