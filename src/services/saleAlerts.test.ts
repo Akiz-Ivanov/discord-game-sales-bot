@@ -67,8 +67,8 @@ describe('getSaleAlerts', () => {
     const result = await getSaleAlerts()
 
     expect(result).toHaveLength(1)
-    expect(result[0].alerts).toHaveLength(1)
-    expect(result[0].alerts[0].recipients).toEqual([
+    expect(result[0]!.alerts).toHaveLength(1)
+    expect(result[0]!.alerts[0]!.recipients).toEqual([
       { wishlistItemId: 1, discordId: 'user-1' },
       { wishlistItemId: 2, discordId: 'user-2' },
     ])
@@ -133,7 +133,7 @@ describe('getSaleAlerts', () => {
       { id: game.id, historyLow: {}, deals: [deal] },
     ])
     const result = await getSaleAlerts()
-    expect(result[0].alerts[0].deal).toEqual(deal)
+    expect(result[0]!.alerts[0]!.deal).toEqual(deal)
   })
 
   it('separates alerts into different guilds', async () => {
@@ -170,6 +170,6 @@ describe('getSaleAlerts', () => {
       { id: game.id, historyLow: {}, deals: [expensive, cheap] },
     ])
     const result = await getSaleAlerts()
-    expect(result[0].alerts[0].deal.shop.name).toBe('GOG')
+    expect(result[0]!.alerts[0]!.deal.shop.name).toBe('GOG')
   })
 })

@@ -55,7 +55,7 @@ describe('searchGamesByTitle', () => {
 
     await searchGamesByTitle('Hollow Knight')
 
-    const calledUrl = vi.mocked(fetch).mock.calls[0][0] as URL
+    const calledUrl = vi.mocked(fetch).mock.calls[0]![0] as URL
     expect(calledUrl.pathname).toBe('/games/search/v1')
     expect(calledUrl.searchParams.get('title')).toBe('Hollow Knight')
     expect(calledUrl.searchParams.get('key')).toBe('test-key')
@@ -96,7 +96,7 @@ describe('lookupBySteamAppId', () => {
 
     await lookupBySteamAppId(367520)
 
-    const calledUrl = vi.mocked(fetch).mock.calls[0][0] as URL
+    const calledUrl = vi.mocked(fetch).mock.calls[0]![0] as URL
     expect(calledUrl.pathname).toBe('/games/lookup/v1')
     expect(calledUrl.searchParams.get('appid')).toBe('367520')
   })
@@ -138,7 +138,7 @@ describe('lookupByItadId', () => {
 
     await lookupByItadId(uuid)
 
-    const calledUrl = vi.mocked(fetch).mock.calls[0][0] as URL
+    const calledUrl = vi.mocked(fetch).mock.calls[0]![0] as URL
     expect(calledUrl.pathname).toBe('/games/info/v2')
     expect(calledUrl.searchParams.get('id')).toBe(uuid)
   })
@@ -191,7 +191,7 @@ describe('getPrices', () => {
 
     await getPrices([game.id])
 
-    const [calledUrl, options] = vi.mocked(fetch).mock.calls[0]
+    const [calledUrl, options] = vi.mocked(fetch).mock.calls[0]!
     expect((calledUrl as URL).pathname).toBe('/games/prices/v3')
     expect(options?.method).toBe('POST')
     expect(options?.headers).toEqual({ 'Content-Type': 'application/json' })
@@ -228,7 +228,7 @@ describe('getBundlesForGame', () => {
 
     await getBundlesForGame(uuid)
 
-    const calledUrl = vi.mocked(fetch).mock.calls[0][0] as URL
+    const calledUrl = vi.mocked(fetch).mock.calls[0]![0] as URL
     expect(calledUrl.pathname).toBe('/games/bundles/v2')
     expect(calledUrl.searchParams.get('id')).toBe(uuid)
     expect(calledUrl.searchParams.get('key')).toBe('test-key')

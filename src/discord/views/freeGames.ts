@@ -28,7 +28,13 @@ export const MAX_GAMES_PER_MESSAGE_RICH = 5
 const formatEndDate = (endDate: string): string | null => {
   if (endDate === 'N/A') return null
   const [datePart] = endDate.split(' ')
+  if (!datePart) {
+    throw new Error(`formatEndDate: unexpected end_date format "${endDate}"`)
+  }
   const [year, month, day] = datePart.split('-').map(Number)
+  if (year === undefined || month === undefined || day === undefined) {
+    throw new Error(`formatEndDate: unexpected end_date format "${endDate}"`)
+  }
   const formatted = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString(
     'en-US',
     { month: 'short', day: 'numeric', timeZone: 'UTC' }

@@ -28,7 +28,7 @@ describe('buildPrivacyPolicyMessage', () => {
 
   it('wraps summary content in one Container', () => {
     const result = buildPrivacyPolicyMessage()
-    expect(result.components[0].type).toBe(ComponentType.Container)
+    expect(result.components[0]!.type).toBe(ComponentType.Container)
   })
 
   it('covers what is stored and how to remove it', () => {

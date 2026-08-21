@@ -258,7 +258,7 @@ describe('getWishlist', () => {
 
     expect(listWishlistItems).toHaveBeenCalledWith(userRow.id)
     expect(result).toHaveLength(1)
-    expect(result[0].game).toEqual(gameRow)
+    expect(result[0]!.game).toEqual(gameRow)
   })
 })
 

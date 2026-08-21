@@ -26,7 +26,7 @@ describe('buildHelpMessage', () => {
   it('wraps everything in exactly one Container component', () => {
     const result = buildHelpMessage()
     expect(result.components).toHaveLength(1)
-    expect(result.components[0].type).toBe(ComponentType.Container)
+    expect(result.components[0]!.type).toBe(ComponentType.Container)
   })
 
   it('sets the container accent color', () => {
@@ -34,7 +34,7 @@ describe('buildHelpMessage', () => {
   })
 
   it('includes a header with the bot name and description', () => {
-    const header = getTexts(getContainer(buildHelpMessage()))[0]
+    const header = getTexts(getContainer(buildHelpMessage()))[0]!
     expect(header.content).toContain('Game Sales Bot')
     expect(header.content).toContain('Track game prices')
   })
@@ -61,7 +61,7 @@ describe('buildHelpMessage', () => {
 
   it('has no trailing separator after the last command entry', () => {
     const container = getContainer(buildHelpMessage())
-    const last = container.components[container.components.length - 1]
+    const last = container.components[container.components.length - 1]!
     expect(last.type).toBe(ComponentType.TextDisplay)
   })
 })

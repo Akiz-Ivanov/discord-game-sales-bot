@@ -109,6 +109,6 @@ describe('deleteGuildByGuildId', () => {
 
     const remaining = await db.select().from(guilds)
     expect(remaining).toHaveLength(1)
-    expect(remaining[0].guildId).toBe('other-guild-id')
+    expect(remaining[0]!.guildId).toBe('other-guild-id')
   })
 })

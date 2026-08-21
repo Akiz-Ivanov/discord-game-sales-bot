@@ -23,7 +23,7 @@ describe('buildFeedbackModal', () => {
   })
 
   it('builds a required category StringSelect with all three options', () => {
-    const [category] = getLabelComponents(buildFeedbackModal())
+    const category = getLabelComponents(buildFeedbackModal())[0]!
     expect(category.component).toMatchObject({
       type: ComponentType.StringSelect,
       custom_id: 'feedback_category',
@@ -40,7 +40,7 @@ describe('buildFeedbackModal', () => {
   })
 
   it('builds a required Paragraph TextInput capped under the embed-safe length', () => {
-    const [, textInput] = getLabelComponents(buildFeedbackModal())
+    const textInput = getLabelComponents(buildFeedbackModal())[1]!
     expect(textInput.component).toMatchObject({
       type: ComponentType.TextInput,
       custom_id: 'feedback_text',
@@ -51,7 +51,7 @@ describe('buildFeedbackModal', () => {
   })
 
   it('builds an optional single-file FileUpload', () => {
-    const [, , screenshot] = getLabelComponents(buildFeedbackModal())
+    const screenshot = getLabelComponents(buildFeedbackModal())[2]!
     expect(screenshot.component).toMatchObject({
       type: ComponentType.FileUpload,
       custom_id: 'feedback_screenshot',

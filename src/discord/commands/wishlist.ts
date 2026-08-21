@@ -4,18 +4,14 @@ import {
   ApplicationCommandOptionType,
 } from 'discord-api-types/v10'
 import type { CommandHandler } from '@/types'
-import { resolveGame } from '@/services/games'
-import { addGameToWishlist, getWishlist } from '@/services/wishlist'
 import { getUserByDiscordId } from '@/repositories/users'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
-import { buildGameSelectButtons } from '@/discord/interactions/buildGameSelectButtons'
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
-import { buildPriceEmbed } from '@/discord/embeds/price'
-import { wishlistLimitReachedWithRemoveMessage } from '@/lib/constants'
 import { buildWishlistListMessage } from '../views/wishlistList'
 import { getWishlistPrices } from '@/services/prices'
 import { buildWishlistRemoveMessage } from '../views/wishlistRemove'
 import { buildWishlistAddResponse } from '../interactions/buildWishlistAddResponse'
+import { getWishlist } from '@/services/wishlist'
 
 const getSubcommand = (interaction: Parameters<CommandHandler>[0]) => {
   const sub = interaction.data.options?.[0]

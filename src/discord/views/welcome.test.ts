@@ -39,7 +39,7 @@ describe('buildWelcomeMessage — rich variant (default)', () => {
   })
 
   it('uses the rich header with the pitch sentence', () => {
-    const header = getTexts(getContainer(buildWelcomeMessage()))[0]
+    const header = getTexts(getContainer(buildWelcomeMessage()))[0]!
     expect(header.content).toContain('Hey, thanks for having me here')
   })
 
@@ -70,15 +70,15 @@ describe('buildWelcomeMessage — rich variant (default)', () => {
 
   it('gives each entry its own custom_id and button style', () => {
     const sections = getSections(getContainer(buildWelcomeMessage()))
-    expect(sections[0].accessory).toMatchObject({
+    expect(sections[0]!.accessory).toMatchObject({
       custom_id: 'welcome_check_price',
       style: ButtonStyle.Primary,
     })
-    expect(sections[1].accessory).toMatchObject({
+    expect(sections[1]!.accessory).toMatchObject({
       custom_id: 'welcome_my_wishlist',
       style: ButtonStyle.Success,
     })
-    expect(sections[2].accessory).toMatchObject({
+    expect(sections[2]!.accessory).toMatchObject({
       custom_id: 'welcome_free_games',
     })
   })
@@ -92,7 +92,7 @@ describe('buildWelcomeMessage — lean variant (ephemeral)', () => {
   })
 
   it('uses the lean header without the pitch sentence', () => {
-    const header = getTexts(getContainer(buildWelcomeMessage(true)))[0]
+    const header = getTexts(getContainer(buildWelcomeMessage(true)))[0]!
     expect(header.content).not.toContain('Hey, thanks for having me here')
     expect(header.content).toContain("Here's what I can do for you")
   })

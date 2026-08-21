@@ -21,6 +21,9 @@ const PREFERRED_REVIEW_SOURCE = 'Steam'
 
 const formatReleaseDate = (dateStr: string): string => {
   const [year, month, day] = dateStr.split('-').map(Number)
+  if (year === undefined || month === undefined || day === undefined) {
+    throw new Error(`formatReleaseDate: unexpected date format "${dateStr}"`)
+  }
   return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -130,15 +133,6 @@ const buildHistoryLowField = (
   return {
     name: `${customEmojiTag('chartlinedown', CHART_LINE_DOWN_ID)} Historical low`,
     value: formatMoney(historyLowInt, historyLowCurrency ?? 'USD'),
-    inline: false,
-  }
-}
-
-const buildMoreStoresField = (remaining: number): APIEmbedField | null => {
-  if (remaining <= 0) return null
-  return {
-    name: '\u200b', // zero-width space — unlabeled line, same read as the old footer text
-    value: `+${remaining} more stores`,
     inline: false,
   }
 }

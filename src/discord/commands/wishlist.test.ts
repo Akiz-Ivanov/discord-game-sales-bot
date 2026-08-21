@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { wishlist } from './wishlist'
-import { resolveGame } from '@/services/games'
-import { addGameToWishlist, getWishlist } from '@/services/wishlist'
+import { getWishlist } from '@/services/wishlist'
 import { getUserByDiscordId } from '@/repositories/users'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
@@ -9,11 +8,9 @@ import {
   InteractionResponseType,
   MessageFlags,
   ApplicationCommandOptionType,
-  ComponentType,
 } from 'discord-api-types/v10'
-import type { APIEmbed, APIInteractionResponse } from 'discord-api-types/v10'
-import { game, makeGameRow, makeWishlistItemRow } from '@/test/factories'
-import { buildPriceEmbed } from '../embeds/price'
+import type { APIInteractionResponse } from 'discord-api-types/v10'
+import { makeGameRow, makeWishlistItemRow } from '@/test/factories'
 import { getWishlistPrices } from '@/services/prices'
 import { buildWishlistAddResponse } from '../interactions/buildWishlistAddResponse'
 

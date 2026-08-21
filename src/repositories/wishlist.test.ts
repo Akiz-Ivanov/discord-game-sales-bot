@@ -114,7 +114,7 @@ describe('removeWishlistItem', () => {
 
     const remaining = await db.select().from(wishlistItems)
     expect(remaining).toHaveLength(1)
-    expect(remaining[0].userId).toBe(otherUser.id)
+    expect(remaining[0]!.userId).toBe(otherUser.id)
   })
 })
 
@@ -138,8 +138,8 @@ describe('listWishlistItems', () => {
     const result = await listWishlistItems(userId)
 
     expect(result).toHaveLength(1)
-    expect(result[0].game.id).toBe(gameId)
-    expect(result[0].game.title).toBe(game.title)
+    expect(result[0]!.game.id).toBe(gameId)
+    expect(result[0]!.game.title).toBe(game.title)
   })
 
   it("does not include another user's wishlist items", async () => {
@@ -262,7 +262,7 @@ describe('getWishlistedGamesByGuild', () => {
 
     const result = await getWishlistedGamesByGuild()
 
-    expect(result[0].lastNotifiedPrice).toBe(999)
+    expect(result[0]!.lastNotifiedPrice).toBe(999)
   })
 })
 
@@ -316,7 +316,7 @@ describe('updateLastNotifiedPrices', () => {
       .select()
       .from(wishlistItems)
       .where(eq(wishlistItems.id, item!.id))
-    expect(row.lastNotifiedPrice).toBe(999)
+    expect(row!.lastNotifiedPrice).toBe(999)
   })
 
   it('resets lastNotifiedPrice to null when price is null', async () => {
@@ -329,7 +329,7 @@ describe('updateLastNotifiedPrices', () => {
       .select()
       .from(wishlistItems)
       .where(eq(wishlistItems.id, item!.id))
-    expect(row.lastNotifiedPrice).toBeNull()
+    expect(row!.lastNotifiedPrice).toBeNull()
   })
 
   it('updates multiple entries independently', async () => {
