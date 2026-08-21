@@ -28,6 +28,16 @@ export default defineConfig({
           fileParallelism: false,
         },
       },
+      {
+        resolve: { tsconfigPaths: true },
+        test: {
+          name: 'e2e',
+          environment: 'node',
+          setupFiles: ['./src/test/setup-env.ts', './src/test/e2e/setup.ts'],
+          include: ['**/*.e2e.test.ts'],
+          fileParallelism: false,
+        },
+      },
     ],
   },
 })

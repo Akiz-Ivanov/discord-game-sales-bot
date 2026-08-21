@@ -1,0 +1,16 @@
+[
+  {
+    "id": "018d937f-1ae9-734c-ba47-bd357cf07edd",
+    "slug": "hollow-knight",
+    "title": "Hollow Knight",
+    "type": "game",
+    "mature": false,
+    "assets": {
+      "banner145": "https://assets.isthereanydeal.com/018d937f-1ae9-734c-ba47-bd357cf07edd/banner145.jpg",
+      "banner300": "https://assets.isthereanydeal.com/018d937f-1ae9-734c-ba47-bd357cf07edd/banner300.jpg",
+      "banner400": "https://assets.isthereanydeal.com/018d937f-1ae9-734c-ba47-bd357cf07edd/banner400.jpg",
+      "banner600": "https://assets.isthereanydeal.com/018d937f-1ae9-734c-ba47-bd357cf07edd/banner600.jpg",
+      "boxart": "https://assets.isthereanydeal.com/018d937f-1ae9-734c-ba47-bd357cf07edd/boxart.jpg"
+    }
+  }
+]
