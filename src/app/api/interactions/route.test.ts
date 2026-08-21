@@ -52,7 +52,7 @@ describe('POST /api/interactions', () => {
 
   it('dispatches an ApplicationCommand interaction to the matching command handler', async () => {
     vi.mocked(verifyKey).mockResolvedValue(true)
-    vi.mocked(commands.ping).mockResolvedValue({
+    vi.mocked(commands.ping!).mockResolvedValue({
       type: 4,
       data: { content: 'Pong!' },
     })
@@ -84,7 +84,7 @@ describe('POST /api/interactions', () => {
 
   it('dispatches a MessageComponent interaction by its custom_id prefix', async () => {
     vi.mocked(verifyKey).mockResolvedValue(true)
-    vi.mocked(components.wishlist_remove_select).mockResolvedValue({
+    vi.mocked(components.wishlist_remove_select!).mockResolvedValue({
       type: 7,
       data: { content: 'removed' },
     })
@@ -124,7 +124,7 @@ describe('POST /api/interactions', () => {
 
   it('returns a friendly ephemeral message when a command handler throws', async () => {
     vi.mocked(verifyKey).mockResolvedValue(true)
-    vi.mocked(commands.ping).mockRejectedValue(
+    vi.mocked(commands.ping!).mockRejectedValue(
       new Error('ITAD search failed: 503')
     )
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -145,7 +145,7 @@ describe('POST /api/interactions', () => {
 
   it('returns a friendly ephemeral update when a component handler throws', async () => {
     vi.mocked(verifyKey).mockResolvedValue(true)
-    vi.mocked(components.wishlist_remove_select).mockRejectedValue(
+    vi.mocked(components.wishlist_remove_select!).mockRejectedValue(
       new Error('DB connection lost')
     )
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -167,7 +167,7 @@ describe('POST /api/interactions', () => {
 describe('POST /api/interactions — autocomplete', () => {
   it('dispatches an ApplicationCommandAutocomplete interaction to the matching handler', async () => {
     vi.mocked(verifyKey).mockResolvedValue(true)
-    vi.mocked(autocomplete.price).mockResolvedValue({
+    vi.mocked(autocomplete.price!).mockResolvedValue({
       type: 8,
       data: { choices: [{ name: 'Hollow Knight', value: 'id-1' }] },
     })
@@ -201,7 +201,7 @@ describe('POST /api/interactions — autocomplete', () => {
 
   it('returns an empty-choices result when the autocomplete handler throws', async () => {
     vi.mocked(verifyKey).mockResolvedValue(true)
-    vi.mocked(autocomplete.price).mockRejectedValue(new Error('ITAD down'))
+    vi.mocked(autocomplete.price!).mockRejectedValue(new Error('ITAD down'))
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const res = await POST(
@@ -221,7 +221,7 @@ describe('POST /api/interactions — autocomplete', () => {
 describe('POST /api/interactions — modals', () => {
   it('dispatches a ModalSubmit interaction to the matching modal handler', async () => {
     vi.mocked(verifyKey).mockResolvedValue(true)
-    vi.mocked(modals.feedback_modal).mockResolvedValue({
+    vi.mocked(modals.feedback_modal!).mockResolvedValue({
       type: 4,
       data: { content: 'Thanks!' },
     })
@@ -251,7 +251,7 @@ describe('POST /api/interactions — modals', () => {
 
   it('returns a friendly ephemeral message when a modal handler throws', async () => {
     vi.mocked(verifyKey).mockResolvedValue(true)
-    vi.mocked(modals.feedback_modal).mockRejectedValue(new Error('DB down'))
+    vi.mocked(modals.feedback_modal!).mockRejectedValue(new Error('DB down'))
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const res = await POST(

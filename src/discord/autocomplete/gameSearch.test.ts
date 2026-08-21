@@ -71,7 +71,7 @@ describe('handleGameSearchAutocomplete', () => {
     const data = expectAutocompleteResult(
       await handleGameSearchAutocomplete(buildInteraction('aaaaa'))
     )
-    expect(data.choices?.[0].name).toHaveLength(100)
+    expect(data.choices?.[0]?.name).toHaveLength(100)
   })
 
   it('returns no choices instead of throwing when ITAD errors', async () => {

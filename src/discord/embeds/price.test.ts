@@ -30,13 +30,13 @@ describe('buildPriceEmbed', () => {
       }),
     ]
     const embed = buildPriceEmbed(game, deals)
-    expect(embed.fields?.[0].value).toContain('−33%')
-    expect(embed.fields?.[0].value).toContain('was $14.99')
+    expect(embed.fields?.[0]?.value).toContain('−33%')
+    expect(embed.fields?.[0]?.value).toContain('was $14.99')
   })
 
   it('omits the discount note when not on sale', () => {
     const embed = buildPriceEmbed(game, [makeDeal({ cut: 0 })])
-    expect(embed.fields?.[0].value).not.toContain('−')
+    expect(embed.fields?.[0]?.value).not.toContain('−')
   })
 
   it('picks the on-sale color when any deal has a cut', () => {
@@ -83,7 +83,7 @@ describe('buildPriceEmbed', () => {
 
   it('omits the "+N more stores" line when everything fits', () => {
     const embed = buildPriceEmbed(game, [makeDeal({})])
-    expect(embed.fields?.[0].value).not.toContain('more stores')
+    expect(embed.fields?.[0]?.value).not.toContain('more stores')
   })
 
   it('includes a historical low field when provided', () => {

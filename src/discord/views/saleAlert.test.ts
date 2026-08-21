@@ -54,7 +54,7 @@ describe('buildSaleAlertMessage', () => {
         }),
       ])
     )
-    const content = getSectionText(getSections(container)[0])
+    const content = getSectionText(getSections(container)[0]!)
     expect(content).toContain('Celeste')
     expect(content).toContain('$5.99 (−40%, was $9.99)')
     expect(content).toContain('Steam')
@@ -71,7 +71,7 @@ describe('buildSaleAlertMessage', () => {
         }),
       ])
     )
-    const content = getSectionText(getSections(container)[0])
+    const content = getSectionText(getSections(container)[0]!)
     expect(content).toContain('<@user-1>')
     expect(content).toContain('<@user-2>')
   })
@@ -84,7 +84,7 @@ describe('buildSaleAlertMessage', () => {
     const content = getSectionText(
       getSections(
         getContainer(buildSaleAlertMessage([makeAlert({ recipients })]))
-      )[0]
+      )[0]!
     )
     expect(content).toContain('+3 more')
   })
@@ -107,7 +107,7 @@ describe('buildSaleAlertMessage', () => {
     const container = getContainer(
       buildSaleAlertMessage([makeAlert({ itadId: 'itad-abc' })])
     )
-    expect(getSections(container)[0].accessory).toMatchObject({
+    expect(getSections(container)[0]!.accessory).toMatchObject({
       type: ComponentType.Button,
       custom_id: 'sale_check_price:itad-abc',
       label: 'Check price',

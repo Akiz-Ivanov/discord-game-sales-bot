@@ -46,7 +46,7 @@ describe('buildWishlistListMessage', () => {
     const result = buildWishlistListMessage(items, new Map())
 
     expect(result.components).toHaveLength(1)
-    expect(result.components[0].type).toBe(ComponentType.Container)
+    expect(result.components[0]!.type).toBe(ComponentType.Container)
   })
 
   it('sets the container accent color', () => {
@@ -96,7 +96,9 @@ describe('buildWishlistListMessage', () => {
     ]
     const container = getContainer(buildWishlistListMessage(items, new Map()))
 
-    expect(getContent(getSections(container)[0])).toContain('**Hollow Knight**')
+    expect(getContent(getSections(container)[0]!)).toContain(
+      '**Hollow Knight**'
+    )
   })
 
   it('renders the deal line as subtext below the title', () => {
@@ -105,7 +107,7 @@ describe('buildWishlistListMessage', () => {
       [1, makeDeal({ cut: 25 })],
     ])
     const container = getContainer(buildWishlistListMessage(items, prices))
-    const content = getContent(getSections(container)[0])
+    const content = getContent(getSections(container)[0]!)
 
     expect(content).toContain('-# ')
     expect(content).toContain('−25%')
@@ -118,14 +120,16 @@ describe('buildWishlistListMessage', () => {
     ])
     const container = getContainer(buildWishlistListMessage(items, prices))
 
-    expect(getContent(getSections(container)[0])).not.toContain('%')
+    expect(getContent(getSections(container)[0]!)).not.toContain('%')
   })
 
   it('shows "Price unavailable" when no deal exists for that game', () => {
     const items = [makeWishlistItemRow({ game: makeGameRow({ id: 1 }) })]
     const container = getContainer(buildWishlistListMessage(items, new Map()))
 
-    expect(getContent(getSections(container)[0])).toContain('Price unavailable')
+    expect(getContent(getSections(container)[0]!)).toContain(
+      'Price unavailable'
+    )
   })
 
   it('shows "Free" for a zero-price deal', () => {
@@ -141,7 +145,7 @@ describe('buildWishlistListMessage', () => {
     ])
     const container = getContainer(buildWishlistListMessage(items, prices))
 
-    expect(getContent(getSections(container)[0])).toContain('Free')
+    expect(getContent(getSections(container)[0]!)).toContain('Free')
   })
 
   it('matches each item to its own price by game id, not list order', () => {
@@ -162,9 +166,8 @@ describe('buildWishlistListMessage', () => {
     const container = getContainer(buildWishlistListMessage(items, prices))
     const sections = getSections(container)
 
-    // Sorted descending by cut now, so Game B (90%) leads, Game A (10%) follows
-    expect(getContent(sections[0])).toContain('−90%')
-    expect(getContent(sections[1])).toContain('−10%')
+    expect(getContent(sections[0]!)).toContain('−90%')
+    expect(getContent(sections[1]!)).toContain('−10%')
   })
 
   it('sorts items by discount descending, free games first', () => {
@@ -185,7 +188,6 @@ describe('buildWishlistListMessage', () => {
     const prices = new Map<number, ItadDeal | undefined>([
       [1, makeDeal({ cut: 0 })],
       [2, makeDeal({ cut: 100 })],
-      // game 3 intentionally has no entry — should sink to the bottom
     ])
     const container = getContainer(buildWishlistListMessage(items, prices))
     const titles = getSections(container).map(getContent)
@@ -200,7 +202,7 @@ describe('buildWishlistListMessage', () => {
       makeWishlistItemRow({ id: 999, game: makeGameRow({ id: 42 }) }),
     ]
     const container = getContainer(buildWishlistListMessage(items, new Map()))
-    const accessory = getSections(container)[0].accessory
+    const accessory = getSections(container)[0]!.accessory
 
     expect(accessory).toMatchObject({
       type: ComponentType.Button,
@@ -245,12 +247,11 @@ describe('pagination', () => {
         0
       )
     )
-    expect(row?.components[0].disabled).toBe(true) // Prev
-    expect(row?.components[2].disabled).toBe(false) // Next
+    expect(row?.components[0]!.disabled).toBe(true) // Prev
+    expect(row?.components[2]!.disabled).toBe(false) // Next
   })
 
   it('disables Next on the last page and enables Prev', () => {
-    // MAX_ITEMS_PER_PAGE * 2 + 2 items → 3 pages (indices 0-2)
     const row = getNavRow(
       buildWishlistListMessage(
         buildItems(MAX_ITEMS_PER_PAGE * 2 + 2),
@@ -258,8 +259,8 @@ describe('pagination', () => {
         2
       )
     )
-    expect(row?.components[0].disabled).toBe(false) // Prev
-    expect(row?.components[2].disabled).toBe(true) // Next
+    expect(row?.components[0]!.disabled).toBe(false) // Prev
+    expect(row?.components[2]!.disabled).toBe(true) // Next
   })
 
   it('enables both Prev and Next on a middle page', () => {
@@ -270,8 +271,8 @@ describe('pagination', () => {
         1
       )
     )
-    expect(row?.components[0].disabled).toBe(false)
-    expect(row?.components[2].disabled).toBe(false)
+    expect(row?.components[0]!.disabled).toBe(false)
+    expect(row?.components[2]!.disabled).toBe(false)
   })
 
   it('shows a "current / total" page indicator', () => {
@@ -282,18 +283,18 @@ describe('pagination', () => {
         1
       )
     )
-    expect(row?.components[1].label).toBe('2 / 3')
-    expect(row?.components[1].disabled).toBe(true)
+    expect(row?.components[1]!.label).toBe('2 / 3')
+    expect(row?.components[1]!.disabled).toBe(true)
   })
 
   it('clamps a page number above the valid range down to the last page', () => {
-    const items = buildItems(MAX_ITEMS_PER_PAGE + 1) // 2 pages: full page + 1
+    const items = buildItems(MAX_ITEMS_PER_PAGE + 1)
     const container = getContainer(
       buildWishlistListMessage(items, new Map(), 99)
     )
     const sections = getSections(container)
     expect(sections).toHaveLength(1)
-    expect(getContent(sections[0])).toContain(`Game ${MAX_ITEMS_PER_PAGE}`)
+    expect(getContent(sections[0]!)).toContain(`Game ${MAX_ITEMS_PER_PAGE}`)
   })
 
   it('clamps a negative page number up to page 0', () => {
@@ -302,15 +303,15 @@ describe('pagination', () => {
       buildWishlistListMessage(items, new Map(), -5)
     )
     const sections = getSections(container)
-    expect(getContent(sections[0])).toContain('Game 0')
+    expect(getContent(sections[0]!)).toContain('Game 0')
   })
 
   it("carries the current page in each item's Remove button custom_id", () => {
-    const items = buildItems(MAX_ITEMS_PER_PAGE + 1) // page 1 has exactly one item
+    const items = buildItems(MAX_ITEMS_PER_PAGE + 1)
     const container = getContainer(
       buildWishlistListMessage(items, new Map(), 1)
     )
-    const accessory = getSections(container)[0].accessory
+    const accessory = getSections(container)[0]!.accessory
     expect(accessory).toMatchObject({
       custom_id: `wishlist_item_remove:${MAX_ITEMS_PER_PAGE}:1`,
     })
@@ -324,7 +325,7 @@ describe('pagination', () => {
     )
 
     expect(texts).toHaveLength(1)
-    expect(texts[0].content).toContain('empty')
+    expect(texts[0]!.content).toContain('empty')
     expect(result.components).toHaveLength(1)
   })
 })

@@ -20,7 +20,7 @@ const buildItems = (n: number) =>
 
 const getSelect = (result: ReturnType<typeof buildWishlistRemoveMessage>) =>
   (result.components[0] as APIActionRowComponent<APIStringSelectComponent>)
-    .components[0]
+    .components[0]!
 
 describe('buildWishlistRemoveMessage', () => {
   it('sets the Ephemeral flag and standard content', () => {
@@ -39,7 +39,7 @@ describe('buildWishlistRemoveMessage', () => {
       makeWishlistItemRow({ game: makeGameRow({ title: 'A'.repeat(150) }) }),
     ]
     const select = getSelect(buildWishlistRemoveMessage(items))
-    expect(select.options[0].label).toHaveLength(100)
+    expect(select.options[0]!.label).toHaveLength(100)
   })
 
   it('omits the nav row when everything fits on one page', () => {
@@ -54,20 +54,20 @@ describe('buildWishlistRemoveMessage', () => {
       buildItems(MAX_REMOVE_OPTIONS_PER_PAGE + 1)
     )
     expect(result.components).toHaveLength(2)
-    expect(result.components[1].type).toBe(ComponentType.ActionRow)
+    expect(result.components[1]!.type).toBe(ComponentType.ActionRow)
   })
 
   it('shows the second page of options when page is 1', () => {
     const items = buildItems(MAX_REMOVE_OPTIONS_PER_PAGE + 1)
     const select = getSelect(buildWishlistRemoveMessage(items, 1))
     expect(select.options).toHaveLength(1)
-    expect(select.options[0].label).toBe(`Game ${MAX_REMOVE_OPTIONS_PER_PAGE}`)
+    expect(select.options[0]!.label).toBe(`Game ${MAX_REMOVE_OPTIONS_PER_PAGE}`)
   })
 
   it('clamps an out-of-range page down to the last page', () => {
     const items = buildItems(MAX_REMOVE_OPTIONS_PER_PAGE + 1)
     const select = getSelect(buildWishlistRemoveMessage(items, 99))
-    expect(select.options[0].label).toBe(`Game ${MAX_REMOVE_OPTIONS_PER_PAGE}`)
+    expect(select.options[0]!.label).toBe(`Game ${MAX_REMOVE_OPTIONS_PER_PAGE}`)
   })
 
   it('keeps the select custom_id constant across pages', () => {

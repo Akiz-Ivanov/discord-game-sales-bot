@@ -198,7 +198,7 @@ describe('handleFeedbackModalSubmit — with screenshot', () => {
   })
 
   const getDeferredCallback = () =>
-    vi.mocked(after).mock.calls[0][0] as () => Promise<void>
+    vi.mocked(after).mock.calls[0]![0] as () => Promise<void>
 
   it('immediately returns a deferred ack without posting synchronously', async () => {
     const result = await handleFeedbackModalSubmit(

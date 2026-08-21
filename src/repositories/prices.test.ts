@@ -238,8 +238,8 @@ describe('savePrices', () => {
     })
 
     const [row] = await db.select().from(games).where(eq(games.id, id))
-    expect(row.historyLowAmount).toBe(999)
-    expect(row.historyLowCurrency).toBe('USD')
+    expect(row!.historyLowAmount).toBe(999)
+    expect(row!.historyLowCurrency).toBe('USD')
   })
 
   it('leaves games.historyLow* untouched when historyLow is omitted', async () => {
@@ -252,8 +252,8 @@ describe('savePrices', () => {
     await savePrices(id, [makeDeal()])
 
     const [row] = await db.select().from(games).where(eq(games.id, id))
-    expect(row.historyLowAmount).toBe(500)
-    expect(row.historyLowCurrency).toBe('USD')
+    expect(row!.historyLowAmount).toBe(500)
+    expect(row!.historyLowCurrency).toBe('USD')
   })
 
   it('rejects when gameId does not reference an existing games row', async () => {
@@ -274,7 +274,7 @@ describe('savePrices', () => {
 
     const rows = await db.select().from(prices).where(eq(prices.gameId, id))
     expect(rows).toHaveLength(1)
-    expect(rows[0].priceAmount).toBe(999)
+    expect(rows[0]!.priceAmount).toBe(999)
   })
 
   it('inserts separate rows for different shops on the same day, without conflict', async () => {
@@ -354,7 +354,7 @@ describe('savePricesBulk', () => {
 
     const rows = await db.select().from(prices).where(eq(prices.gameId, id))
     expect(rows).toHaveLength(1)
-    expect(rows[0].priceAmount).toBe(500)
+    expect(rows[0]!.priceAmount).toBe(500)
   })
 
   it('updates historyLow per game when provided', async () => {
@@ -369,7 +369,7 @@ describe('savePricesBulk', () => {
     ])
 
     const [row] = await db.select().from(games).where(eq(games.id, id))
-    expect(row.historyLowAmount).toBe(499)
+    expect(row!.historyLowAmount).toBe(499)
   })
 
   it('does nothing and does not throw when entries is empty', async () => {

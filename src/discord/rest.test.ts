@@ -42,7 +42,7 @@ describe('postChannelMessage', () => {
 
     await postChannelMessage('999', { content: 'sale!' })
 
-    const [url, options] = vi.mocked(fetch).mock.calls[0]
+    const [url, options] = vi.mocked(fetch).mock.calls[0]!
     expect(url).toBe('https://discord.com/api/v10/channels/999/messages')
     expect(options?.method).toBe('POST')
     expect(options?.headers).toMatchObject({
@@ -85,7 +85,7 @@ describe('postChannelMessageWithFile', () => {
       }
     )
 
-    const [url, options] = vi.mocked(fetch).mock.calls[0]
+    const [url, options] = vi.mocked(fetch).mock.calls[0]!
     expect(url).toBe('https://discord.com/api/v10/channels/999/messages')
     expect(options?.method).toBe('POST')
     //* No manual Content-Type — fetch derives the multipart boundary
@@ -131,7 +131,7 @@ describe('editOriginalInteractionResponse', () => {
 
     await editOriginalInteractionResponse('tok-1', { content: 'done!' })
 
-    const [url, options] = vi.mocked(fetch).mock.calls[0]
+    const [url, options] = vi.mocked(fetch).mock.calls[0]!
     expect(url).toBe(
       'https://discord.com/api/v10/webhooks/test-app-id/tok-1/messages/@original'
     )

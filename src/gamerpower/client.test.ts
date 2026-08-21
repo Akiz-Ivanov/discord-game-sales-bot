@@ -51,7 +51,7 @@ describe('getFreeGames', () => {
 
     await getFreeGames()
 
-    const calledUrl = vi.mocked(fetch).mock.calls[0][0] as URL
+    const calledUrl = vi.mocked(fetch).mock.calls[0]![0] as URL
     expect(calledUrl.pathname).toBe('/api/giveaways')
     expect(calledUrl.searchParams.get('type')).toBe('game')
     expect(calledUrl.searchParams.get('platform')).toBe('pc')

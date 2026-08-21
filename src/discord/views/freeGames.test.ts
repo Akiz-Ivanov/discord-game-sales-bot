@@ -33,7 +33,7 @@ describe('buildFreeGamesMessage', () => {
   it('builds one entry per giveaway with title link, worth, and platforms', () => {
     const content = getEntryTexts(
       getContainer(buildFreeGamesMessage([makeGiveaway()]))
-    )[0].content
+    )[0]!.content
     expect(content).toContain(
       '[Moonlighter](https://www.gamerpower.com/open/moonlighter-steam-giveawaway)'
     )
@@ -44,21 +44,21 @@ describe('buildFreeGamesMessage', () => {
   it('shows a formatted end date when present', () => {
     const content = getEntryTexts(
       getContainer(buildFreeGamesMessage([makeGiveaway()]))
-    )[0].content
+    )[0]!.content
     expect(content).toContain('Free until Aug 9')
   })
 
   it('omits the end date line when end_date is N/A', () => {
     const content = getEntryTexts(
       getContainer(buildFreeGamesMessage([makeGiveaway({ end_date: 'N/A' })]))
-    )[0].content
+    )[0]!.content
     expect(content).not.toContain('Free until')
   })
 
   it('omits worth from the details line when worth is N/A', () => {
     const content = getEntryTexts(
       getContainer(buildFreeGamesMessage([makeGiveaway({ worth: 'N/A' })]))
-    )[0].content
+    )[0]!.content
     expect(content).not.toContain('N/A')
     expect(content).toContain('PC, Steam')
   })
@@ -92,7 +92,7 @@ describe('buildFreeGamesMessage', () => {
           makeGiveaway({ title: 'Some Game (Steam) Giveaway' }),
         ])
       )
-    )[0].content
+    )[0]!.content
     expect(content).toContain('[Some Game (Steam)]')
     expect(content).not.toContain('Giveaway')
   })
@@ -108,7 +108,7 @@ describe('buildFreeGamesMessage', () => {
     ) as APISectionComponent[]
 
     expect(sections).toHaveLength(1)
-    expect(sections[0].accessory).toMatchObject({
+    expect(sections[0]!.accessory).toMatchObject({
       type: ComponentType.Thumbnail,
       media: { url: 'https://example.com/thumb.jpg' },
     })
@@ -149,13 +149,13 @@ describe('pagination', () => {
     const container = getContainer(buildFreeGamesMessage(giveaways, 1))
     const entries = getEntryTexts(container)
     expect(entries).toHaveLength(1)
-    expect(entries[0].content).toContain(`Game ${MAX_GAMES_PER_MESSAGE}`)
+    expect(entries[0]!.content).toContain(`Game ${MAX_GAMES_PER_MESSAGE}`)
   })
 
   it('clamps an out-of-range page to the last page', () => {
     const giveaways = buildGiveaways(MAX_GAMES_PER_MESSAGE + 1)
     const container = getContainer(buildFreeGamesMessage(giveaways, 99))
-    expect(getEntryTexts(container)[0].content).toContain(
+    expect(getEntryTexts(container)[0]!.content).toContain(
       `Game ${MAX_GAMES_PER_MESSAGE}`
     )
   })

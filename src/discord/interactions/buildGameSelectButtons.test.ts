@@ -34,6 +34,6 @@ describe('buildGameSelectButtons', () => {
       [{ ...game, title: 'A'.repeat(120) }],
       'price_select'
     )
-    expect(row.components[0].label).toHaveLength(80)
+    expect(row.components[0]!.label).toHaveLength(80)
   })
 })
