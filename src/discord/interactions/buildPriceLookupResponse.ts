@@ -32,7 +32,7 @@ export const buildPriceLookupResponse = async (
     }
   }
 
-  const [match] = matches
+  const match = matches[0]!
   const gameRow = await upsertGame(match)
   const { deals, historyLowInt, historyLowCurrency } = await getGamePrices(
     gameRow.id,

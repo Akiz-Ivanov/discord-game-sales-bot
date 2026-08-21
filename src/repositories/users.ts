@@ -4,7 +4,10 @@ import { users } from '@/db/schema'
 
 // Ensures a `users` row exists for this Discord user and returns it —
 // wishlist_items references users.id (our serial PK), not the Discord
-export const upsertUser = async (discordId: string, guildId: string) => {
+export const upsertUser = async (
+  discordId: string,
+  guildId: string
+): Promise<typeof users.$inferSelect> => {
   const [row] = await db
     .insert(users)
     .values({ discordId, guildId })
@@ -14,6 +17,7 @@ export const upsertUser = async (discordId: string, guildId: string) => {
     })
     .returning()
 
+  if (!row) throw new Error('upsertUser: insert/update returned no row')
   return row
 }
 

@@ -32,7 +32,7 @@ export const buildWishlistAddResponse = async (
     }
   }
 
-  const [match] = matches
+  const match = matches[0]!
   const result = await addGameToWishlist(discordId, guildId, match)
 
   if (result.status === 'already_exists') {

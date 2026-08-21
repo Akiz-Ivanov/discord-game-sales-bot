@@ -5,7 +5,7 @@ import { eq, isNotNull } from 'drizzle-orm'
 export const upsertGuildChannel = async (
   guildId: string,
   channelId: string
-) => {
+): Promise<typeof guilds.$inferSelect> => {
   const [row] = await db
     .insert(guilds)
     .values({ guildId, notificationChannelId: channelId })
@@ -15,6 +15,7 @@ export const upsertGuildChannel = async (
     })
     .returning()
 
+  if (!row) throw new Error('upsertGuildChannel: insert/update returned no row')
   return row
 }
 
