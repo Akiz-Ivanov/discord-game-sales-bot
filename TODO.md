@@ -906,6 +906,31 @@
     per the `PIN_MESSAGES` split noted above, but the admin can pin it
     themselves for free — no reason to spend the extra OAuth scope
     yet)
+- [x] Enable `noUncheckedIndexedAccess` in tsconfig.json (plus
+      `noUnusedLocals`/`noUnusedParameters` alongside) — surfaced
+      unsafe array/tuple/index-signature access project-wide.
+      209 → 0 errors across 33+ files, done as its own dedicated
+      pass across two sessions. Real bugs caught along the way:
+      `upsertGame`/`upsertUser`/`upsertGuildChannel` all silently
+      typed their `.returning()` row as possibly-`undefined` with
+      no explicit return type (`upsertGuildChannel`'s version had
+      zero callers reading the return value, so it went unnoticed
+      until this pass); `formatReleaseDate`/`formatEndDate` trusted
+      ITAD/GamerPower date strings without validating shape. Both
+      fixed with explicit return types + throws (DB/API-contract
+      guarantees, not TS-provable ones) rather than silencing.
+      Established a fix-pattern rule for future passes: `!` when
+      the guarantee comes from the type system or the code's own
+      control flow, `throw` when it comes from an external system
+      (DB, third-party API) that could genuinely drift.
+  - **Deferred, not started**: DRY pass on the `resolveGame` →
+    0/1/many-match branching pattern duplicated between
+    `buildPriceLookupResponse.ts` and `buildWishlistAddResponse.ts`;
+    `noPropertyAccessFromIndexSignature` as a natural next flag
+    (would force `record['key']` over `record.key` for the
+    commands/components/autocomplete/modals registries — pairs well
+    with this pass's theme); `exactOptionalPropertyTypes` (likely
+    the most disruptive flag to add next, own dedicated session).
 - [ ] Consider migrating `/price` to Components V2 — the inline 3-across
       Released/Reviews/Players field grid is the one thing keeping it on
       classic embeds today (V2 has no equivalent to Discord's automatic
@@ -937,11 +962,6 @@
       — only worth doing once something actually reads it (autocomplete
       pre-seeding, cross-referencing, etc.); would use `/games/info/v2`'s
       `appid` field
-- [ ] Enable `noUncheckedIndexedAccess` in tsconfig.json — surfaces
-      unsafe array/tuple indexing project-wide (caught the
-      `addWishlistItem`/`getUserByDiscordId` null-inference bug
-      retroactively). Do as its own pass: flip flag, run
-      `tsc --noEmit`, fix each site on its own merits.
 - [ ] `/price` embed layout: reconsider Historical low's position — it
       currently sits alone on its own line above the 3-across
       Released/Reviews/Players inline-field row, which reads oddly.
