@@ -17,7 +17,7 @@ export default defineConfig({
           setupFiles: ['./src/test/setup-env.ts'],
           exclude: [
             'src/repositories/**',
-            'src/test/e2e/**',
+            '**/*.e2e.test.ts',
             'node_modules/**',
           ],
         },
