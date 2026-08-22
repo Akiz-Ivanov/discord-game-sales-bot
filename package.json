@@ -36,8 +36,10 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "eslint-config-prettier": "^10.1.8",
+    "msw": "^2.15.0",
     "prettier": "^3.9.5",
     "tailwindcss": "^4",
+    "tweetnacl": "^1.0.3",
     "typescript": "^5",
     "vitest": "^4.1.10"
   },

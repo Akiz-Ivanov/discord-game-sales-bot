@@ -1,0 +1,36 @@
+{
+  "id": "018d937f-1ae9-734c-ba47-bd357cf07edd",
+  "slug": "hollow-knight",
+  "title": "Hollow Knight",
+  "type": "game",
+  "mature": false,
+  "assets": {
+    "banner600": "https://assets.isthereanydeal.com/018d937f-1ae9-734c-ba47-bd357cf07edd/banner600.jpg"
+  },
+  "appid": 367520,
+  "tags": [
+    "Metroidvania",
+    "Platformer",
+    "Souls-like",
+    "Difficult",
+    "Great Soundtrack"
+  ],
+  "releaseDate": "2017-02-24",
+  "reviews": [
+    {
+      "score": 96,
+      "source": "Steam",
+      "count": 489363,
+      "url": ""
+    }
+  ],
+  "players": {
+    "recent": 10021,
+    "day": 10758,
+    "week": 11284,
+    "peak": 95655
+  },
+  "urls": {
+    "game": "https://isthereanydeal.com/game/hollow-knight/"
+  }
+}

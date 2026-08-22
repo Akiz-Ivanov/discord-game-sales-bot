@@ -27,7 +27,16 @@ POST {{baseUrl}}/games/prices/v3?key={{apiKey}}
 Content-Type: application/json
 
 [
-  "018d937f-6136-71e4-a7d4-088a2e8f58ad"
+  "018d937f-6136-71e4-a7d4-088a2e8f58ad",
+  "018d937e-f524-7384-a34a-0a765b70ff42",
+  "018d937f-1609-7272-a6c7-61100a9fd54c",
+  "018d937f-0fa6-72ce-88cc-960788c91718",
+  "018d937f-0400-73d0-ae3f-c3abaef35ef2",
+  "018d937f-6d49-737c-83f6-b6baf3f3bfbf",
+  "018d937e-fef7-7274-bbce-e7d155c3d2d1",
+  "018d937f-1586-73b9-9952-4e4fb7c35dc3",
+  "018d937f-1e7d-701d-838a-073a4af232c9",
+  "018d937f-2db9-7369-8fb1-3f104d3341b8"
 ]
 
 ### Batch prices — deals only
