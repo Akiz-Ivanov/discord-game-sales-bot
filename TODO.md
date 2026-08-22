@@ -931,6 +931,44 @@
     commands/components/autocomplete/modals registries — pairs well
     with this pass's theme); `exactOptionalPropertyTypes` (likely
     the most disruptive flag to add next, own dedicated session).
+- [x] True end-to-end test suite for /api/interactions and cron routes
+      — real signed interaction payloads (throwaway ed25519 keypair via
+      `tweetnacl`, mirroring exactly how Discord signs a real webhook)
+      through the actual, unmocked route → command/component/modal
+      handler → service → repository → real Postgres chain. MSW
+      intercepts only the genuine external boundaries (ITAD, Discord's
+      REST API, GamerPower) with fixtures built from real captured
+      responses wherever practical, not synthetic data. New `e2e` Vitest
+      project alongside `unit`/`repositories`, `fileParallelism: false`
+      for the same shared-Postgres-instance reason as `repositories`.
+  - 34 tests across 11 files: `/price` (all resolveGame outcomes,
+    price_select and price_wishlist_toggle clicks), price-check cron
+    (happy path, auth, empty state, grouped-alert regression coverage,
+    the lastNotifiedPrice reset regression, and the full
+    reset-then-re-alert-at-same-price cycle proving the reset actually
+    does its job), the full `/wishlist` surface (add/remove select,
+    list pagination + discount sort + its price-cache side-write, the
+    WISHLIST_LIMIT edge case, the trash-button empty-container
+    regression), `/feedback`'s modal (text-only path; the
+    screenshot/deferred path documents a real harness limitation —
+    `next/server`'s `after()` needs Next's own request-scoped
+    AsyncLocalStorage context, which doesn't exist when a route handler
+    is called directly rather than through a running server — instead
+    of asserting untested behavior), free-games cron, `/free`, and the
+    welcome-interface flow (`/config alerts-channel`'s real posted
+    card, four of its five buttons).
+  - `npm test` (`vitest run --coverage`, no `--project` flag) already
+    runs all three projects including `e2e` — no `ci.yml` changes
+    needed, this has been running in CI the whole time this branch
+    existed.
+  - **Deliberately left uncovered**, structurally identical to
+    already-proven code or low-risk: `handleShowBundles` click,
+    `/wishlist remove` pagination, autocomplete, `/forget-me`,
+    `/config remove-alerts`. Free-games cron's repeat-posting/dedup
+    behavior intentionally untested — the intended behavior is still
+    an open design question, not settled, so no test was written
+    against it to avoid asserting something that might change.
+  - Branch: `test/e2e`, ready for PR once reviewed.
 - [ ] Consider migrating `/price` to Components V2 — the inline 3-across
       Released/Reviews/Players field grid is the one thing keeping it on
       classic embeds today (V2 has no equivalent to Discord's automatic
@@ -990,12 +1028,6 @@
       `guildId` on `users` is about last-touched-guild, not preferences.
       No decisions made — needs its own dedicated design session before
       any schema changes, given the db-cost sensitivity here.
-- [ ] True end-to-end test for /api/interactions and /api/cron/price-check
-      — real signed request (fake discord-interactions signing) through
-      the full route → DB chain. Current coverage is unit tests with
-      mocked boundaries + DB-backed repository integration tests; this
-      would be the one missing tier. Not urgent, current coverage is
-      98%+.
 - [ ] Context-menu commands, refined scope — Message command
       ("check price") is the stronger fit over User commands: right-
       click any message → modal opens with a TextInput pre-filled via
