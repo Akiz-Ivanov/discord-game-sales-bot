@@ -5,6 +5,7 @@ import { TEST_PUBLIC_KEY } from '@/test/e2e/signInteraction'
 import { resetDb } from '@/test/db-reset'
 import searchFixture from '@/test/e2e/fixtures/itad/search-hollow-knight.json'
 import pricesFixture from '@/test/e2e/fixtures/itad/prices-hollow-knight.json'
+import giveawaysFixture from '@/test/e2e/fixtures/gamerpower/giveaways.json'
 
 //* Runs after setup-env.ts's dotenv load and overrides
 process.env.DISCORD_PUBLIC_KEY = TEST_PUBLIC_KEY
@@ -40,6 +41,9 @@ export const server = setupServer(
   http.patch(
     'https://discord.com/api/v10/webhooks/:appId/:token/messages/@original',
     () => HttpResponse.json({ id: 'edited-message-id' })
+  ),
+  http.get('https://www.gamerpower.com/api/giveaways', () =>
+    HttpResponse.json(giveawaysFixture)
   )
 )
 

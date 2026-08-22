@@ -995,7 +995,7 @@
       the full route → DB chain. Current coverage is unit tests with
       mocked boundaries + DB-backed repository integration tests; this
       would be the one missing tier. Not urgent, current coverage is
-      97%+ and fast.
+      98%+.
 - [ ] Context-menu commands, refined scope — Message command
       ("check price") is the stronger fit over User commands: right-
       click any message → modal opens with a TextInput pre-filled via
