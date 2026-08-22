@@ -1,4 +1,4 @@
-Copy .env.test.example to .env.test before running e2e tests (npm test -- --project e2e)
+Copy .env.test.example to .env.test and fill in DATABASE_URL for your local Postgres/neon-proxy setup before running e2e tests (npm test -- --project e2e). ITAD_API_KEY isn't used — the e2e project sets its own value automatically.
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 

@@ -10,6 +10,7 @@ import pricesFixture from '@/test/e2e/fixtures/itad/prices-hollow-knight.json'
 //* so real verifyKey() calls trust signatures made by our test keypair
 //* instead of whatever's in .env.test.
 process.env.DISCORD_PUBLIC_KEY = TEST_PUBLIC_KEY
+process.env.ITAD_API_KEY = 'test-itad-key'
 
 //* one handler per ITAD endpoint covered commands hit
 export const server = setupServer(

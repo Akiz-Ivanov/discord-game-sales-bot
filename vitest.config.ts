@@ -15,7 +15,11 @@ export default defineConfig({
           name: 'unit',
           environment: 'node',
           setupFiles: ['./src/test/setup-env.ts'],
-          exclude: ['src/repositories/**', 'node_modules/**'],
+          exclude: [
+            'src/repositories/**',
+            'src/test/e2e/**',
+            'node_modules/**',
+          ],
         },
       },
       {
