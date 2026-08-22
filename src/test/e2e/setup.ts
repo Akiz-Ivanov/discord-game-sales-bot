@@ -6,13 +6,13 @@ import { resetDb } from '@/test/db-reset'
 import searchFixture from '@/test/e2e/fixtures/itad/search-hollow-knight.json'
 import pricesFixture from '@/test/e2e/fixtures/itad/prices-hollow-knight.json'
 
-//* Runs after setup-env.ts's dotenv load — overrides just this one var
-//* so real verifyKey() calls trust signatures made by our test keypair
-//* instead of whatever's in .env.test.
+//* Runs after setup-env.ts's dotenv load and overrides
 process.env.DISCORD_PUBLIC_KEY = TEST_PUBLIC_KEY
 process.env.ITAD_API_KEY = 'test-itad-key'
 process.env.CRON_SECRET = 'test-cron-secret'
 process.env.DISCORD_BOT_TOKEN = 'test-bot-token'
+process.env.FEEDBACK_CHANNEL_ID = 'test-feedback-channel'
+process.env.DISCORD_APPLICATION_ID = 'test-app-id'
 
 //* one handler per ITAD endpoint covered commands hit
 export const server = setupServer(
@@ -29,6 +29,17 @@ export const server = setupServer(
   ),
   http.post('https://discord.com/api/v10/channels/:channelId/messages', () =>
     HttpResponse.json({ id: 'fake-message-id' })
+  ),
+  http.get(
+    'https://cdn.discordapp.com/ephemeral-attachments/test/screenshot.png',
+    () =>
+      HttpResponse.arrayBuffer(new ArrayBuffer(4), {
+        headers: { 'Content-Type': 'image/png' },
+      })
+  ),
+  http.patch(
+    'https://discord.com/api/v10/webhooks/:appId/:token/messages/@original',
+    () => HttpResponse.json({ id: 'edited-message-id' })
   )
 )
 
