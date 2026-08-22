@@ -1,0 +1,28 @@
+[
+  {
+    "id": "018d937f-1212-7232-b23f-a046f6fd4a57",
+    "slug": "the-witcher-3-wild-hunt",
+    "title": "The Witcher 3: Wild Hunt",
+    "type": "game",
+    "mature": false,
+    "assets": {
+      "banner600": "https://assets.isthereanydeal.com/018d937f-1212-7232-b23f-a046f6fd4a57/banner600.jpg"
+    }
+  },
+  {
+    "id": "018d937f-0c8a-7023-9e85-caef8aaf9854",
+    "slug": "the-witcher-3-wild-hunt-new-finisher-animations",
+    "title": "The Witcher 3: Wild Hunt - New Finisher Animations",
+    "type": "dlc",
+    "mature": false,
+    "assets": {}
+  },
+  {
+    "id": "018d937f-3a29-72b9-888f-ecbf55a28e80",
+    "slug": "the-witcher-3-wild-hunt-complete-edition",
+    "title": "The Witcher 3: Wild Hunt - Complete Edition",
+    "type": "package",
+    "mature": false,
+    "assets": {}
+  }
+]
