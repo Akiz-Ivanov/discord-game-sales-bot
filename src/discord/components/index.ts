@@ -19,6 +19,7 @@ import {
   handleWelcomeHelp,
   handleWelcomeFeedback,
   handleWelcomeAddGame,
+  handleWelcomeAbout,
 } from './welcome'
 
 //* Keyed by the literal prefix before the first ':' in custom_id.
@@ -46,4 +47,5 @@ export const components: Record<string, ComponentHandler> = {
   welcome_help: handleWelcomeHelp,
   welcome_feedback: handleWelcomeFeedback,
   welcome_add_game: handleWelcomeAddGame,
+  welcome_about: handleWelcomeAbout,
 }

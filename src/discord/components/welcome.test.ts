@@ -6,6 +6,7 @@ import {
   handleWelcomeHelp,
   handleWelcomeFeedback,
   handleWelcomeAddGame,
+  handleWelcomeAbout,
 } from './welcome'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { getWishlist } from '@/services/wishlist'
@@ -162,5 +163,18 @@ describe('handleWelcomeAddGame', () => {
     expect(result.type).toBe(InteractionResponseType.Modal)
     if (result.type !== InteractionResponseType.Modal) return
     expect(result.data?.custom_id).toBe('welcome_add_modal')
+  })
+})
+
+describe('handleWelcomeAbout', () => {
+  it('replies with the about message', async () => {
+    const result = await handleWelcomeAbout(
+      buildComponentInteraction<typeof handleWelcomeAbout>('welcome_about')
+    )
+    expect(result.type).toBe(InteractionResponseType.ChannelMessageWithSource)
+    if (result.type !== InteractionResponseType.ChannelMessageWithSource) return
+    expect(result.data?.flags).toBe(
+      MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+    )
   })
 })

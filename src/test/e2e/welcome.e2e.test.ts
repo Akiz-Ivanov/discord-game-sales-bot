@@ -75,7 +75,7 @@ describe('POST /api/interactions — /config alerts-channel welcome card (e2e)',
     const container = posted.components[0] as {
       components: { content?: string }[]
     }
-    expect(container.components[0]?.content).toContain('Game Sales Bot')
+    expect(container.components[0]?.content).toContain('Getting Started')
   })
 })
 
