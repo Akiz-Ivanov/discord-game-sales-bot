@@ -18,6 +18,7 @@ import { wishlistLimitReachedWithRemoveMessage } from '@/lib/constants'
 import { buildWishlistListMessage } from '../views/wishlistList'
 import { getWishlistPrices } from '@/services/prices'
 import { buildWishlistRemoveMessage } from '../views/wishlistRemove'
+import { mention } from '@/discord/interactions/commandMention'
 
 export const handleWishlistRemoveSelect: ComponentHandler = async (
   interaction
@@ -41,7 +42,7 @@ export const handleWishlistRemoveSelect: ComponentHandler = async (
       type: InteractionResponseType.UpdateMessage,
       data: {
         flags: MessageFlags.Ephemeral,
-        content: 'Something went wrong — try `/wishlist remove` again.',
+        content: `Something went wrong — try ${mention('wishlist', 'remove')} again.`,
         components: [],
       },
     }
@@ -81,8 +82,7 @@ export const handleWishlistAddSelect: ComponentHandler = async (
       type: InteractionResponseType.UpdateMessage,
       data: {
         flags: MessageFlags.Ephemeral,
-        content:
-          "That game couldn't be found anymore — try `/wishlist add` again.",
+        content: `That game couldn't be found anymore — try ${mention('wishlist', 'add')} again.`,
         components: [],
       },
     }

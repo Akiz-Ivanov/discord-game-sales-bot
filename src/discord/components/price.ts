@@ -15,8 +15,9 @@ import { buildWishlistToggleButton } from '@/discord/interactions/buildWishlistT
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { getInteractionGuildId } from '@/discord/interactions/getInteractionGuildId'
 import { buildWishlistRemoveMessage } from '@/discord/views/wishlistRemove'
-import { wishlistLimitReachedWithRemoveMessage } from '@/lib/constants' // replaces wishlistLimitReachedMessage
+import { wishlistLimitReachedWithRemoveMessage } from '@/lib/constants'
 import { buildBundlesButton } from '../interactions/buildBundlesButton'
+import { mention } from '@/discord/interactions/commandMention'
 
 //* custom_id: "price_select:{itadId}". The itadId is UUID-shaped, so
 //* running it back through resolveGame() naturally lands on the same
@@ -31,7 +32,7 @@ export const handlePriceSelect: ComponentHandler = async (interaction) => {
     return {
       type: InteractionResponseType.UpdateMessage,
       data: {
-        content: "That game couldn't be found anymore — try `/price` again.",
+        content: `That game couldn't be found anymore — try ${mention('price')} again.`,
         components: [],
       },
     }
@@ -89,7 +90,7 @@ export const handlePriceWishlistToggle: ComponentHandler = async (
     return {
       type: InteractionResponseType.UpdateMessage,
       data: {
-        content: "That game couldn't be found anymore — try `/price` again.",
+        content: `That game couldn't be found anymore — try ${mention('price')} again.`,
         components: [],
       },
     }

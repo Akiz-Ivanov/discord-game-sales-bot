@@ -12,6 +12,7 @@ import { getWishlistPrices } from '@/services/prices'
 import { buildWishlistRemoveMessage } from '../views/wishlistRemove'
 import { buildWishlistAddResponse } from '../interactions/buildWishlistAddResponse'
 import { getWishlist } from '@/services/wishlist'
+import { mention } from '@/discord/interactions/commandMention'
 
 const getSubcommand = (interaction: Parameters<CommandHandler>[0]) => {
   const sub = interaction.data.options?.[0]
@@ -56,7 +57,7 @@ const handleList: CommandHandler = async (interaction) => {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: {
         flags: MessageFlags.Ephemeral,
-        content: 'Your wishlist is empty. Add a game with `/wishlist add`.',
+        content: `Your wishlist is empty. Add a game with ${mention('wishlist', 'add')}.`,
       },
     }
   }

@@ -9,6 +9,7 @@ import { upsertGuildChannel, getGuildByGuildId } from '@/repositories/guilds'
 import { buildRemoveAlertsConfirmButtons } from '@/discord/interactions/buildRemoveAlertsConfirmButtons'
 import { buildWelcomeMessage } from '@/discord/views/welcome'
 import { postChannelMessage } from '@/discord/rest'
+import { mention } from '@/discord/interactions/commandMention'
 
 const getSubcommand = (interaction: Parameters<CommandHandler>[0]) => {
   const sub = interaction.data.options?.[0]
@@ -92,8 +93,7 @@ const handleRemoveAlerts: CommandHandler = async (interaction) => {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       flags: MessageFlags.Ephemeral,
-      content:
-        "⚠️ This will stop sale and free-game alerts for this server by removing its configured alert channel. You'll need to run `/config alerts-channel` again to set it back up. Are you sure?",
+      content: `⚠️ This will stop sale and free-game alerts for this server by removing its configured alert channel. You'll need to run ${mention('config', 'alerts-channel')} again to set it back up. Are you sure?`,
       components: [buildRemoveAlertsConfirmButtons()],
     },
   }
