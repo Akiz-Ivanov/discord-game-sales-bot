@@ -33,13 +33,12 @@ describe('buildHelpMessage', () => {
     expect(getContainer(buildHelpMessage()).accent_color).toBe(0x5865f2)
   })
 
-  it('includes a header with the bot name and description', () => {
+  it('includes a Commands header', () => {
     const header = getTexts(getContainer(buildHelpMessage()))[0]!
-    expect(header.content).toContain('Game Sales Bot')
-    expect(header.content).toContain('Track game prices')
+    expect(header.content).toBe('### Commands')
   })
 
-  it('lists all seven commands', () => {
+  it('lists all eight commands', () => {
     const texts = getTexts(getContainer(buildHelpMessage())).map(
       (t) => t.content
     )
@@ -50,6 +49,7 @@ describe('buildHelpMessage', () => {
     expect(texts.some((t) => t.includes('/privacy-policy'))).toBe(true)
     expect(texts.some((t) => t.includes('/config'))).toBe(true)
     expect(texts.some((t) => t.includes('/feedback'))).toBe(true)
+    expect(texts.some((t) => t.includes('/about'))).toBe(true)
   })
 
   it('marks the config command as admin-only', () => {

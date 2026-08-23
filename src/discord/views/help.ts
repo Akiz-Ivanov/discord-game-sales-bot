@@ -4,21 +4,23 @@ import type {
   APISeparatorComponent,
   APITextDisplayComponent,
 } from 'discord-api-types/v10'
+import { mention } from '@/discord/interactions/commandMention'
 
 const ACCENT_COLOR = 0x5865f2 // blurple
 
-const HEADER =
-  '### Game Sales Bot\nTrack game prices across stores and get notified when something on your wishlist goes on sale.'
+const HEADER = '### Commands'
 
 const COMMAND_ENTRIES = [
-  '> **/price `<game>`**\n> -# Look up current prices for a game across stores.',
-  '> **/wishlist `add` `remove` `list`**\n> -# Add, remove, or view games on your personal wishlist.',
-  '> **/free**\n> -# Show currently free PC games.',
-  '> **/forget-me**\n> -# Permanently delete your wishlist and any data stored about you.',
-  "> **/privacy-policy**\n> -# See what data this bot stores and how it's used.",
-  '> **/config `alerts-channel` `remove-alerts`**\n> -# *(Admin only)* Set or remove the channel where sale and free-game alerts get posted.',
-  '> **/feedback**\n> -# Report a bug or suggest something for the bot.',
+  `> **${mention('price')} \`<game>\`**\n> -# Look up current prices for a game across stores.`,
+  `> **${mention('wishlist', 'add')} ${mention('wishlist', 'remove')} ${mention('wishlist', 'list')}**\n> -# Add, remove, or view games on your personal wishlist.`,
+  `> **${mention('free')}**\n> -# Show currently free PC games.`,
+  `> **${mention('forget-me')}**\n> -# Permanently delete your wishlist and any data stored about you.`,
+  `> **${mention('privacy-policy')}**\n> -# See what data this bot stores and how it's used.`,
+  `> **${mention('feedback')}**\n> -# Report a bug or suggest something for the bot.`,
+  `> **${mention('config', 'alerts-channel')} ${mention('config', 'remove-alerts')}**\n> -# *(Admin only)* Set or remove the channel where sale and free-game alerts get posted.`,
+  `> **${mention('about')}**\n> -# What this bot does and where the data comes from.`,
 ]
+
 const textDisplay = (content: string): APITextDisplayComponent => ({
   type: ComponentType.TextDisplay,
   content,

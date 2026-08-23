@@ -6,6 +6,7 @@ import type {
   APIActionRowComponent,
   APIButtonComponentWithURL,
 } from 'discord-api-types/v10'
+import { mention } from '@/discord/interactions/commandMention'
 
 const ACCENT_COLOR = 0x5865f2 // blurple, matches help.ts
 const PRIVACY_URL = 'https://discord-game-sales-bot.vercel.app/privacy'
@@ -15,7 +16,7 @@ const HEADER =
 
 const SECTION_ENTRIES = [
   '**What we store**\nYour Discord ID, wishlist entries, last-alerted prices, and a daily price-history log kept for a limited time.',
-  '**How to remove it**\n`/forget-me` deletes your personal data. Server admins can use `/config remove-alerts` to remove server-level alert config.',
+  `**How to remove it**\n${mention('forget-me')} deletes your personal data. Server admins can use ${mention('config', 'remove-alerts')} to remove server-level alert config.`,
 ]
 
 const textDisplay = (content: string): APITextDisplayComponent => ({
