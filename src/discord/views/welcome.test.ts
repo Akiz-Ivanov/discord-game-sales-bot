@@ -54,15 +54,19 @@ describe('buildWelcomeMessage — rich variant (default)', () => {
     expect(texts.some((t) => t.includes('/help'))).toBe(true)
   })
 
-  it('appends a utility row with Help and Feedback buttons', () => {
+  it('appends a utility row with Help, About, and Feedback buttons', () => {
     const row = getUtilityRow(buildWelcomeMessage())
     expect(row?.type).toBe(ComponentType.ActionRow)
-    expect(row?.components).toHaveLength(2)
+    expect(row?.components).toHaveLength(3)
     expect(row?.components[0]).toMatchObject({
       custom_id: 'welcome_help',
       style: ButtonStyle.Secondary,
     })
     expect(row?.components[1]).toMatchObject({
+      custom_id: 'welcome_about',
+      style: ButtonStyle.Secondary,
+    })
+    expect(row?.components[2]).toMatchObject({
       custom_id: 'welcome_feedback',
       style: ButtonStyle.Secondary,
     })

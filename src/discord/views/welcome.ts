@@ -10,14 +10,14 @@ import type {
 } from 'discord-api-types/v10'
 import { customEmojiTag } from '../embeds/discordEmoji'
 
-const ACCENT_COLOR = 0x00d4ff // electric cyan — distinct from every other accent color already in use (green/purple/orange/gold/blurple)
+const ACCENT_COLOR = 0x00d4ff // electric cyan
 
 const RICH_HEADER =
-  '### Game Sales Bot\n' +
+  '### Getting Started\n' +
   'Hey, thanks for having me here. I keep an eye on prices and let you know when something on your list goes on sale (or goes free).\n\n' +
   "Here's a little interface to help you get started:"
 
-const LEAN_HEADER = "### Game Sales Bot\nHere's what I can do for you:"
+const LEAN_HEADER = "### Quick access\nHere's what I can do for you:"
 
 const FOOTER = '-# New here? `/help` has the full command list.'
 
@@ -40,7 +40,7 @@ const ENTRIES: {
     style: ButtonStyle.Primary,
   },
   {
-    text: `${customEmojiTag('heart', '1538897010176954439')} **Build your wishlist**\nI'll watch it and ping you the moment it drops`,
+    text: `${customEmojiTag('heart', '1538897010176954439')} **Build your wishlist**\nI'll watch it and ping you the moment price drops`,
     buttonLabel: 'My wishlist',
     customId: 'welcome_my_wishlist',
     style: ButtonStyle.Success,
@@ -80,6 +80,13 @@ const buildUtilityRow =
         custom_id: 'welcome_help',
         label: 'Help',
         emoji: { id: '1538930395347947671', name: 'help' },
+      },
+      {
+        type: ComponentType.Button,
+        style: ButtonStyle.Secondary,
+        custom_id: 'welcome_about',
+        label: 'About',
+        emoji: { id: '1538723191495720970', name: 'info' },
       },
       {
         type: ComponentType.Button,
