@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
+import { BOT_NAME } from '@/lib/constants'
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — Game Sales Bot',
-  description: 'What data Game Sales Bot stores, why, and how to remove it.',
+  title: `Privacy Policy — ${BOT_NAME}`,
+  description: `What data ${BOT_NAME} stores, why, and how to remove it.`,
 }
 
 const SECTIONS = [
@@ -10,10 +11,10 @@ const SECTIONS = [
     heading: 'What this is',
     body: (
       <p>
-        Game Sales Bot is a Discord bot that tracks game prices and lets you
-        build a personal wishlist for price-drop and free-game alerts. It&apos;s
-        an independent solo project, not affiliated with Discord,
-        IsThereAnyDeal, or GamerPower.
+        {BOT_NAME} is a Discord bot that tracks game prices and lets you build a
+        personal wishlist for price-drop and free-game alerts. It&apos;s an
+        independent solo project, not affiliated with Discord, IsThereAnyDeal,
+        or GamerPower.
       </p>
     ),
   },

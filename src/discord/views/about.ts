@@ -7,16 +7,17 @@ import type {
   APIButtonComponentWithURL,
 } from 'discord-api-types/v10'
 import { mention } from '@/discord/interactions/commandMention'
+import { BOT_NAME } from '@/lib/constants'
 
-const ACCENT_COLOR = 0x5865f2 // blurple, matches help.ts
-const PRIVACY_URL = 'https://discord-game-sales-bot.vercel.app/privacy'
+const ACCENT_COLOR = 0x1abc9c // teal
+const GITHUB_URL = 'https://github.com/Akiz-Ivanov/discord-game-sales-bot'
 
-const HEADER =
-  '### Privacy Summary\nA quick look at what this bot stores. For the full policy, see the button below.'
+const HEADER = `### About ${BOT_NAME}\nLook up game prices, get pinged when something on your wishlist drops (or goes free), and catch daily free-game giveaways whether you're tracking anything or not.`
 
 const SECTION_ENTRIES = [
-  '**What we store**\nYour Discord ID, wishlist entries, last-alerted prices, and a daily price-history log kept for a limited time.',
-  `**How to remove it**\n${mention('forget-me')} deletes your personal data. Server admins can use ${mention('config', 'remove-alerts')} to remove server-level alert config.`,
+  `Built by one person in their spare time. Bug reports and ideas are always welcome, ${mention('feedback')} reaches me directly.`,
+  '**Data comes from these APIs**\n[IsThereAnyDeal](https://isthereanydeal.com) tracks game prices and historical lows across dozens of stores.\n[GamerPower](https://www.gamerpower.com) tracks free games, beta keys, and giveaways across PC and more.',
+  `-# ${mention('help')} for commands · ${mention('privacy-policy')} for what I store`,
 ]
 
 const textDisplay = (content: string): APITextDisplayComponent => ({
@@ -24,7 +25,7 @@ const textDisplay = (content: string): APITextDisplayComponent => ({
   content,
 })
 
-export const buildPrivacyPolicyMessage = () => {
+export const buildAboutMessage = () => {
   const children: (APITextDisplayComponent | APISeparatorComponent)[] = [
     textDisplay(HEADER),
     { type: ComponentType.Separator },
@@ -49,8 +50,8 @@ export const buildPrivacyPolicyMessage = () => {
       {
         type: ComponentType.Button,
         style: ButtonStyle.Link,
-        url: PRIVACY_URL,
-        label: 'Read the full privacy policy',
+        url: GITHUB_URL,
+        label: 'View on GitHub',
       },
     ],
   }

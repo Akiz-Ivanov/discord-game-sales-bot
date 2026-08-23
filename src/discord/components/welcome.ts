@@ -14,6 +14,7 @@ import { getSortedFreeGames } from '@/services/freeGames'
 import { buildFreeGamesMessage } from '@/discord/views/freeGames'
 import { buildHelpMessage } from '../views/help'
 import { buildFeedbackModal } from '../interactions/buildFeedbackModal'
+import { buildAboutMessage } from '../views/about'
 
 export const handleWelcomeAddGame: ComponentHandler = () => ({
   type: InteractionResponseType.Modal,
@@ -111,4 +112,9 @@ export const handleWelcomeHelp: ComponentHandler = () => ({
 export const handleWelcomeFeedback: ComponentHandler = () => ({
   type: InteractionResponseType.Modal,
   data: buildFeedbackModal(),
+})
+
+export const handleWelcomeAbout: ComponentHandler = () => ({
+  type: InteractionResponseType.ChannelMessageWithSource,
+  data: buildAboutMessage(),
 })
