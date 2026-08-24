@@ -1033,6 +1033,48 @@
     GitHub Releases/tags — most casual users bounce off GitHub
     entirely), support-server link. All still pending real signal
     before building (server count, feedback volume, etc.).
+- [x] Sale-alerts cron batching fix for >200 wishlisted games —
+      `itad/client.ts`'s `getPrices()` has always thrown past 200 ids
+      (ITAD's own per-request cap), but `services/saleAlerts.ts`'s
+      `getSaleAlerts()` was sending its full deduped id list in one
+      unbatched call. Harmless at current single-test-guild scale, but
+      once total unique wishlisted games across all guilds crossed 200
+      this would throw uncaught — and unlike the interaction routes,
+      `app/api/cron/price-check/route.ts` has no try/catch around
+      `getSaleAlerts()`, so the failure mode would have been the
+      _entire_ daily cron run 500ing (zero guilds alerted that day),
+      not a quiet partial loss. Fixed with a small local `chunk()`
+      helper in `saleAlerts.ts`, batching `getPrices()` calls at 200
+      ids each via `Promise.all`, merging results before continuing.
+      The existing >200 throw in `itad/client.ts` stays in place
+      deliberately — it still protects any other future caller of
+      `getPrices()` from silently exceeding ITAD's contract, this fix
+      just ensures the one current caller never triggers it.
+  - Caught and fixed proactively, ahead of global command registration
+    — this is exactly the point where "how many unique games get
+    wishlisted across every server" stops being a number under direct
+    control.
+  - New tests in `services/saleAlerts.test.ts`: asserts a single
+    `getPrices()` call under 200 ids, and correct 200/remainder
+    batch sizes with the right call count above it.
+- [ ] Route-level error handling for `/api/cron/price-check` around
+      `getSaleAlerts()` — unlike `/api/interactions/route.ts` (which
+      wraps every command/component/modal handler in try/catch so one
+      bad handler can't take down the whole endpoint) and the
+      `Promise.allSettled` block just below it in this same route
+      (which already isolates one guild's failed post from the rest),
+      the `getSaleAlerts()` call itself is unprotected. If it throws
+      for any reason — a DB hiccup, an ITAD outage mid-batch, anything
+      — the whole route throws, Next.js turns that into a bare 500
+      with no JSON body, and _zero_ guilds get alerted that day rather
+      than a clean per-guild failure count. Noticed while fixing the >200-games batching issue (which was one specific trigger for
+      this, now resolved) but this protects against any other cause
+      too. Fix: wrap `getSaleAlerts()` in its own try/catch, log the
+      error, return a `{ guildsNotified: 0, guildsFailed: 0, error: true }`
+      shape (or similar) instead of letting Next.js's generic 500 own
+      the failure. Deliberately scoped out of the batching-fix branch
+      — different, broader kind of hardening than the specific bug
+      that branch fixes.
 - [ ] Consider migrating `/price` to Components V2 — the inline 3-across
       Released/Reviews/Players field grid is the one thing keeping it on
       classic embeds today (V2 has no equivalent to Discord's automatic

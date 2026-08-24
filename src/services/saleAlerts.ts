@@ -12,12 +12,21 @@ type GroupedAlert = GameSaleAlert & {
   notificationChannelId: string
 }
 
+const chunk = <T>(arr: T[], size: number): T[][] =>
+  Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+    arr.slice(i * size, i * size + size)
+  )
+
 export const getSaleAlerts = async (): Promise<GuildSaleAlerts[]> => {
   const rows = await getWishlistedGamesByGuild()
   if (rows.length === 0) return []
 
   const uniqueItadIds = [...new Set(rows.map((r) => r.itadId))]
-  const priceData = await getPrices(uniqueItadIds)
+  const priceData = (
+    await Promise.all(
+      chunk(uniqueItadIds, 200).map((batch) => getPrices(batch))
+    )
+  ).flat()
   const cheapestByItadId = new Map(
     priceData.map((p) => [p.id, pickCheapestDeal(p.deals)])
   )
