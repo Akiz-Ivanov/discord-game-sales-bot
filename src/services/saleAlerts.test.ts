@@ -74,6 +74,62 @@ describe('getSaleAlerts', () => {
     ])
   })
 
+  it('batches price lookups into chunks of 200 when there are more unique games', async () => {
+    const manyRows = Array.from({ length: 250 }, (_, i) => ({
+      itadId: `itad-${i}`,
+      wishlistItemId: i,
+      discordId: 'user-1',
+      guildId: 'guild-1',
+      notificationChannelId: 'channel-1',
+      gameId: i,
+      title: `Game ${i}`,
+      lastNotifiedPrice: null,
+    }))
+    vi.mocked(getWishlistedGamesByGuild).mockResolvedValue(manyRows)
+    vi.mocked(getPrices).mockResolvedValue([]) // exact prices don't matter for this test
+
+    await getSaleAlerts()
+
+    expect(getPrices).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(getPrices).mock.calls[0]![0]).toHaveLength(200)
+    expect(vi.mocked(getPrices).mock.calls[1]![0]).toHaveLength(50)
+  })
+
+  it('makes a single batch call when under the 200 limit', async () => {
+    vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([
+      makeRow({ wishlistItemId: 1, discordId: 'user-1' }),
+      makeRow({ wishlistItemId: 2, discordId: 'user-2' }),
+    ])
+    vi.mocked(getPrices).mockResolvedValue([])
+
+    await getSaleAlerts()
+
+    expect(getPrices).toHaveBeenCalledTimes(1)
+  })
+
+  it('merges price results from multiple batches', async () => {
+    const rows = Array.from({ length: 201 }, (_, i) =>
+      makeRow({
+        itadId: `itad-${i}`,
+        wishlistItemId: i,
+        discordId: `user-${i}`,
+      })
+    )
+    vi.mocked(getWishlistedGamesByGuild).mockResolvedValue(rows)
+    vi.mocked(getPrices)
+      .mockResolvedValueOnce([
+        { id: 'itad-0', historyLow: {}, deals: [makeDeal({ cut: 30 })] },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'itad-200', historyLow: {}, deals: [makeDeal({ cut: 40 })] },
+      ])
+
+    const result = await getSaleAlerts()
+
+    const itadIds = result.flatMap((g) => g.alerts.map((a) => a.itadId))
+    expect(itadIds).toEqual(expect.arrayContaining(['itad-0', 'itad-200']))
+  })
+
   describe('cut === 0 (game not currently on sale)', () => {
     it('resets lastNotifiedPrice back to null when it was previously set', async () => {
       vi.mocked(getWishlistedGamesByGuild).mockResolvedValue([
