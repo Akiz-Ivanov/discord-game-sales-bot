@@ -11,7 +11,17 @@ export async function GET(req: Request) {
     return new Response('unauthorized', { status: 401 })
   }
 
-  const guildAlerts = await getSaleAlerts()
+  let guildAlerts
+
+  try {
+    guildAlerts = await getSaleAlerts()
+  } catch (err) {
+    console.error('getSaleAlerts failed:', err)
+    return Response.json(
+      { guildsNotified: 0, guildsFailed: 0, error: true },
+      { status: 500 }
+    )
+  }
 
   const results = await Promise.allSettled(
     guildAlerts.map(async (guild) => {

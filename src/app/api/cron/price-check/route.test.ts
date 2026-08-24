@@ -45,6 +45,19 @@ describe('GET /api/cron/price-check', () => {
     expect(res.status).toBe(401)
   })
 
+  it('returns a 500 with a safe fallback shape when getSaleAlerts throws', async () => {
+    vi.mocked(getSaleAlerts).mockRejectedValue(new Error('DB connection lost'))
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const res = await GET(buildRequest('Bearer test-secret'))
+    const body = await res.json()
+
+    expect(res.status).toBe(500)
+    expect(body).toEqual({ guildsNotified: 0, guildsFailed: 0, error: true })
+    expect(postChannelMessage).not.toHaveBeenCalled()
+    consoleSpy.mockRestore()
+  })
+
   it('posts one message per guild when the header matches', async () => {
     vi.mocked(getSaleAlerts).mockResolvedValue([
       { guildId: 'g1', notificationChannelId: 'c1', alerts: [] },
