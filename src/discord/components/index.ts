@@ -21,6 +21,7 @@ import {
   handleWelcomeAddGame,
   handleWelcomeAbout,
 } from './welcome'
+import { handleTrendingPage } from './trending'
 
 //* Keyed by the literal prefix before the first ':' in custom_id.
 //* e.g. custom_id "wishlist_remove_select" or "wishlist_remove_page:2"
@@ -48,4 +49,5 @@ export const components: Record<string, ComponentHandler> = {
   welcome_feedback: handleWelcomeFeedback,
   welcome_add_game: handleWelcomeAddGame,
   welcome_about: handleWelcomeAbout,
+  trending_page: handleTrendingPage,
 }

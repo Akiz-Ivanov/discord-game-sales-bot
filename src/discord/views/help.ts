@@ -13,6 +13,7 @@ const HEADER = '### Commands'
 const COMMAND_ENTRIES = [
   `> **${mention('price')} \`<game>\`**\n> -# Look up current prices for a game across stores.`,
   `> **${mention('wishlist', 'add')} ${mention('wishlist', 'remove')} ${mention('wishlist', 'list')}**\n> -# Add, remove, or view games on your personal wishlist.`,
+  `> **${mention('trending')}**\n> -# See what's trending in deals right now.`,
   `> **${mention('free')}**\n> -# Show currently free PC games.`,
   `> **${mention('forget-me')}**\n> -# Permanently delete your wishlist and any data stored about you.`,
   `> **${mention('privacy-policy')}**\n> -# See what data this bot stores and how it's used.`,

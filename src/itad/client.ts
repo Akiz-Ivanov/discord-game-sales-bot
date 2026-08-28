@@ -4,7 +4,10 @@ import type {
   ItadSearchResponse,
   ItadGamePrices,
   ItadBundle,
+  ItadDealListItem,
+  ItadDealsListResponse,
 } from '@/types'
+import { isPurchasableGame } from '@/lib/isPurchasableGame'
 
 const BASE_URL = 'https://api.isthereanydeal.com'
 
@@ -16,6 +19,7 @@ const LOOKUP_URL = `${BASE_URL}/games/lookup/v1`
 const INFO_URL = `${BASE_URL}/games/info/v2`
 const PRICES_URL = `${BASE_URL}/games/prices/v3`
 const BUNDLES_URL = `${BASE_URL}/games/bundles/v2`
+const DEALS_URL = `${BASE_URL}/deals/v2`
 
 const getApiKey = (): string => {
   const key = process.env.ITAD_API_KEY
@@ -37,9 +41,7 @@ export const searchGamesByTitle = async (
   }
 
   const results: ItadSearchResponse = await res.json()
-  return results.filter(
-    (game) => game.type === 'game' || game.type === 'package'
-  )
+  return results.filter(isPurchasableGame)
 }
 
 //* Exact match by Steam App ID — user typed a number.
@@ -121,4 +123,27 @@ export const getBundlesForGame = async (
   const bundles: ItadBundle[] = await res.json()
   const now = Date.now()
   return bundles.filter((b) => new Date(b.expiry).getTime() > now)
+}
+
+//* Homepage-matching "Hottest games" sort — confirmed live against
+//* isthereanydeal.com's own frontpage overlap. `-cut` (highest discount)
+//* was tried first and rejected: it surfaces 99-100%-off DLC/bundle
+//* noise with no relation to what the site actually features.
+//* `type` filtering mirrors searchGamesByTitle's package fix.
+export const getTrendingDeals = async (
+  limit = 30
+): Promise<ItadDealListItem[]> => {
+  const url = new URL(DEALS_URL)
+  url.searchParams.set('key', getApiKey())
+  url.searchParams.set('country', 'US')
+  url.searchParams.set('sort', '-trending')
+  url.searchParams.set('limit', String(limit))
+
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw new Error(`ITAD deals failed: ${res.status} ${await res.text()}`)
+  }
+
+  const data: ItadDealsListResponse = await res.json()
+  return data.list.filter(isPurchasableGame)
 }

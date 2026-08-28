@@ -126,3 +126,18 @@ export const makeBundle = (
   ],
   ...overrides,
 })
+
+import type { ItadDealListItem } from '@/types'
+
+export const makeDealListItem = (
+  overrides: Partial<ItadDealListItem> = {}
+): ItadDealListItem => ({
+  id: game.id,
+  slug: game.slug,
+  title: game.title,
+  type: 'game',
+  mature: false,
+  assets: {},
+  deal: makeDeal(),
+  ...overrides,
+})

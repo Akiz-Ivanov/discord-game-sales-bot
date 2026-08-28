@@ -8,6 +8,8 @@ import {
 } from './client'
 import { game, makeBundle } from '@/test/factories'
 import type { ItadGamePrices } from '@/types'
+import { getTrendingDeals } from './client'
+import { makeDealListItem } from '@/test/factories'
 
 const dlc = {
   ...game,
@@ -271,5 +273,61 @@ describe('getBundlesForGame', () => {
     await expect(getBundlesForGame(uuid)).rejects.toThrow(
       'ITAD bundles failed: 500'
     )
+  })
+})
+
+describe('getTrendingDeals', () => {
+  it('builds the request URL with country, sort=-trending, and limit', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ data: { nextOffset: 10, hasMore: true, list: [] } })
+    )
+
+    await getTrendingDeals(15)
+
+    const calledUrl = vi.mocked(fetch).mock.calls[0]![0] as URL
+    expect(calledUrl.pathname).toBe('/deals/v2')
+    expect(calledUrl.searchParams.get('country')).toBe('US')
+    expect(calledUrl.searchParams.get('sort')).toBe('-trending')
+    expect(calledUrl.searchParams.get('limit')).toBe('15')
+  })
+
+  it('defaults to limit=30 when not specified', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ data: { nextOffset: 0, hasMore: false, list: [] } })
+    )
+
+    await getTrendingDeals()
+
+    const calledUrl = vi.mocked(fetch).mock.calls[0]![0] as URL
+    expect(calledUrl.searchParams.get('limit')).toBe('30')
+  })
+
+  it('filters out non-purchasable entries (dlc, null type)', async () => {
+    const validGame = makeDealListItem({ id: 'a', type: 'game' })
+    const validPackage = makeDealListItem({ id: 'b', type: 'package' })
+    const dlc = makeDealListItem({ id: 'c', type: 'dlc' })
+    const bundle = makeDealListItem({ id: 'd', type: null })
+
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          nextOffset: 10,
+          hasMore: true,
+          list: [validGame, validPackage, dlc, bundle],
+        },
+      })
+    )
+
+    const result = await getTrendingDeals()
+
+    expect(result).toEqual([validGame, validPackage])
+  })
+
+  it('throws with status and body text when the response is not ok', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ ok: false, status: 500, data: 'server error' })
+    )
+
+    await expect(getTrendingDeals()).rejects.toThrow('ITAD deals failed: 500')
   })
 })

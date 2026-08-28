@@ -135,3 +135,19 @@ export interface ItadBundle {
   counts: { games: number; media: number }
   tiers: ItadBundleTier[]
 }
+
+export interface ItadDealListItem {
+  id: string
+  slug: string
+  title: string
+  type: ItadGameType
+  mature: boolean
+  assets: ItadGameAssets
+  deal: ItadDeal
+}
+
+export interface ItadDealsListResponse {
+  nextOffset: number
+  hasMore: boolean
+  list: ItadDealListItem[]
+}

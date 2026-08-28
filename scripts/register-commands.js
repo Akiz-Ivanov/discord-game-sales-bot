@@ -41,6 +41,11 @@ const commands = [
     type: 1,
   },
   {
+    name: 'trending',
+    description: 'Show trending game deals right now',
+    type: 1,
+  },
+  {
     name: 'price',
     description: 'Get the current price for a game',
     options: [
