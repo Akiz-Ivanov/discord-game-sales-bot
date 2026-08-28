@@ -19,6 +19,8 @@ const MAX_SHOPS_SHOWN = 5
 const MAX_TAGS_SHOWN = 5
 const PREFERRED_REVIEW_SOURCE = 'Steam'
 
+const CHART_LINE_DOWN_ID = '1530575847679856821'
+
 const formatReleaseDate = (dateStr: string): string => {
   const [year, month, day] = dateStr.split('-').map(Number)
   if (year === undefined || month === undefined || day === undefined) {
@@ -103,8 +105,6 @@ const pickEmbedColor = (deals: DealSummary[]) => {
     ? EMBED_COLOR_ON_SALE
     : EMBED_COLOR_NO_SALE
 }
-
-const CHART_LINE_DOWN_ID = '1530575847679856821'
 
 const buildDealField = (
   deal: DealSummary,
