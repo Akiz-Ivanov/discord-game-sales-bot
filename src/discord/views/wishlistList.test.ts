@@ -248,7 +248,7 @@ describe('buildWishlistListMessage', () => {
       type: ComponentType.Button,
       style: ButtonStyle.Secondary,
       custom_id: 'wishlist_item_remove:42:0',
-      emoji: { id: '1533452777471344660', name: 'trash' },
+      emoji: { id: '1542937719091499098', name: 'trash' },
     })
   })
 })

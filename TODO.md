@@ -1170,7 +1170,7 @@ type === 'package'` filter (originally inline in
       require attribution wherever used, not just wherever the source
       lives; a README credit alone doesn't discharge this. Candidate:
       one line under `/privacy`'s existing "Third parties" section.
-- [ ] Route-level error handling for `/api/cron/price-check` around
+- [x] Route-level error handling for `/api/cron/price-check` around
       `getSaleAlerts()` — unlike `/api/interactions/route.ts` (which
       wraps every command/component/modal handler in try/catch so one
       bad handler can't take down the whole endpoint) and the

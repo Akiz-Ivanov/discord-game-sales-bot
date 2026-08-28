@@ -117,6 +117,13 @@ const SECTIONS = [
           .
         </li>
         <li>
+          The bot&apos;s Discord profile banner is{' '}
+          <a href="https://www.magnific.com" className="underline">
+            designed by upklyak - Magnific.com
+          </a>
+          .
+        </li>
+        <li>
           Store names and logos shown in price listings belong to their
           respective owners; this bot is not affiliated with or endorsed by any
           of them.
