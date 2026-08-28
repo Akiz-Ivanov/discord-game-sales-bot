@@ -128,3 +128,15 @@ GET {{baseUrl}}/bundles/v1?key={{apiKey}}&limit=10&sort=-expiry
 
 ### Does the active bundle count exceed one page?
 GET {{baseUrl}}/bundles/v1?key={{apiKey}}&limit=10&offset=10&sort=-expiry
+
+### Probe: "Hottest games" sort — guessing likely values
+GET {{baseUrl}}/deals/v2?key={{apiKey}}&country=US&sort=trending&limit=10
+
+### 
+GET {{baseUrl}}/deals/v2?key={{apiKey}}&country=US&sort=-trending&limit=10
+
+### Most popular / most waitlisted / most collected are separate website sort options too
+GET {{baseUrl}}/deals/v2?key={{apiKey}}&country=US&sort=-popularity&limit=10
+
+### Fallback: filter out junk with the Filter DSL instead of relying on sort
+GET {{baseUrl}}/deals/v2?key={{apiKey}}&country=US&sort=-cut&limit=10&filter={"cut":{"min":50,"max":95},"type":[0],"typeNot":null}

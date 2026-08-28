@@ -1057,6 +1057,119 @@
   - New tests in `services/saleAlerts.test.ts`: asserts a single
     `getPrices()` call under 200 ids, and correct 200/remainder
     batch sizes with the right call count above it.
+- [x] `/trending` command — surfaces ITAD's homepage-equivalent "Hottest
+      games" feed. New `itad/client.ts`'s `getTrendingDeals()`
+      (`GET /deals/v2?sort=-trending&country=US`) — `-trending` confirmed
+      live to match isthereanydeal.com's own default sort (cross-checked
+      entry-by-entry against a homepage screenshot); `-cut` and
+      `-popularity` were both tried and rejected first (`-cut` surfaces
+      near-100%-off DLC/bundle noise unrelated to what the site actually
+      features; `-popularity` 400s as an unknown sort value — ITAD's own
+      OpenAPI spec only documents `-cut`/`price` as examples, not a full
+      enum, so this needed empirical probing via `requests/itad.rest`).
+  - New `lib/isPurchasableGame.ts` — extracted the `type === 'game' ||
+type === 'package'` filter (originally inline in
+    `searchGamesByTitle`, added for the Witcher 3-is-a-package issue)
+    into a shared predicate now used by both `searchGamesByTitle` and
+    `getTrendingDeals`.
+  - `discord/views/trending.ts` (`buildTrendingMessage`) — ephemeral,
+    Components V2, plain `TextDisplay` entries (no thumbnail/accessory
+    — deliberately dropped after live-testing showed a `Section` +
+    `Thumbnail` accessory per entry, same shape as `/free`'s rich mode,
+    caps out around 5-6 entries/page; plain text was chosen specifically
+    to fit more per page). `MAX_TRENDING_PER_PAGE = 15` — confirmed live
+    via ngrok, comfortably under the 40-component ceiling despite every
+    other lean list in this codebase (`/wishlist list`, sale alerts,
+    free games' lean cron post) converging on 9; the difference is those
+    all carry a per-entry accessory button, this doesn't.
+  - Price bolded (`**$14.99**`) rather than wrapped in a monospace code
+    span — code-span was tried first and read as visually cramped
+    next to proportional title text; bold-inline reads as more
+    prominent without the "table alignment" Components V2 has no real
+    way to do (Section's accessory slot only accepts a `Thumbnail` or
+    `Button`, never text, so a genuinely right-aligned price column
+    isn't achievable without paying the same accessory-component tax
+    as the thumbnail option above).
+  - Deal flags (`N`/`H`/`S`) surfaced as "New low"/"Historical low"
+    (reusing `/price`'s existing `chartlinedown` custom emoji for a
+    learned visual association)/"Lowest here" — reflects a real
+    distinction ITAD's own docs don't spell out clearly: N = this deal
+    just set an all-time record low, H = price currently matches (not
+    necessarily sets) the all-time low, S = lowest this specific store
+    has ever charged, other stores may have gone lower historically.
+  - Footer links to `https://isthereanydeal.com/deals/` — satisfies
+    ITAD's ToS link/mention requirement without the "Data from X"
+    framing used elsewhere (`/about`, `/privacy`); a bare link with no
+    relationship-framing sidesteps the "Data from X, not Powered by X"
+    distinction entirely since there's no characterization to get wrong.
+  - Same price-bolding treatment applied for visual consistency to
+    `/wishlist list`, sale alerts, and `/bundles`' tier-price line.
+    `/wishlist list` also gained a title-link to each game's deal URL
+    (`deal.url`, already present on the `ItadDeal` type — no new fetch
+    or DB entry needed, just wasn't wired up until now).
+  - Full test coverage: `views/trending.test.ts`,
+    `commands/trending.test.ts`, `components/trending.test.ts`,
+    `lib/isPurchasableGame.test.ts`, `itad/client.test.ts` additions,
+    updated `views/help.test.ts`/`views/bundles.test.ts`/
+    `views/saleAlert.test.ts`/`views/wishlistList.test.ts` for the
+    bolding/link changes. 521/521 passing project-wide, ~98.7% coverage.
+  - **Deliberately deferred**: caching `/trending` results (e.g. 15-30
+    min TTL, Postgres-backed like the `prices` cache) — every page
+    click currently live-refetches ITAD, the most ITAD-call-hungry
+    command in the bot per browsing session; revisit once real usage
+    shows this actually pressuring the shared 1000/5min budget, not
+    before.
+- [x] `/free` command rewritten to defer — GamerPower's API was
+      confirmed live to occasionally take 45+ seconds to respond (direct
+      curl timing), which the old synchronous handler had zero margin
+      against. Same `DeferredChannelMessageWithSource` + `after()` +
+      `editOriginalInteractionResponse()` pattern `/feedback`'s
+      screenshot path already established, applied here because the
+      slow external call is the _only_ thing this command does, not an
+      optional attachment step.
+  - **Real gotcha hit and resolved during testing**: the deferred edit
+    itself 404'd ("Unknown Webhook") on the first live test despite a
+    correct `DISCORD_APPLICATION_ID` — root cause was the _initial_ ACK
+    (not the deferred work) running slow enough to blow Discord's 3s
+    clock on its own, stacking dev-server cold-start (Turbopack
+    lazy-compile) with ngrok's extra network hop. Discord invalidates
+    the interaction token once its own clock lapses, so by the time
+    `after()`'s callback tried to `PATCH` the original response, the
+    token was already dead — server-side logs showing `2.x`s aren't the
+    same clock Discord is measuring against. Fix is procedural, not
+    code: curl `/api/interactions` once after every `next dev` restart
+    to force Turbopack to compile the route outside Discord's timing
+    window, before testing any deferred-response command live. Doesn't
+    apply in production (no ngrok hop, no lazy-compile on Vercel).
+  - Test rewrite mirrors `modals/feedback.test.ts`'s deferred-path
+    shape exactly (mocked `after()`, invoke the captured callback
+    directly); `free.e2e.test.ts` documents the same
+    `after()`-needs-real-request-scope harness limitation already
+    established for `/feedback`'s screenshot-path e2e test — asserts
+    the route's generic catch-fallback rather than untested real
+    deferred behavior.
+  - **Not done yet**: same unguarded-slow-call exposure exists in the
+    free-games _cron_ route (`getFreeGames()` inside
+    `/api/cron/free-games`) — not user-facing (no 3s ACK to blow), but
+    worth an `AbortController` timeout on that `fetch` call if
+    GamerPower's flakiness continues, separate concern from this fix.
+- [ ] Wishlist trash-button UX polish — discussed, not yet implemented:
+      (1) removal via the trash button on `/wishlist list` currently
+      gives no explicit confirmation beyond the item silently vanishing
+      from a 9-item list, unlike `/wishlist remove`'s select-menu path
+      which replies with `✅ Removed **X**`; candidate fix is a
+      transient `-# ✅ Removed **X**` line at the top of the
+      re-rendered list, requires `buildWishlistListMessage` to accept
+      an optional `removedTitle` param and `handleWishlistItemRemove`
+      to grab the title before deleting. (2) The trash button's custom
+      emoji reads as more visually loud/red than intended for a
+      `Secondary`-style button — candidate fix is swapping the uploaded
+      emoji asset for a plain gray/outline version via the Dev Portal,
+      or falling back to a plain "Remove" text label.
+- [ ] Freepik attribution — free-tier assets (profile banner)
+      require attribution wherever used, not just wherever the source
+      lives; a README credit alone doesn't discharge this. Candidate:
+      one line under `/privacy`'s existing "Third parties" section.
 - [ ] Route-level error handling for `/api/cron/price-check` around
       `getSaleAlerts()` — unlike `/api/interactions/route.ts` (which
       wraps every command/component/modal handler in try/catch so one

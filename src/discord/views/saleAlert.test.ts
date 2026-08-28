@@ -56,7 +56,7 @@ describe('buildSaleAlertMessage', () => {
     )
     const content = getSectionText(getSections(container)[0]!)
     expect(content).toContain('Celeste')
-    expect(content).toContain('$5.99 (−40%, was $9.99)')
+    expect(content).toContain('**$5.99** (−40%, was $9.99)')
     expect(content).toContain('Steam')
   })
 
