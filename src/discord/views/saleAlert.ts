@@ -18,7 +18,7 @@ const MAX_MENTIONS_SHOWN = 10 //* caps a wall of pings on a very-wishlisted game
 const formatDealLine = (deal: GameSaleAlert['deal']): string => {
   const price = formatMoney(deal.price.amountInt, deal.price.currency)
   const regular = formatMoney(deal.regular.amountInt, deal.regular.currency)
-  return `${price} (−${deal.cut}%, was ${regular}) · ${getShopEmoji(deal.shop.name)}${deal.shop.name}`
+  return `**${price}** (−${deal.cut}%, was ${regular}) · ${getShopEmoji(deal.shop.name)}${deal.shop.name}`
 }
 
 const formatMentions = (recipients: GameSaleAlert['recipients']): string => {

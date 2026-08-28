@@ -41,7 +41,7 @@ describe('buildBundlesMessage', () => {
       '[Humble Choice August 2026](https://humblebundle.com/membership/august-2026)'
     )
     expect(description).toContain('Humble Bundle')
-    expect(description).toContain('9 games from $14.99')
+    expect(description).toContain('9 games from **$14.99**') // was: '**9 games from $14.99**'
   })
 
   it('shows "Free tier" when the first tier has no price', () => {

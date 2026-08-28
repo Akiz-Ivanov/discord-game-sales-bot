@@ -27,8 +27,8 @@ const formatDealLine = (deal: ItadDeal | undefined): string => {
   const price = formatMoney(deal.price.amountInt, deal.price.currency)
   const shop = `${getShopEmoji(deal.shop.name)}${deal.shop.name}`
   return deal.cut > 0
-    ? `${price} (−${deal.cut}%) · ${shop}`
-    : `${price} · ${shop}`
+    ? `**${price}** (−${deal.cut}%) · ${shop}`
+    : `**${price}** · ${shop}`
 }
 
 //* Free games sort to the top
@@ -54,7 +54,9 @@ const buildItemSection = (
   components: [
     {
       type: ComponentType.TextDisplay,
-      content: `**${item.game.title}**\n-# ${formatDealLine(deal)}`,
+      content: deal
+        ? `**[${item.game.title}](${deal.url})**\n-# ${formatDealLine(deal)}`
+        : `**${item.game.title}**\n-# ${formatDealLine(deal)}`,
     },
   ],
   accessory: {

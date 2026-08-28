@@ -9,8 +9,8 @@ const ACCENT_COLOR = 0xe67e22 // orange
 
 const formatTierPrice = (tier: ItadBundle['tiers'][number]): string =>
   tier.price
-    ? formatMoney(tier.price.amountInt, tier.price.currency)
-    : 'Free tier'
+    ? `**${formatMoney(tier.price.amountInt, tier.price.currency)}**`
+    : '**Free tier**'
 
 const formatBundleLine = (bundle: ItadBundle): string => {
   const cheapestTier = bundle.tiers[0]

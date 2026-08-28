@@ -110,7 +110,47 @@ describe('buildWishlistListMessage', () => {
     const content = getContent(getSections(container)[0]!)
 
     expect(content).toContain('-# ')
+    expect(content).toContain('**$14.99**') // price now bolded
     expect(content).toContain('−25%')
+  })
+
+  it('bolds the price in the deal line', () => {
+    const items = [makeWishlistItemRow({ game: makeGameRow({ id: 1 }) })]
+    const prices = new Map<number, ItadDeal | undefined>([
+      [1, makeDeal({ cut: 0 })],
+    ])
+    const container = getContainer(buildWishlistListMessage(items, prices))
+    expect(getContent(getSections(container)[0]!)).toContain('**$14.99**')
+  })
+
+  it('links the title to the deal URL when a deal is present', () => {
+    const items = [
+      makeWishlistItemRow({
+        game: makeGameRow({ id: 1, title: 'Hollow Knight' }),
+      }),
+    ]
+    const prices = new Map<number, ItadDeal | undefined>([
+      [1, makeDeal({ url: 'https://itad.link/example/' })],
+    ])
+    const container = getContainer(buildWishlistListMessage(items, prices))
+    expect(getContent(getSections(container)[0]!)).toContain(
+      '[Hollow Knight](https://itad.link/example/)'
+    )
+  })
+
+  it('leaves the title unlinked when no deal is available', () => {
+    const items = [
+      makeWishlistItemRow({
+        game: makeGameRow({ id: 1, title: 'Hollow Knight' }),
+      }),
+    ]
+    const container = getContainer(buildWishlistListMessage(items, new Map()))
+    expect(getContent(getSections(container)[0]!)).toContain(
+      '**Hollow Knight**'
+    )
+    expect(getContent(getSections(container)[0]!)).not.toContain(
+      '[Hollow Knight]'
+    )
   })
 
   it('omits the discount percentage when the deal has no cut', () => {
