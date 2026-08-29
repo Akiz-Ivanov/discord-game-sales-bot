@@ -3,6 +3,7 @@ import {
   editOriginalInteractionResponse,
   postChannelMessage,
   postChannelMessageWithFile,
+  postFollowupMessage,
 } from './rest'
 
 const mockResponse = (
@@ -146,5 +147,23 @@ describe('editOriginalInteractionResponse', () => {
     await expect(
       editOriginalInteractionResponse('tok', { content: 'x' })
     ).rejects.toThrow('Discord editOriginalInteractionResponse failed: 404')
+  })
+})
+
+describe('postFollowupMessage', () => {
+  beforeEach(() => vi.stubEnv('DISCORD_APPLICATION_ID', 'test-app-id'))
+
+  it('does not attempt to parse a response body (Discord returns 204 without wait=true)', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 204,
+      json: async () => {
+        throw new Error('should never be called')
+      },
+    } as unknown as Response)
+
+    await expect(
+      postFollowupMessage('tok', { content: 'x' })
+    ).resolves.toBeUndefined()
   })
 })

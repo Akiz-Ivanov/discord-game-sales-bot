@@ -13,7 +13,11 @@ import {
   removeGameFromWishlist,
   addGameToWishlist,
 } from '@/services/wishlist'
-import { InteractionResponseType, MessageFlags } from 'discord-api-types/v10'
+import {
+  InteractionResponseType,
+  MessageFlags,
+  ComponentType,
+} from 'discord-api-types/v10'
 import type { APIInteractionResponse, APIEmbed } from 'discord-api-types/v10'
 import {
   game,
@@ -27,6 +31,8 @@ import { buildWishlistListMessage } from '../views/wishlistList'
 import { getWishlistPrices } from '@/services/prices'
 import { handleWishlistRemovePage } from './wishlist'
 import { buildWishlistRemoveMessage } from '../views/wishlistRemove'
+import { editOriginalInteractionResponse, postFollowupMessage } from '../rest'
+import { after } from 'next/server'
 
 vi.mock('@/discord/interactions/getInteractionUserId', () => ({
   getInteractionUserId: vi.fn(),
@@ -49,6 +55,11 @@ vi.mock('@/services/prices', () => ({ getWishlistPrices: vi.fn() }))
 vi.mock('@/discord/views/wishlistRemove', () => ({
   buildWishlistRemoveMessage: vi.fn(),
 }))
+vi.mock('../rest', () => ({
+  editOriginalInteractionResponse: vi.fn(),
+  postFollowupMessage: vi.fn(),
+}))
+vi.mock('next/server', () => ({ after: vi.fn() }))
 
 const discordId = '255361746758402048'
 const guildId = '999888777666555444'
@@ -227,34 +238,64 @@ describe('handleWishlistAddSelect', () => {
 describe('handleWishlistItemRemove', () => {
   beforeEach(() => {
     vi.mocked(getWishlistPrices).mockResolvedValue(new Map())
+    vi.mocked(editOriginalInteractionResponse).mockResolvedValue(
+      {} as Awaited<ReturnType<typeof editOriginalInteractionResponse>>
+    )
+    vi.mocked(postFollowupMessage).mockResolvedValue(undefined)
   })
 
-  it('removes the game, re-fetches live prices, and re-renders the same page', async () => {
+  const buildRemove = (customId: string) =>
+    buildComponentInteraction<typeof handleWishlistItemRemove>(customId, {
+      token: 'interaction-token',
+    })
+
+  const getDeferredCallback = () =>
+    vi.mocked(after).mock.calls[0]![0] as () => Promise<void>
+
+  it('immediately returns a deferred ack without doing any work synchronously', async () => {
+    const result = await handleWishlistItemRemove(
+      buildRemove('wishlist_item_remove:5:2')
+    )
+
+    expect(result.type).toBe(InteractionResponseType.DeferredMessageUpdate)
+    expect(removeGameFromWishlist).not.toHaveBeenCalled()
+    expect(after).toHaveBeenCalledTimes(1)
+  })
+
+  it('removes the game, edits the list first, then posts a removal confirmation', async () => {
     vi.mocked(getUserByDiscordId).mockResolvedValue(userRow)
     vi.mocked(getWishlist).mockResolvedValue([
-      makeWishlistItemRow({ game: makeGameRow({ id: 5, itadId: 'itad-5' }) }),
+      makeWishlistItemRow({
+        game: makeGameRow({ id: 5, itadId: 'itad-5', title: 'Hollow Knight' }),
+      }),
     ])
+    vi.mocked(removeGameFromWishlist).mockResolvedValue({ status: 'removed' })
     const fakeMessage = { flags: 0, components: [] }
     vi.mocked(buildWishlistListMessage).mockReturnValue(fakeMessage as never)
 
-    const data = expectUpdateMessage(
-      await handleWishlistItemRemove(
-        buildComponentInteraction<typeof handleWishlistItemRemove>(
-          'wishlist_item_remove:5:2'
-        )
-      )
-    )
+    await handleWishlistItemRemove(buildRemove('wishlist_item_remove:5:2'))
+    await getDeferredCallback()()
 
     expect(removeGameFromWishlist).toHaveBeenCalledWith(userRow.id, 5)
-    expect(getWishlistPrices).toHaveBeenCalledWith([
-      { gameDbId: 5, itadId: 'itad-5' },
-    ])
-    expect(buildWishlistListMessage).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      2
+    expect(getWishlistPrices).toHaveBeenCalledWith([])
+    expect(buildWishlistListMessage).toHaveBeenCalledWith([], new Map(), 2)
+
+    //* Edit must land before the follow-up — the list update is what the
+    //* user is watching, the confirmation is secondary.
+    const editOrder = vi.mocked(editOriginalInteractionResponse).mock
+      .invocationCallOrder[0]!
+    const followupOrder =
+      vi.mocked(postFollowupMessage).mock.invocationCallOrder[0]!
+    expect(editOrder).toBeLessThan(followupOrder)
+
+    expect(editOriginalInteractionResponse).toHaveBeenCalledWith(
+      'interaction-token',
+      fakeMessage
     )
-    expect(data).toEqual(fakeMessage)
+    expect(postFollowupMessage).toHaveBeenCalledWith('interaction-token', {
+      flags: MessageFlags.Ephemeral,
+      content: '✅ Removed **Hollow Knight**',
+    })
   })
 
   it('defaults to page 0 when the custom_id has no page segment', async () => {
@@ -262,40 +303,93 @@ describe('handleWishlistItemRemove', () => {
     vi.mocked(getWishlist).mockResolvedValue([
       makeWishlistItemRow({ game: makeGameRow({ id: 5, itadId: 'itad-5' }) }),
     ])
+    vi.mocked(removeGameFromWishlist).mockResolvedValue({ status: 'removed' })
     vi.mocked(buildWishlistListMessage).mockReturnValue({
       flags: 0,
       components: [],
     } as never)
 
-    await handleWishlistItemRemove(
-      buildComponentInteraction<typeof handleWishlistItemRemove>(
-        'wishlist_item_remove:5'
-      )
-    )
+    await handleWishlistItemRemove(buildRemove('wishlist_item_remove:5'))
+    await getDeferredCallback()()
 
-    expect(buildWishlistListMessage).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      0
-    )
+    expect(buildWishlistListMessage).toHaveBeenCalledWith([], new Map(), 0)
   })
 
-  it('returns a components-v2 fallback without removing anything when no user row exists', async () => {
+  it('edits the list without posting a confirmation on a stale double-click', async () => {
+    vi.mocked(getUserByDiscordId).mockResolvedValue(userRow)
+    vi.mocked(getWishlist).mockResolvedValue([
+      makeWishlistItemRow({ game: makeGameRow({ id: 5, itadId: 'itad-5' }) }),
+    ])
+    //* Already removed by an earlier click — this one finds nothing to
+    //* delete, so no confirmation should claim credit for it.
+    vi.mocked(removeGameFromWishlist).mockResolvedValue({ status: 'not_found' })
+    vi.mocked(buildWishlistListMessage).mockReturnValue({
+      flags: 0,
+      components: [],
+    } as never)
+
+    await handleWishlistItemRemove(buildRemove('wishlist_item_remove:5:0'))
+    await getDeferredCallback()()
+
+    expect(editOriginalInteractionResponse).toHaveBeenCalled()
+    expect(postFollowupMessage).not.toHaveBeenCalled()
+  })
+
+  it('edits with a components-v2 fallback without removing anything when no user row exists', async () => {
     vi.mocked(getUserByDiscordId).mockResolvedValue(null)
 
-    const result = await handleWishlistItemRemove(
-      buildComponentInteraction<typeof handleWishlistItemRemove>(
-        'wishlist_item_remove:5'
-      )
-    )
+    await handleWishlistItemRemove(buildRemove('wishlist_item_remove:5'))
+    await getDeferredCallback()()
 
     expect(removeGameFromWishlist).not.toHaveBeenCalled()
-    if (result.type !== InteractionResponseType.UpdateMessage) {
-      throw new Error(`Expected UpdateMessage, got type ${result.type}`)
-    }
-    expect(result.data?.flags).toBe(
-      MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+    expect(editOriginalInteractionResponse).toHaveBeenCalledWith(
+      'interaction-token',
+      expect.objectContaining({
+        flags: MessageFlags.IsComponentsV2,
+        components: [
+          { type: ComponentType.TextDisplay, content: 'Something went wrong.' },
+        ],
+      })
     )
+    expect(postFollowupMessage).not.toHaveBeenCalled()
+  })
+
+  it('edits with an error message if the deferred work throws', async () => {
+    vi.mocked(getUserByDiscordId).mockResolvedValue(userRow)
+    vi.mocked(getWishlist).mockRejectedValue(new Error('DB connection lost'))
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await handleWishlistItemRemove(buildRemove('wishlist_item_remove:5'))
+    await getDeferredCallback()()
+
+    expect(editOriginalInteractionResponse).toHaveBeenCalledWith(
+      'interaction-token',
+      expect.objectContaining({
+        content: expect.stringContaining('Something went wrong'),
+      })
+    )
+    consoleSpy.mockRestore()
+  })
+
+  it('still edits the list even when the confirmation follow-up post fails', async () => {
+    vi.mocked(getUserByDiscordId).mockResolvedValue(userRow)
+    vi.mocked(getWishlist).mockResolvedValue([
+      makeWishlistItemRow({ game: makeGameRow({ id: 5, itadId: 'itad-5' }) }),
+    ])
+    vi.mocked(removeGameFromWishlist).mockResolvedValue({ status: 'removed' })
+    vi.mocked(postFollowupMessage).mockRejectedValue(new Error('webhook down'))
+    const fakeMessage = { flags: 0, components: [] }
+    vi.mocked(buildWishlistListMessage).mockReturnValue(fakeMessage as never)
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await handleWishlistItemRemove(buildRemove('wishlist_item_remove:5'))
+    await getDeferredCallback()()
+
+    expect(editOriginalInteractionResponse).toHaveBeenCalledWith(
+      'interaction-token',
+      fakeMessage
+    )
+    consoleSpy.mockRestore()
   })
 })
 

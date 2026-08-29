@@ -114,8 +114,7 @@ export const buildWishlistListMessage = (
     | APIActionRowComponent<APIButtonComponentWithCustomId>
   )[] = [container]
 
-  //* Nav row only appears once there's something to navigate — keeps
-  //* small wishlists exactly as clean as before this feature existed.
+  //* Nav row only appears once there's something to navigate
   if (totalPages > 1) {
     components.push(
       buildPaginationRow('wishlist_list_page', clampedPage, totalPages)
