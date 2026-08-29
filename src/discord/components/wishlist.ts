@@ -19,6 +19,8 @@ import { buildWishlistListMessage } from '../views/wishlistList'
 import { getWishlistPrices } from '@/services/prices'
 import { buildWishlistRemoveMessage } from '../views/wishlistRemove'
 import { mention } from '@/discord/interactions/commandMention'
+import { editOriginalInteractionResponse, postFollowupMessage } from '../rest'
+import { after } from 'next/server'
 
 export const handleWishlistRemoveSelect: ComponentHandler = async (
   interaction
@@ -131,36 +133,79 @@ export const handleWishlistAddSelect: ComponentHandler = async (
   }
 }
 
-export const handleWishlistItemRemove: ComponentHandler = async (
-  interaction
-) => {
+//* The removal itself is fast (one DB delete), but the price re-fetch
+//* that follows isn't — getWishlistPrices always live-hits ITAD rather
+//* than reading the same-day cache, by design (freshness over speed on
+//* this view). Chained behind a DB delete + re-select, that's enough
+//* latency through a real network hop to blow Discord's 3s ACK window
+//* in practice (confirmed live) — same class of problem /free and
+//* /feedback's screenshot path already solved. DeferredMessageUpdate
+//* + after() removes the time pressure entirely: ack the click
+//* instantly, do the real work in the background, edit the message
+//* once it's done.
+export const handleWishlistItemRemove: ComponentHandler = (interaction) => {
   const [, gameIdStr, pageStr] = interaction.data.custom_id.split(':')
   const gameId = Number(gameIdStr)
   const page = Number(pageStr ?? 0)
-  const discordId = getInteractionUserId(interaction)
-  const user = await getUserByDiscordId(discordId)
+  const interactionToken = interaction.token
 
-  if (!user || !gameId) {
-    return {
-      type: InteractionResponseType.UpdateMessage,
-      data: {
-        flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
-        components: [
-          { type: ComponentType.TextDisplay, content: 'Something went wrong.' },
-        ],
-      },
+  after(async () => {
+    try {
+      const discordId = getInteractionUserId(interaction)
+      const user = await getUserByDiscordId(discordId)
+
+      if (!user || !gameId) {
+        await editOriginalInteractionResponse(interactionToken, {
+          flags: MessageFlags.IsComponentsV2,
+          components: [
+            {
+              type: ComponentType.TextDisplay,
+              content: 'Something went wrong.',
+            },
+          ],
+        })
+        return
+      }
+
+      //* Grab the title before removing — once the row's gone, a
+      //* re-fetched wishlist has no way to tell us what it was called.
+      //* Deriving the post-removal list via filter (rather than a
+      //* second getWishlist call) keeps this at one DB round-trip.
+      const itemsBeforeRemoval = await getWishlist(discordId)
+      const removedItem = itemsBeforeRemoval.find((i) => i.game.id === gameId)
+
+      const result = await removeGameFromWishlist(user.id, gameId)
+      const items = itemsBeforeRemoval.filter((i) => i.game.id !== gameId)
+      const prices = await getWishlistPrices(
+        items.map((i) => ({ gameDbId: i.game.id, itadId: i.game.itadId }))
+      )
+
+      //* Edit the list first — that's the part the user is staring at and
+      //* waiting on. The confirmation is secondary, so it can land a beat
+      //* after without hurting perceived responsiveness.
+      await editOriginalInteractionResponse(
+        interactionToken,
+        buildWishlistListMessage(items, prices, page)
+      )
+
+      if (result.status === 'removed' && removedItem) {
+        await postFollowupMessage(interactionToken, {
+          flags: MessageFlags.Ephemeral,
+          content: `✅ Removed **${removedItem.game.title}**`,
+        }).catch((err) =>
+          console.error('Removal confirmation post failed:', err)
+        )
+      }
+    } catch (err) {
+      console.error('Deferred wishlist item removal failed:', err)
+      await editOriginalInteractionResponse(interactionToken, {
+        content: '⚠️ Something went wrong removing that — please try again.',
+      }).catch(() => {})
     }
-  }
-
-  await removeGameFromWishlist(user.id, gameId)
-  const items = await getWishlist(discordId)
-  const prices = await getWishlistPrices(
-    items.map((i) => ({ gameDbId: i.game.id, itadId: i.game.itadId }))
-  )
+  })
 
   return {
-    type: InteractionResponseType.UpdateMessage,
-    data: buildWishlistListMessage(items, prices, page),
+    type: InteractionResponseType.DeferredMessageUpdate,
   }
 }
 

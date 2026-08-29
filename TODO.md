@@ -1153,23 +1153,59 @@ type === 'package'` filter (originally inline in
     `/api/cron/free-games`) — not user-facing (no 3s ACK to blow), but
     worth an `AbortController` timeout on that `fetch` call if
     GamerPower's flakiness continues, separate concern from this fix.
-- [ ] Wishlist trash-button UX polish — discussed, not yet implemented:
-      (1) removal via the trash button on `/wishlist list` currently
-      gives no explicit confirmation beyond the item silently vanishing
-      from a 9-item list, unlike `/wishlist remove`'s select-menu path
-      which replies with `✅ Removed **X**`; candidate fix is a
-      transient `-# ✅ Removed **X**` line at the top of the
-      re-rendered list, requires `buildWishlistListMessage` to accept
-      an optional `removedTitle` param and `handleWishlistItemRemove`
-      to grab the title before deleting. (2) The trash button's custom
-      emoji reads as more visually loud/red than intended for a
-      `Secondary`-style button — candidate fix is swapping the uploaded
-      emoji asset for a plain gray/outline version via the Dev Portal,
-      or falling back to a plain "Remove" text label.
-- [ ] Freepik attribution — free-tier assets (profile banner)
-      require attribution wherever used, not just wherever the source
-      lives; a README credit alone doesn't discharge this. Candidate:
-      one line under `/privacy`'s existing "Third parties" section.
+- [x] Wishlist trash-button UX polish — both parts shipped, though
+      part 1 landed differently than originally scoped.
+  - (1) Removal confirmation: original plan was an inline
+    `-# ✅ Removed **X**` line inside the re-rendered list itself.
+    Rejected after hitting a real bug live: a full 9-item page + nav
+    row already sits exactly at Discord's 40-component ceiling (per
+    `MAX_ITEMS_PER_PAGE`'s own comment), so the two extra components
+    for the notice pushed it to 41 and Discord rejected the edit
+    (`COMPONENT_MAX_TOTAL_COMPONENTS_EXCEEDED`, confirmed live).
+    Fixed by moving the confirmation to a **separate ephemeral
+    follow-up message** instead — sidesteps the shared component
+    budget entirely. New `postFollowupMessage()` in `discord/rest.ts`
+    (`POST /webhooks/{app_id}/{token}`, distinct from
+    `editOriginalInteractionResponse`'s `PATCH .../@original`) —
+    Discord returns 204 No Content without `?wait=true`, so the
+    function deliberately doesn't call `res.json()` on the response.
+  - Root-caused a second, unrelated live bug along the way: the first
+    click on the trash button consistently showed "didn't respond in
+    time" while the underlying delete had already succeeded — cause
+    was `getWishlistPrices()`'s always-live ITAD fetch (deliberate,
+    for freshness) chained behind a DB delete + re-select, enough
+    latency through a real network hop to blow Discord's 3s ACK
+    window. Fixed with the same `DeferredMessageUpdate` + `after()` +
+    edit-the-response pattern already proven on `/free` and
+    `/feedback`'s screenshot path — `handleWishlistItemRemove` now
+    acks instantly and does the real removal/price-fetch/confirmation
+    work in the background. List edit fires before the confirmation
+    follow-up (not after) — the list update is what the user is
+    watching, the confirmation is secondary, so it lands a beat later
+    without hurting perceived responsiveness.
+  - (2) Trash button emoji swapped to a plain gray/outline re-upload
+    (`#B5BAC1`-family neutral, matching Discord's own Secondary-button
+    icon color) — reads as a quiet utility action now instead of a
+    red danger signal, without giving up the icon for a text label.
+  - `wishlist.test.ts`'s `handleWishlistItemRemove` suite rewritten to
+    match `free.test.ts`'s `after()`-mocking shape (capture the
+    callback, invoke it directly, assert on `editOriginalInteractionResponse`/
+    `postFollowupMessage` calls and their ordering) rather than
+    awaiting the handler's return value directly, since the handler
+    now returns its deferred ack synchronously.
+    `wishlistRemoveSelect.e2e.test.ts`'s `wishlist_item_remove` case
+    rewritten to assert the generic catch-fallback shape rather than
+    the old synchronous response — same documented harness limitation
+    as `/free`'s and `/feedback`'s e2e tests (`after()` needs Next's
+    real request-scoped `AsyncLocalStorage`, which a direct route-handler
+    call in tests doesn't have). 526/526 passing project-wide.
+- [x] Freepik/Magnific attribution — added under `/privacy`'s "Third
+      parties" section: "The bot's Discord profile banner is designed
+      by upklyak - Magnific.com" with a link, per the license
+      certificate's required literal attribution text. Brand fully
+      folded into Magnific post-acquisition (even the license cert
+      itself is Magnific-branded), so the credit uses that name, not
+      Freepik.
 - [x] Route-level error handling for `/api/cron/price-check` around
       `getSaleAlerts()` — unlike `/api/interactions/route.ts` (which
       wraps every command/component/modal handler in try/catch so one

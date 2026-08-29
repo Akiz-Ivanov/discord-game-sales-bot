@@ -3,6 +3,7 @@ import type {
   RESTPatchAPIInteractionOriginalResponseResult,
   RESTPostAPIChannelMessageJSONBody,
   RESTPostAPIChannelMessageResult,
+  RESTPostAPIWebhookWithTokenJSONBody,
 } from 'discord-api-types/v10'
 
 const DISCORD_API_BASE = 'https://discord.com/api/v10'
@@ -87,4 +88,27 @@ export const editOriginalInteractionResponse = async (
     )
   }
   return res.json()
+}
+
+export const postFollowupMessage = async (
+  interactionToken: string,
+  body: RESTPostAPIWebhookWithTokenJSONBody
+): Promise<void> => {
+  const appId = process.env.DISCORD_APPLICATION_ID
+  if (!appId) throw new Error('DISCORD_APPLICATION_ID is not set')
+
+  const res = await fetch(
+    `${DISCORD_API_BASE}/webhooks/${appId}/${interactionToken}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }
+  )
+
+  if (!res.ok) {
+    throw new Error(
+      `Discord postFollowupMessage failed: ${res.status} ${await res.text()}`
+    )
+  }
 }
