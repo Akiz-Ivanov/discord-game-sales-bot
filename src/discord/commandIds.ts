@@ -2,6 +2,7 @@
 // Regenerate with `npm run register-commands` any time a command is
 // added, renamed, or removed.
 export const COMMAND_IDS = {
+  "Quick access": "1544131011775041688",
   "ping": "1528128452618620959",
   "help": "1537593484817735720",
   "about": "1541086379675492495",

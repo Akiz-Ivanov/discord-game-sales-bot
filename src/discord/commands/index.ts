@@ -10,6 +10,7 @@ import { privacyPolicy } from './privacyPolicy'
 import { feedback } from './feedback'
 import { about } from './about'
 import { trending } from './trending'
+import { quickAccess } from './quickAccess'
 
 export const commands: Record<string, CommandHandler> = {
   ping,
@@ -23,4 +24,5 @@ export const commands: Record<string, CommandHandler> = {
   feedback,
   about,
   trending,
+  'Quick access': quickAccess,
 }

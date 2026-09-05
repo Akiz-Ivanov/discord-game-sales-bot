@@ -1224,6 +1224,48 @@ type === 'package'` filter (originally inline in
       the failure. Deliberately scoped out of the batching-fix branch
       — different, broader kind of hardening than the specific bug
       that branch fixes.
+- [x] `Quick access` User context-menu command — right-click (or
+      long-press) the bot itself → Apps → Quick access, opens the
+      same lean/ephemeral `buildWelcomeMessage(true)` variant the
+      welcome card already had a leaner branch for. New
+      `discord/commands/quickAccess.ts`, registered as `type: 2` in
+      `register-commands.js`.
+  - **Real bug caught during registration**: the new command entry
+    got pasted inside `config`'s `options` array instead of as a
+    top-level entry in the outer `commands` array — Discord's 400
+    (`STRING_TYPE_REGEX`/`APPLICATION_COMMAND_INVALID_NAME`) was
+    actually complaining about "Quick access" failing subcommand-name
+    validation, not about the command itself being invalid. Not a
+    Discord-side propagation delay as first suspected; moving the
+    entry to the top level fixed it immediately.
+  - Confirmed live via ngrok: Apps submenu shows "Quick access" on
+    right-click, opens correctly, renders the lean welcome card.
+  - **UX verdict**: three clicks deep (right-click → Apps → PC Game
+    Deals → Quick access) and not discoverable on its own — kept as a
+    low-cost secondary fallback, not promoted as a primary entry
+    point. The pinned welcome card stays the main access surface;
+    Quick access is a backup for when that's not pinned or visible.
+  - `/help` updated with a tenth entry (plain-text click-path
+    description, not a `mention()` — Discord has no mention syntax
+    for context-menu commands, confirmed via search).
+  - Docker WSL2 networking issue hit and fixed along the way, unrelated
+    to this feature but blocking local repo test runs: `docker compose
+up` failed with `ports are not available ... /forwards/expose
+returned unexpected status: 500` on port 5432, even after `docker
+compose down`/`up` and a full Docker Desktop restart — neither
+    `lsof`/`ss` (WSL) nor `netstat` (Windows) showed anything actually
+    listening, and Windows' own excluded-port-range check came back
+    clean too. Root cause was Docker Desktop's WSL2 networking layer
+    (`vpnkit`) stuck in a bad state — only a full `wsl --shutdown`
+    (not just quitting Docker Desktop, which leaves the WSL2 VM
+    running underneath) cleared it. `docker-compose.yml`'s Postgres
+    host port remapped `5432:5432` → `5433:5432` as a precaution
+    alongside the fix; `.env.test` updated to match. **Key learning**:
+    for this specific Docker-on-WSL2 port error, `wsl --shutdown` is a
+    stronger reset than restarting Docker Desktop alone — worth
+    reaching for first if the same symptom recurs.
+  - `commands/quickAccess.test.ts` (new), `views/help.test.ts` updated
+    for the tenth entry.
 - [ ] Consider migrating `/price` to Components V2 — the inline 3-across
       Released/Reviews/Players field grid is the one thing keeping it on
       classic embeds today (V2 has no equivalent to Discord's automatic
@@ -1238,7 +1280,6 @@ type === 'package'` filter (originally inline in
       area of the embed.
 - [ ] User-defined notification thresholds (min % off, price ceiling, historical-low-only, store filter)
 - [ ] Web dashboard (tracked games + price history, reusing the same service layer as the bot)
-- [ ] Context-menu commands (type 2 "User" / type 3 "Message") — e.g. right-click a message → check price history
 - [ ] Global command registration (once ready to invite the bot to other servers)
 - [ ] Additional `/config` subcommands (currency, stores, role) — deferred post-MVP
   - alert-visibility toggle: admin-set per-guild flag for whether sale
@@ -1283,22 +1324,6 @@ type === 'package'` filter (originally inline in
       `guildId` on `users` is about last-touched-guild, not preferences.
       No decisions made — needs its own dedicated design session before
       any schema changes, given the db-cost sensitivity here.
-- [ ] Context-menu commands, refined scope — Message command
-      ("check price") is the stronger fit over User commands: right-
-      click any message → modal opens with a TextInput pre-filled via
-      the message's own content (`.setValue(message.content)`), user
-      edits down to just the game title, submits into the existing
-      `resolveGame()` pipeline. No MESSAGE_CONTENT intent needed —
-      context-menu targets are handed over in full specifically
-      because the user explicitly selected that message. Right-
-      clicking the bot itself (User command, bot as target) is also
-      viable and would show the same 3-button interface card as the
-      pinned-message idea above — needs a quick empirical check
-      (register guild-scoped, right-click the bot, confirm the Apps
-      submenu appears same as for a regular member) before committing
-      to it. No autocomplete possible either way — context commands
-      take zero options, modal text inputs are fully client-side
-      until submit.
 - [ ] Modal-based settings UI, reminder only (not scoped) — Discord
       shipped Radio Group/Checkbox Group/Checkbox components for
       modals in Feb 2026, on top of the Select/TextInput/FileUpload

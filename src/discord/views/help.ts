@@ -20,6 +20,7 @@ const COMMAND_ENTRIES = [
   `> **${mention('feedback')}**\n> -# Report a bug or suggest something for the bot.`,
   `> **${mention('config', 'alerts-channel')} ${mention('config', 'remove-alerts')}**\n> -# *(Admin only)* Set or remove the channel where sale and free-game alerts get posted.`,
   `> **${mention('about')}**\n> -# What this bot does and where the data comes from.`,
+  `> **Quick access**\n> -# Right-click (or long-press) the bot's name → Apps → Quick access — a shortcut to check prices, view your wishlist, or see free games.`,
 ]
 
 const textDisplay = (content: string): APITextDisplayComponent => ({
