@@ -38,7 +38,7 @@ describe('buildHelpMessage', () => {
     expect(header.content).toBe('### Commands')
   })
 
-  it('lists all nine commands', () => {
+  it('lists all ten commands', () => {
     const texts = getTexts(getContainer(buildHelpMessage())).map(
       (t) => t.content
     )
@@ -51,6 +51,7 @@ describe('buildHelpMessage', () => {
     expect(texts.some((t) => t.includes('/feedback'))).toBe(true)
     expect(texts.some((t) => t.includes('/about'))).toBe(true)
     expect(texts.some((t) => t.includes('/trending'))).toBe(true)
+    expect(texts.some((t) => t.includes('Quick access'))).toBe(true)
   })
 
   it('marks the config command as admin-only', () => {

@@ -6,6 +6,10 @@ const GUILD_ID = process.env.DISCORD_TEST_GUILD_ID
 
 const commands = [
   {
+    name: 'Quick access',
+    type: 2, // USER command — no description, no options allowed
+  },
+  {
     name: 'ping',
     description: 'Replies with pong!',
     type: 1, //* CHAT_INPUT (slash command)
