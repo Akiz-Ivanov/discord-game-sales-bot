@@ -119,7 +119,7 @@ export const makeBundle = (
   page: { id: 1, name: 'Humble Bundle', shopId: 37 },
   url: 'https://humblebundle.com/membership/august-2026',
   details: 'https://isthereanydeal.com/bundles/1/',
-  expiry: '2026-09-01T16:59:00+02:00',
+  expiry: '2030-09-01T16:59:00+02:00',
   counts: { games: 9, media: 3 },
   tiers: [
     { price: { amount: 14.99, amountInt: 1499, currency: 'USD' }, games: [] },
