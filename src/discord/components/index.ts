@@ -20,6 +20,7 @@ import {
   handleWelcomeFeedback,
   handleWelcomeAddGame,
   handleWelcomeAbout,
+  handleWelcomeTrending,
 } from './welcome'
 import { handleTrendingPage } from './trending'
 
@@ -49,5 +50,6 @@ export const components: Record<string, ComponentHandler> = {
   welcome_feedback: handleWelcomeFeedback,
   welcome_add_game: handleWelcomeAddGame,
   welcome_about: handleWelcomeAbout,
+  welcome_trending: handleWelcomeTrending,
   trending_page: handleTrendingPage,
 }

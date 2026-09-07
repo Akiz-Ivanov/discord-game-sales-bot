@@ -61,9 +61,9 @@ describe('buildTrendingMessage', () => {
   })
 
   it.each([
-    ['N', 'New low'],
+    ['N', 'New historical low'],
     ['H', 'Historical low'],
-    ['S', 'Lowest here'],
+    ['S', 'Lowest store price'],
   ])('shows the correct label for flag %s', (flag, label) => {
     const item = makeDealListItem({ deal: makeDeal({ flag }) })
     const content = getTexts(getContainer(buildTrendingMessage([item])))[1]!
@@ -75,9 +75,9 @@ describe('buildTrendingMessage', () => {
     const item = makeDealListItem({ deal: makeDeal({ flag: null }) })
     const content = getTexts(getContainer(buildTrendingMessage([item])))[1]!
       .content
-    expect(content).not.toContain('New low')
+    expect(content).not.toContain('New historical low')
     expect(content).not.toContain('Historical low')
-    expect(content).not.toContain('Lowest here')
+    expect(content).not.toContain('Lowest store price')
   })
 
   it('includes a footer linking to the full deals page', () => {

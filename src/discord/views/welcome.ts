@@ -46,10 +46,16 @@ const ENTRIES: {
     style: ButtonStyle.Success,
   },
   {
+    text: `🔥 **Trending right now**\nSee what deals everyone's grabbing`,
+    buttonLabel: 'Hottest deals',
+    customId: 'welcome_trending',
+    style: ButtonStyle.Primary,
+  },
+  {
     text: `${customEmojiTag('gift', '1538895109733486662')} **Free games right now**\nGrab today's freebies before they expire`,
     buttonLabel: 'Free games',
     customId: 'welcome_free_games',
-    style: ButtonStyle.Primary,
+    style: ButtonStyle.Success, //* flipped from Primary — greens with My wishlist now
   },
 ]
 
