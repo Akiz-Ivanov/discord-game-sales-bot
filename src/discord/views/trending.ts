@@ -19,11 +19,12 @@ const DEALS_PAGE_URL = 'https://isthereanydeal.com/deals/'
 export const MAX_TRENDING_PER_PAGE = 15
 
 const CHART_LINE_DOWN_ID = '1530575847679856821'
+const DIAMOND_ID = '1546488148974903367'
 
 const FLAG_LABELS: Record<string, string> = {
-  N: `${customEmojiTag('new', '1541817006125223996')} New low`,
-  H: `${customEmojiTag('chartlinedown', CHART_LINE_DOWN_ID)} Historical low`,
-  S: '🏷️ Lowest here',
+  N: `${customEmojiTag('diamond', DIAMOND_ID)} \`New historical low\``,
+  H: `${customEmojiTag('chartlinedown', CHART_LINE_DOWN_ID)} \`Historical low\``,
+  S: '🏷️ `Lowest store price`',
 }
 
 const buildEntryLine = (item: ItadDealListItem): string => {

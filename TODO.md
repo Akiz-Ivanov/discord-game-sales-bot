@@ -1266,6 +1266,22 @@ compose down`/`up` and a full Docker Desktop restart — neither
     reaching for first if the same symptom recurs.
   - `commands/quickAccess.test.ts` (new), `views/help.test.ts` updated
     for the tenth entry.
+- [x] Trending button added to welcome card — "Check price"/"Trending"
+      grouped Primary (blue), "My wishlist"/"Free games" grouped
+      Success (green); Trending's 🔥 stays unicode pending the batched
+      custom-emoji Portal session. New `handleWelcomeTrending` component
+      handler, mirrors `handleWelcomeFreeGames`'s shape.
+  - `/trending`'s flag labels reworded to match ITAD's own site
+    vocabulary directly (`New historical low`/`Historical low`/
+    `Lowest store price`) after several iterations — confirmed live
+    via isthereanydeal.com/deals/ that this is their own terminology,
+    so it also reads correctly to anyone who's used ITAD's site before.
+    Custom diamond emoji sourced (Phosphor-style) for the N flag.
+  - `[Broadcast]` marker on cron-posted messages — tried multiple
+    live-tested formatting variants (subtext line, separator-spaced,
+    double-newline, inline-code) via curl against both cron routes;
+    none read better than the plain unmarked header, so this was
+    reverted and considered closed unless a concrete need resurfaces.
 - [ ] Consider migrating `/price` to Components V2 — the inline 3-across
       Released/Reviews/Players field grid is the one thing keeping it on
       classic embeds today (V2 has no equivalent to Discord's automatic

@@ -44,7 +44,7 @@ describe('buildWelcomeMessage — rich variant (default)', () => {
   })
 
   it('builds one Section per entry', () => {
-    expect(getSections(getContainer(buildWelcomeMessage()))).toHaveLength(3)
+    expect(getSections(getContainer(buildWelcomeMessage()))).toHaveLength(4)
   })
 
   it('includes the footer pointing to /help', () => {
@@ -83,7 +83,12 @@ describe('buildWelcomeMessage — rich variant (default)', () => {
       style: ButtonStyle.Success,
     })
     expect(sections[2]!.accessory).toMatchObject({
+      custom_id: 'welcome_trending',
+      style: ButtonStyle.Primary,
+    })
+    expect(sections[3]!.accessory).toMatchObject({
       custom_id: 'welcome_free_games',
+      style: ButtonStyle.Success,
     })
   })
 })
@@ -112,7 +117,7 @@ describe('buildWelcomeMessage — lean variant (ephemeral)', () => {
     expect(buildWelcomeMessage(true).components).toHaveLength(1)
   })
 
-  it('still builds all three entry Sections', () => {
-    expect(getSections(getContainer(buildWelcomeMessage(true)))).toHaveLength(3)
+  it('still builds all four entry Sections', () => {
+    expect(getSections(getContainer(buildWelcomeMessage(true)))).toHaveLength(4)
   })
 })
