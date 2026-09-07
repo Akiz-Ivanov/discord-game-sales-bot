@@ -15,6 +15,8 @@ import { buildFreeGamesMessage } from '@/discord/views/freeGames'
 import { buildHelpMessage } from '../views/help'
 import { buildFeedbackModal } from '../interactions/buildFeedbackModal'
 import { buildAboutMessage } from '../views/about'
+import { getTrendingDeals } from '@/itad/client'
+import { buildTrendingMessage } from '../views/trending'
 
 export const handleWelcomeAddGame: ComponentHandler = () => ({
   type: InteractionResponseType.Modal,
@@ -118,3 +120,11 @@ export const handleWelcomeAbout: ComponentHandler = () => ({
   type: InteractionResponseType.ChannelMessageWithSource,
   data: buildAboutMessage(),
 })
+
+export const handleWelcomeTrending: ComponentHandler = async () => {
+  const deals = await getTrendingDeals()
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: buildTrendingMessage(deals, 0),
+  }
+}

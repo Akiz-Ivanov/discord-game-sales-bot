@@ -7,6 +7,7 @@ import {
   handleWelcomeFeedback,
   handleWelcomeAddGame,
   handleWelcomeAbout,
+  handleWelcomeTrending,
 } from './welcome'
 import { getInteractionUserId } from '@/discord/interactions/getInteractionUserId'
 import { getWishlist } from '@/services/wishlist'
@@ -21,6 +22,8 @@ import {
   makeWishlistItemRow,
   makeGiveaway,
 } from '@/test/factories'
+import { getTrendingDeals } from '@/itad/client'
+import { buildTrendingMessage } from '@/discord/views/trending'
 
 vi.mock('@/discord/interactions/getInteractionUserId', () => ({
   getInteractionUserId: vi.fn(),
@@ -32,6 +35,8 @@ vi.mock('@/discord/views/wishlistList', () => ({
 }))
 vi.mock('@/services/freeGames', () => ({ getSortedFreeGames: vi.fn() }))
 vi.mock('@/discord/views/freeGames', () => ({ buildFreeGamesMessage: vi.fn() }))
+vi.mock('@/itad/client', () => ({ getTrendingDeals: vi.fn() }))
+vi.mock('@/discord/views/trending', () => ({ buildTrendingMessage: vi.fn() }))
 
 const discordId = '255361746758402048'
 
@@ -176,5 +181,27 @@ describe('handleWelcomeAbout', () => {
     expect(result.data?.flags).toBe(
       MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
     )
+  })
+})
+
+describe('handleWelcomeTrending', () => {
+  it('fetches trending deals and renders the trending message', async () => {
+    vi.mocked(getTrendingDeals).mockResolvedValue([{ id: 1 } as never])
+    const fakeMessage = { flags: 0, components: [] }
+    vi.mocked(buildTrendingMessage).mockReturnValue(fakeMessage as never)
+
+    const result = await handleWelcomeTrending(
+      buildComponentInteraction<typeof handleWelcomeTrending>(
+        'welcome_trending'
+      )
+    )
+
+    expect(buildTrendingMessage).toHaveBeenCalledWith([{ id: 1 }], 0)
+    if (result.type !== InteractionResponseType.ChannelMessageWithSource) {
+      throw new Error(
+        `Expected ChannelMessageWithSource, got type ${result.type}`
+      )
+    }
+    expect(result.data).toEqual(fakeMessage)
   })
 })
