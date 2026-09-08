@@ -60,8 +60,8 @@ const SECTIONS = [
           <code>/feedback</code>, your message, category, Discord ID, and server
           context (plus an optional screenshot) are posted to a private channel
           only the bot owner can see. This isn&apos;t stored in the bot&apos;s
-          database and isn&apos;t deleted by <code>/forget-me</code> — it
-          remains as a message in that channel until manually removed.
+          database and isn&apos;t deleted by <code>/forget-me</code>. It remains
+          as a message in that channel until manually removed.
         </li>
       </ul>
     ),
