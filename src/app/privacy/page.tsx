@@ -124,6 +124,23 @@ const SECTIONS = [
           .
         </li>
         <li>
+          The bot&apos;s app icon is the{' '}
+          <a
+            href="https://game-icons.net/1x1/delapouite/price-tag.html"
+            className="underline"
+          >
+            &quot;Price tag&quot; icon by Delapouite
+          </a>
+          , licensed under{' '}
+          <a
+            href="https://creativecommons.org/licenses/by/3.0/"
+            className="underline"
+          >
+            CC BY 3.0
+          </a>
+          .
+        </li>
+        <li>
           Store names and logos shown in price listings belong to their
           respective owners; this bot is not affiliated with or endorsed by any
           of them.
