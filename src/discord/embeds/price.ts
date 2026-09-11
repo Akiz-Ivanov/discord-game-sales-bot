@@ -63,7 +63,7 @@ const buildEnrichmentFields = (game: ItadGame): APIEmbedField[] => {
 
   if (game.releaseDate) {
     fields.push({
-      name: '📅 Released',
+      name: `${customEmojiTag('calendar', '1547944470652260362')} Released`,
       value: formatReleaseDate(game.releaseDate),
       inline: true,
     })
@@ -82,7 +82,7 @@ const buildEnrichmentFields = (game: ItadGame): APIEmbedField[] => {
 
   if (game.players) {
     fields.push({
-      name: '🎮 Players',
+      name: `${customEmojiTag('players', '1547995595975819294')} Players`,
       value: formatPlayerCounts(game.players),
       inline: true,
     })

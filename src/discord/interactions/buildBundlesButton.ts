@@ -13,7 +13,8 @@ export const buildBundlesButton = (
       type: ComponentType.Button,
       style: ButtonStyle.Primary,
       custom_id: `price_bundles:${itadId}`,
-      label: '📦 Show bundles',
+      label: 'Show bundles',
+      emoji: { id: '1547932904292614204', name: 'bundle' },
     },
   ],
 })
