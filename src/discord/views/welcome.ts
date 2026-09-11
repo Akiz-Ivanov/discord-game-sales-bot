@@ -40,13 +40,13 @@ const ENTRIES: {
     style: ButtonStyle.Primary,
   },
   {
-    text: `${customEmojiTag('heart', '1538897010176954439')} **Build your wishlist**\nI'll watch it and ping you the moment price drops`,
+    text: `${customEmojiTag('wishlist', '1548045300525047929')} **Build your wishlist**\nI'll watch it and ping you the moment price drops`,
     buttonLabel: 'My wishlist',
     customId: 'welcome_my_wishlist',
     style: ButtonStyle.Success,
   },
   {
-    text: `🔥 **Trending right now**\nSee what deals everyone's grabbing`,
+    text: `🔥 **Trending right now**\nSee what's trending across the stores`,
     buttonLabel: 'Hottest deals',
     customId: 'welcome_trending',
     style: ButtonStyle.Primary,
