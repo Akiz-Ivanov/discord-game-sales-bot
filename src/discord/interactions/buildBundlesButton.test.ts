@@ -8,8 +8,9 @@ describe('buildBundlesButton', () => {
 
     expect(row.components[0]).toMatchObject({
       style: ButtonStyle.Primary,
-      label: '📦 Show bundles',
+      label: 'Show bundles',
       custom_id: 'price_bundles:itad-1',
+      emoji: { id: '1547932904292614204', name: 'bundle' },
     })
   })
 })

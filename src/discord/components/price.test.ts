@@ -135,10 +135,15 @@ describe('handlePriceWishlistToggle', () => {
     expect(data.embeds).toEqual([{ title: 'Hollow Knight' }])
     const row = data.components?.[0]
     const button = row && 'components' in row ? row.components[0] : undefined
-    expect(button).toMatchObject({ label: '➖ Remove from wishlist' })
+    expect(button).toMatchObject({
+      label: 'Remove from wishlist',
+      emoji: { id: '1547926670600573038', name: 'minuscirclefill1' },
+    })
     const buttons = row && 'components' in row ? row.components : []
     expect(buttons).toHaveLength(2)
-    expect(buttons[1]).toMatchObject({ custom_id: `price_bundles:${game.id}` })
+    expect(buttons[1]).toMatchObject({
+      custom_id: `price_bundles:${game.id}`,
+    })
   })
 
   it('removes the game and flips the button to Add when previously wishlisted', async () => {
@@ -160,10 +165,15 @@ describe('handlePriceWishlistToggle', () => {
     expect(data.embeds).toEqual([{ title: 'Hollow Knight' }])
     const row = data.components?.[0]
     const button = row && 'components' in row ? row.components[0] : undefined
-    expect(button).toMatchObject({ label: '➕ Add to wishlist' })
+    expect(button).toMatchObject({
+      label: 'Add to wishlist',
+      emoji: { id: '1547931440811876434', name: 'pluscirclefill1' },
+    })
     const buttons = row && 'components' in row ? row.components : []
     expect(buttons).toHaveLength(2)
-    expect(buttons[1]).toMatchObject({ custom_id: `price_bundles:${game.id}` })
+    expect(buttons[1]).toMatchObject({
+      custom_id: `price_bundles:${game.id}`,
+    })
   })
 
   it('replies with an ephemeral remove picker as a new message, leaving the original embed untouched', async () => {

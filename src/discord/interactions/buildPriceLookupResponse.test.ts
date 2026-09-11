@@ -80,7 +80,10 @@ describe('buildPriceLookupResponse', () => {
     expect(data.embeds).toEqual([fakeEmbed])
     const row = data.components?.[0]
     const button = row && 'components' in row ? row.components[0] : undefined
-    expect(button).toMatchObject({ label: '➕ Add to wishlist' })
+    expect(button).toMatchObject({
+      label: 'Add to wishlist',
+      emoji: { id: '1547931440811876434', name: 'pluscirclefill1' },
+    })
   })
 
   it('shows only the bundles button when discordId/guildId are absent (DM)', async () => {
