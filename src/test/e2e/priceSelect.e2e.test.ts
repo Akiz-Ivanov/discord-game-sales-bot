@@ -55,7 +55,11 @@ describe('POST /api/interactions — price_select click (e2e)', () => {
     //* Toggle + bundles buttons both present in one merged row.
     const buttons = body.data.components[0].components
     expect(buttons).toHaveLength(2)
-    expect(buttons[0].label).toBe('➕ Add to wishlist')
+    expect(buttons[0].label).toBe('Add to wishlist')
+    expect(buttons[0].emoji).toEqual({
+      id: '1547931440811876434',
+      name: 'pluscirclefill1',
+    })
     expect(buttons[1].custom_id).toBe(`price_bundles:${HOLLOW_KNIGHT_ITAD_ID}`)
 
     const [gameRow] = await db

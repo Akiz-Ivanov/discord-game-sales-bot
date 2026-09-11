@@ -51,7 +51,7 @@ describe('POST /api/interactions — price_wishlist_toggle click (e2e)', () => {
     expect(body.data.embeds).toEqual([EXISTING_EMBED])
 
     const buttons = body.data.components[0].components
-    expect(buttons[0].label).toBe('➖ Remove from wishlist')
+    expect(buttons[0].label).toBe('Remove from wishlist')
 
     const [gameRow] = await db
       .select()
@@ -111,7 +111,7 @@ describe('POST /api/interactions — price_wishlist_toggle click (e2e)', () => {
     expect(body.data.embeds).toEqual([EXISTING_EMBED])
 
     const buttons = body.data.components[0].components
-    expect(buttons[0].label).toBe('➕ Add to wishlist')
+    expect(buttons[0].label).toBe('Add to wishlist')
 
     const remaining = await db
       .select()
