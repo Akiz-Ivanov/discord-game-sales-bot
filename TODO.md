@@ -1282,18 +1282,36 @@ compose down`/`up` and a full Docker Desktop restart — neither
     double-newline, inline-code) via curl against both cron routes;
     none read better than the plain unmarked header, so this was
     reverted and considered closed unless a concrete need resurfaces.
-- [ ] Consider migrating `/price` to Components V2 — the inline 3-across
-      Released/Reviews/Players field grid is the one thing keeping it on
-      classic embeds today (V2 has no equivalent to Discord's automatic
-      inline-field layout). V2 would unlock real spacing control
-      (`Separator` has small/large size options — classic embeds have no
-      margin/spacing property between fields at all), which came up
-      wanting more breathing room between the store list, Historical low,
-      and the metadata row. Undecided whether losing the 3-across grid is
-      worth it for one row's layout — needs its own look once there's
-      time, not urgent. Bundle with the existing "Historical low field
-      layout" item above if/when this happens, since both touch the same
-      area of the embed.
+- [x] `/price` stays on classic embeds — settled, not deferred. Tried
+      three Components V2 layouts on a throwaway `price-v2-test`
+      command/branch (Thumbnail-accessory banner, per-shop text lines,
+      monospace code-block table) and each hit a different hard
+      platform limit: no proportional image scaling (Thumbnail too
+      small, MediaGallery too big regardless of source resolution —
+      even banner400 didn't fix it), no two-column text layout
+      (Section's accessory slot only accepts Thumbnail/Button, never
+      plain text — kills a real price-right-aligned table), and no
+      links inside code blocks (kills the monospace-table option
+      entirely, since click-through to the deal is core to what
+      `/price` does). V2 also has no equivalent to visual
+      field-grouping — every line renders at the same weight, so
+      multi-section cards read as one long list rather than
+      prices/metadata as distinct clusters. Revisit only if Discord
+      ships new V2 primitives addressing these specifically.
+- [x] GOG shop emoji replaced with an accurate brand icon — sourced
+      from Simple Icons (`gogdotcom`, CC0-1.0), backed in Inkscape so
+      the letter cutouts don't render transparent on dark theme,
+      uploaded via Developer Portal, one-line ID swap in
+      `shopEmoji.ts`. Kept flat black/white — no confirmed official
+      GOG accent color exists beyond that.
+- [x] Discord Developer Portal polish — bot avatar/icon, app
+      description, and Guild Install permissions all done pre-launch.
+      OAuth2 tab intentionally untouched — no OAuth-driven flow exists
+      yet; will get its own review whenever the ITAD Waitlist import
+      item above is actually built. Interactions Endpoint URL swap
+      (ngrok → real Vercel domain) tracked separately as its own
+      registration-sequence step, not part of this bullet's original
+      scope.
 - [ ] User-defined notification thresholds (min % off, price ceiling, historical-low-only, store filter)
 - [ ] Web dashboard (tracked games + price history, reusing the same service layer as the bot)
 - [ ] Global command registration (once ready to invite the bot to other servers)
@@ -1302,10 +1320,6 @@ compose down`/`up` and a full Docker Desktop restart — neither
     alerts post as ephemeral or visible-to-all (some guilds may want
     alerts shareable/visible for group deal-hunting) — reads at
     buildSaleAlertMessage()/postChannelMessage() time
-- [ ] Discord Developer Portal polish — bot avatar/icon, app
-      description, permissions/OAuth scope review — relevant once
-      global command registration and a wider invite are actually on
-      the table, not urgent before that.
 - [ ] Import a user's existing ITAD Waitlist via OAuth (ITAD account linking — only relevant if/when someone wants to sync an existing ITAD waitlist instead of rebuilding it in Discord)
 - [ ] Steam App ID backfill on `games` rows resolved via title/ITAD-ID search
       (currently only populated when a user types a numeric appid directly)
