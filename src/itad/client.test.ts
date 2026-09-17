@@ -5,6 +5,7 @@ import {
   lookupByItadId,
   getPrices,
   getBundlesForGame,
+  getBundlesList,
 } from './client'
 import { game, makeBundle } from '@/test/factories'
 import type { ItadGamePrices } from '@/types'
@@ -329,5 +330,47 @@ describe('getTrendingDeals', () => {
     )
 
     await expect(getTrendingDeals()).rejects.toThrow('ITAD deals failed: 500')
+  })
+})
+
+describe('getBundlesList', () => {
+  it('builds the request URL with sort=expiry and limit', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ data: [] }))
+
+    await getBundlesList(50)
+
+    const calledUrl = vi.mocked(fetch).mock.calls[0]![0] as URL
+    expect(calledUrl.pathname).toBe('/bundles/v1')
+    expect(calledUrl.searchParams.get('sort')).toBe('expiry')
+    expect(calledUrl.searchParams.get('limit')).toBe('50')
+    expect(calledUrl.searchParams.get('key')).toBe('test-key')
+  })
+
+  it('defaults to limit=50 when not specified', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ data: [] }))
+
+    await getBundlesList()
+
+    const calledUrl = vi.mocked(fetch).mock.calls[0]![0] as URL
+    expect(calledUrl.searchParams.get('limit')).toBe('50')
+  })
+
+  it('returns bundles on a successful response', async () => {
+    const bundle = makeBundle()
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ data: [bundle] }))
+
+    const result = await getBundlesList()
+
+    expect(result).toEqual([bundle])
+  })
+
+  it('throws with status and body text when the response is not ok', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ ok: false, status: 500, data: 'server error' })
+    )
+
+    await expect(getBundlesList()).rejects.toThrow(
+      'ITAD bundles list failed: 500'
+    )
   })
 })

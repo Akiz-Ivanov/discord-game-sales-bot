@@ -20,6 +20,7 @@ const INFO_URL = `${BASE_URL}/games/info/v2`
 const PRICES_URL = `${BASE_URL}/games/prices/v3`
 const BUNDLES_URL = `${BASE_URL}/games/bundles/v2`
 const DEALS_URL = `${BASE_URL}/deals/v2`
+const BUNDLES_LIST_URL = `${BASE_URL}/bundles/v1`
 
 const getApiKey = (): string => {
   const key = process.env.ITAD_API_KEY
@@ -146,4 +147,25 @@ export const getTrendingDeals = async (
 
   const data: ItadDealsListResponse = await res.json()
   return data.list.filter(isPurchasableGame)
+}
+
+//* Global bundle list — sort=expiry (ascending, soonest-expiring-first)
+//* confirmed live via requests/itad.rest recon to be a clean monotonic
+//* sort with no gaps or mixed grouping. Unlike getBundlesForGame's
+//* /games/bundles/v2, this endpoint doesn't need client-side expiry
+//* filtering — confirmed live it only ever returns active bundles.
+export const getBundlesList = async (limit = 50): Promise<ItadBundle[]> => {
+  const url = new URL(BUNDLES_LIST_URL)
+  url.searchParams.set('key', getApiKey())
+  url.searchParams.set('limit', String(limit))
+  url.searchParams.set('sort', 'expiry')
+
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw new Error(
+      `ITAD bundles list failed: ${res.status} ${await res.text()}`
+    )
+  }
+
+  return res.json()
 }
