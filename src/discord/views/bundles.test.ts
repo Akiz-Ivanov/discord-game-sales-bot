@@ -41,13 +41,13 @@ describe('buildBundlesMessage', () => {
       '[Humble Choice August 2026](https://humblebundle.com/membership/august-2026)'
     )
     expect(description).toContain('Humble Bundle')
-    expect(description).toContain('9 games from **$14.99**') // was: '**9 games from $14.99**'
+    expect(description).toContain('9 games from **$14.99**')
   })
 
-  it('shows "Free tier" when the first tier has no price', () => {
+  it('shows "Price varies" when the first tier has no price', () => {
     const bundle = makeBundle({ tiers: [{ price: null, games: [] }] })
     const result = buildBundlesMessage([bundle], 'Dead Cells')
-    expect(result.embeds[0]!.description).toContain('Free tier')
+    expect(result.embeds[0]!.description).toContain('Price varies')
   })
 
   it('caps display at 5 bundles and notes how many more exist in the footer', () => {
