@@ -23,6 +23,7 @@ import {
   handleWelcomeTrending,
 } from './welcome'
 import { handleTrendingPage } from './trending'
+import { handleBundlesListPage } from './bundlesList'
 
 //* Keyed by the literal prefix before the first ':' in custom_id.
 //* e.g. custom_id "wishlist_remove_select" or "wishlist_remove_page:2"
@@ -52,4 +53,5 @@ export const components: Record<string, ComponentHandler> = {
   welcome_about: handleWelcomeAbout,
   welcome_trending: handleWelcomeTrending,
   trending_page: handleTrendingPage,
+  bundles_page: handleBundlesListPage,
 }

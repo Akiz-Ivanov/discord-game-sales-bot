@@ -50,6 +50,11 @@ const commands = [
     type: 1,
   },
   {
+    name: 'bundles',
+    description: 'Show currently active bundle deals',
+    type: 1,
+  },
+  {
     name: 'price',
     description: 'Get the current price for a game',
     options: [
