@@ -26,7 +26,7 @@ const expectChannelMessage = (result: APIInteractionResponse) => {
 }
 
 //* forgetMe reads nothing off the interaction directly (getInteractionUserId
-//* is mocked), so an empty cast is enough — same pattern as ping.test.ts.
+//* is mocked), so an empty cast is enough
 const fakeInteraction = {} as APIChatInputApplicationCommandInteraction
 
 beforeEach(() => {
