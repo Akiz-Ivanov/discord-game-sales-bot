@@ -10,11 +10,6 @@ const commands = [
     type: 2, // USER command — no description, no options allowed
   },
   {
-    name: 'ping',
-    description: 'Replies with pong!',
-    type: 1, //* CHAT_INPUT (slash command)
-  },
-  {
     name: 'help',
     description: 'Show available commands and how the bot works',
     type: 1,

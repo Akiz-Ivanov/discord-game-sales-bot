@@ -8,7 +8,7 @@ import { autocomplete } from '@/discord/autocomplete'
 import { modals } from '@/discord/modals'
 
 vi.mock('discord-interactions', () => ({ verifyKey: vi.fn() }))
-vi.mock('@/discord/commands', () => ({ commands: { ping: vi.fn() } }))
+vi.mock('@/discord/commands', () => ({ commands: { testCommand: vi.fn() } }))
 vi.mock('@/discord/components', () => ({
   components: { wishlist_remove_select: vi.fn() },
 }))
@@ -38,7 +38,7 @@ describe('POST /api/interactions', () => {
     const res = await POST(buildRequest({ type: InteractionType.Ping }))
 
     expect(res.status).toBe(401)
-    expect(commands.ping).not.toHaveBeenCalled()
+    expect(commands.testCommand).not.toHaveBeenCalled()
   })
 
   it('responds to Ping with Pong', async () => {
@@ -52,7 +52,7 @@ describe('POST /api/interactions', () => {
 
   it('dispatches an ApplicationCommand interaction to the matching command handler', async () => {
     vi.mocked(verifyKey).mockResolvedValue(true)
-    vi.mocked(commands.ping!).mockResolvedValue({
+    vi.mocked(commands.testCommand!).mockResolvedValue({
       type: 4,
       data: { content: 'Pong!' },
     })
@@ -60,12 +60,12 @@ describe('POST /api/interactions', () => {
     const res = await POST(
       buildRequest({
         type: InteractionType.ApplicationCommand,
-        data: { name: 'ping' },
+        data: { name: 'testCommand' },
       })
     )
     const body = await res.json()
 
-    expect(commands.ping).toHaveBeenCalled()
+    expect(commands.testCommand).toHaveBeenCalled()
     expect(body).toEqual({ type: 4, data: { content: 'Pong!' } })
   })
 
@@ -124,7 +124,7 @@ describe('POST /api/interactions', () => {
 
   it('returns a friendly ephemeral message when a command handler throws', async () => {
     vi.mocked(verifyKey).mockResolvedValue(true)
-    vi.mocked(commands.ping!).mockRejectedValue(
+    vi.mocked(commands.testCommand!).mockRejectedValue(
       new Error('ITAD search failed: 503')
     )
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -132,7 +132,7 @@ describe('POST /api/interactions', () => {
     const res = await POST(
       buildRequest({
         type: InteractionType.ApplicationCommand,
-        data: { name: 'ping' },
+        data: { name: 'testCommand' },
       })
     )
     const body = await res.json()
