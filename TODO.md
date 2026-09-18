@@ -1353,6 +1353,14 @@ compose down`/`up` and a full Docker Desktop restart — neither
     plural, pagination, all three days-remaining branches including
     the already-past edge case), matching command/component handler
     tests. 548/548 passing project-wide, coverage steady at ~98.5%.
+- [x] Removed `/ping` command — served its original purpose (proving
+      the signature-verification pipeline worked end-to-end before
+      anything else did), now fully subsumed by the real e2e test
+      suite. No other code depended on it; unrelated to Discord's own
+      `PING` interaction-type handshake, which `route.ts` still
+      handles unconditionally. Deleted `commands/ping.ts`,
+      `commands/ping.test.ts`, its registry entry, and its
+      `register-commands.js` entry.
 - [ ] `/commands` folder reorg — flat directory has grown to ~13
       command files (well past the standing "flat until ~5-6 files"
       rule already applied to e2e specs). Natural split surfaced:
@@ -1432,12 +1440,17 @@ compose down`/`up` and a full Docker Desktop restart — neither
       pure confirm/cancel flows (`/forget-me`, `/config remove-alerts`)
       — a modal adds friction for a decision needing zero text input;
       buttons stay correct there.
-- [ ] `/about` polish — deferred additions, not urgent:
-  - Bot latency/ping stat (interaction-receipt-to-response round trip) —
-    cheap to compute, stays honest regardless of server count, unlike a
-    static server-count line which would undersell the bot while still
-    in the single-guild test phase. Revisit server count once past
-    global registration and actually in a handful of servers.
+  - Bot latency stat — replaces the old bare `/ping` (deleted, see
+    below), which only proved the request round-tripped with no
+    timing. Two approaches discussed, undecided: derive request-
+    received time from the interaction's snowflake ID (true network
+    round trip, but needs snowflake bit-math) vs. timestamp at the
+    top of the handler and diff at response time (only measures
+    internal processing, not network, but far simpler to write and
+    reason about). Stays honest regardless of server count, unlike a
+    static server-count line which would undersell the bot while
+    still in the single-guild test phase. Revisit server count once
+    past global registration and actually in a handful of servers.
   - Changelog — NOT as GitHub Releases/tags (adds a CI/tagging workflow
     for zero user-facing benefit, and non-developers tend to bounce off
     GitHub entirely). Candidate: a plain `/changelog` page on the same
