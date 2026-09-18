@@ -1312,6 +1312,71 @@ compose down`/`up` and a full Docker Desktop restart — neither
       (ngrok → real Vercel domain) tracked separately as its own
       registration-sequence step, not part of this bullet's original
       scope.
+- [x] `/bundles` standalone command — browses ITAD's global bundle feed
+      (`GET /bundles/v1`), distinct from the existing per-game bundles
+      button on `/price` (that one only answers "does _this_ game have
+      a bundle"; this browses "what bundles exist right now," same
+      content-type gap `/trending` and `/free` fill for deals and
+      giveaways). New `itad/client.ts`'s `getBundlesList()` — confirmed
+      live via `.rest` recon that `sort=expiry` (ascending) is a clean
+      monotonic sort with no gaps or mixed grouping, so "soonest-
+      expiring-first" needed no fallback logic.
+  - New `discord/views/bundlesList.ts` (`buildBundlesListMessage`) —
+    ephemeral, Components V2, plain `TextDisplay` entries (mirrors
+    `/trending`'s shape), 9 bundles/page, `bundles_page:{page}` nav
+    handler live-refetches on click (same posture as `/trending`/
+    `/free`). Accent color `0x89cff0` (pale sky blue) — picked after
+    an initial magenta draft read as too strong; distinct from every
+    other color already in use, candidate to reuse on a future
+    surface rather than invent yet another one.
+  - Days-remaining shown per bundle ("2 days left" / "Ends today") —
+    `formatDaysRemaining()` originally compared raw millisecond
+    distance, which off-by-one'd any expiry later in the day than the
+    current time (a bundle ending in 30 minutes read as "1 day left").
+    Fixed to compare UTC calendar-day boundaries instead, same
+    approach `formatReleaseDate`/`formatEndDate` already use
+    elsewhere. New test closes the last branch gap: an already-past
+    expiry also correctly reads "Ends today" rather than a negative
+    number.
+  - Tier price line reworded: ITAD's `tier.price: null` covers two
+    different real situations (Fanatical's pick-and-mix bundles with
+    no fixed price, and Humble's pay-what-you-want minimum tier) —
+    "Free tier" was actively wrong for both, landed on "Price varies"
+    as a neutral label that overclaims neither mechanic. "N games
+    from $X" kept as the shortest accurate framing once "Price
+    varies" already signals "not a fixed number." Same wording
+    applied to the Phase 1 per-game `views/bundles.ts` for
+    consistency between the two surfaces.
+  - Full test coverage: `itad/client.test.ts` additions
+    (`getBundlesList` — URL/param construction, sort param, error
+    path), `views/bundlesList.test.ts` (new — empty state, singular/
+    plural, pagination, all three days-remaining branches including
+    the already-past edge case), matching command/component handler
+    tests. 548/548 passing project-wide, coverage steady at ~98.5%.
+- [ ] `/commands` folder reorg — flat directory has grown to ~13
+      command files (well past the standing "flat until ~5-6 files"
+      rule already applied to e2e specs). Natural split surfaced:
+      game-data commands (`price`, `wishlist`, `trending`,
+      `bundlesList`, `free`) vs. meta/utility commands (`about`,
+      `config`, `feedback`, `forgetMe`, `help`, `privacyPolicy`,
+      `quickAccess`, `ping`). Pure churn, zero user-facing benefit —
+      its own dedicated session, not bundled with feature work.
+- [ ] Emoji-ID duplication across files — `BUNDLE_EMOJI_ID`
+      (`1547932904292614204`) now lives as a separate local const in
+      both `buildBundlesButton.ts` and `views/bundlesList.ts`, matching
+      every other emoji ID in the codebase (all file-scoped, no
+      central registry). Fine for now; worth folding into a real
+      shared emoji-ID module only if/when a dedicated icon-
+      consolidation pass happens — not a one-off exception before then.
+- [ ] `/feedback` reply gap — considered rewording the confirmation
+      copy to set expectations (no guaranteed response beyond a manual
+      DM, which isn't reliable — Discord error 50007 if DMs are closed
+      or no shared guild), decided to leave as-is for now rather than
+      make a cosmetic change ahead of a real fix. Real fix (an admin
+      `/feedback-reply` command, DM-based, graceful failure instead of
+      a silent no-op) stays backlogged — revisit both together once
+      `/feedback` volume actually shows people expecting a response,
+      not preemptively.
 - [ ] User-defined notification thresholds (min % off, price ceiling, historical-low-only, store filter)
 - [ ] Web dashboard (tracked games + price history, reusing the same service layer as the bot)
 - [ ] Global command registration (once ready to invite the bot to other servers)

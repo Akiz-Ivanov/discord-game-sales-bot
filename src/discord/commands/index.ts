@@ -11,6 +11,7 @@ import { feedback } from './feedback'
 import { about } from './about'
 import { trending } from './trending'
 import { quickAccess } from './quickAccess'
+import { bundlesList } from './bundlesList'
 
 export const commands: Record<string, CommandHandler> = {
   ping,
@@ -25,4 +26,5 @@ export const commands: Record<string, CommandHandler> = {
   about,
   trending,
   'Quick access': quickAccess,
+  bundles: bundlesList,
 }

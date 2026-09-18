@@ -129,6 +129,9 @@ GET {{baseUrl}}/bundles/v1?key={{apiKey}}&limit=10&sort=-expiry
 ### Does the active bundle count exceed one page?
 GET {{baseUrl}}/bundles/v1?key={{apiKey}}&limit=10&offset=10&sort=-expiry
 
+### Bundles sorted ascending — soonest-expiring first, for /bundles browse framing
+GET {{baseUrl}}/bundles/v1?key={{apiKey}}&limit=10&sort=expiry
+
 ### Probe: "Hottest games" sort — guessing likely values
 GET {{baseUrl}}/deals/v2?key={{apiKey}}&country=US&sort=trending&limit=10
 
