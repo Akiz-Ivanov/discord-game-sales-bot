@@ -35,7 +35,7 @@ describe('buildPrivacyPolicyMessage', () => {
     const texts = getTexts(getContainer(buildPrivacyPolicyMessage())).map(
       (t) => t.content
     )
-    expect(texts.some((t) => t.includes('What we store'))).toBe(true)
+    expect(texts.some((t) => t.includes('What the bot stores'))).toBe(true)
     expect(texts.some((t) => t.includes('/forget-me'))).toBe(true)
     expect(texts.some((t) => t.includes('/config remove-alerts'))).toBe(true)
   })
