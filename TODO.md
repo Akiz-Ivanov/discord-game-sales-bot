@@ -1361,13 +1361,72 @@ compose down`/`up` and a full Docker Desktop restart — neither
       handles unconditionally. Deleted `commands/ping.ts`,
       `commands/ping.test.ts`, its registry entry, and its
       `register-commands.js` entry.
+- [x] Free-games cron switched from daily to weekly (Saturday) — daily
+      reposting was mostly showing the same still-running giveaways
+      back to back, since GamerPower entries typically stay live for
+      days. One-line `vercel.json` schedule change
+      (`0 13 * * *` → `0 13 * * 6`); no code changes, since
+      `getSortedFreeGames()`/`buildFreeGamesMessage` don't care about
+      cadence.
+- [x] `/wishlist list` header — every other paginated Components V2
+      view in the bot (`/help`, `/about`, `/trending`, `/bundles`,
+      free games) already opens with a header `TextDisplay`;
+      `/wishlist list` was the one exception, making a screenshot or a
+      scrollback message ambiguous about which list it is. Considered
+      solving it with plain message `content` above the card instead —
+      not possible, since `MessageFlags.IsComponentsV2` disables
+      `content` entirely, Discord silently drops it. Added
+      `buildHeader()` reusing the same wishlist custom emoji already on
+      the welcome card, plus a `-# Sorted by discount` subtext line for
+      the same reason `/trending`'s footer exists — telling the user
+      *why* the order is what it is, for free.
+  - **Component budget cost**: the header (`TextDisplay` + `Separator`)
+    adds 2 components; a full page + nav row was already sitting at
+    exactly 40 (`MAX_ITEMS_PER_PAGE = 9`'s own comment said so), so
+    adding the header without adjustment would have pushed it to 41 —
+    the same `COMPONENT_MAX_TOTAL_COMPONENTS_EXCEEDED` failure this
+    codebase has already hit twice. Fixed by dropping
+    `MAX_ITEMS_PER_PAGE` 9 → 8, same move already made for free games'
+    rich mode.
+  - Full test coverage: new header-content/pluralization tests in
+    `wishlistList.test.ts`, updated separator-count assertion (now 2:
+    one after the header, one between items), updated hardcoded page
+    sizes in `wishlistList.e2e.test.ts`. 549/549 passing project-wide,
+    98.52% coverage.
+- [x] README overhaul + MIT license + "we" → bot/"you" copy pass —
+      first real README (previously the untouched `create-next-app`
+      default), covering features, commands, screenshots, architecture
+      highlights, local setup, and credits. Added `LICENSE` (MIT) +
+      `package.json`'s `license` field.
+  - Test count deliberately phrased as "500+ tests" rather than an
+    exact number — an exact count goes stale the moment a new feature
+    ships; "500+" stays true indefinitely at this trajectory.
+  - `/price` explicitly called out as staying on classic embeds while
+    every other paginated view uses Components V2 — an earlier draft
+    said "Components V2 everywhere," which was actually wrong and
+    quietly erased the deliberate, already-tested decision to keep
+    `/price` on classic embeds (see that entry above).
+  - Caught mid-pass: the privacy page (`/privacy`), the in-Discord
+    `/privacy-policy` summary, and this README's own wording all used
+    "we"/"our" — inaccurate for a solo project and inconsistent with
+    the store-names bullet on the same privacy page, which already
+    said "this bot," not "we." Reworded all three consistently to make
+    the bot (or "you," the reader) the subject instead. Two section
+    headings on `/privacy` renamed to match (`'Data we store, and why'`
+    → `'What the bot stores, and why'`, `"What we don't collect"` →
+    `"What isn't collected"`); `privacyPolicy.test.ts` updated for the
+    matching string change.
+  - Site favicon added (`src/app/icon.png`, Next.js's automatic
+    file-convention favicon) — reuses the bot's own app icon, which
+    was already credited on `/privacy` but never actually set as the
+    site's favicon.
 - [ ] `/commands` folder reorg — flat directory has grown to ~13
       command files (well past the standing "flat until ~5-6 files"
       rule already applied to e2e specs). Natural split surfaced:
       game-data commands (`price`, `wishlist`, `trending`,
       `bundlesList`, `free`) vs. meta/utility commands (`about`,
       `config`, `feedback`, `forgetMe`, `help`, `privacyPolicy`,
-      `quickAccess`, `ping`). Pure churn, zero user-facing benefit —
+      `quickAccess`). Pure churn, zero user-facing benefit —
       its own dedicated session, not bundled with feature work.
 - [ ] Emoji-ID duplication across files — `BUNDLE_EMOJI_ID`
       (`1547932904292614204`) now lives as a separate local const in
@@ -1399,6 +1458,20 @@ compose down`/`up` and a full Docker Desktop restart — neither
       — only worth doing once something actually reads it (autocomplete
       pre-seeding, cross-referencing, etc.); would use `/games/info/v2`'s
       `appid` field
+- [ ] `/wishlist list` sort modes (discount desc [default] / price asc
+      / price desc / added-date desc — `wishlist_items.createdAt`
+      already exists, just unused for this). Stateless by design: no
+      persistence, mode travels only through the clicking button/
+      select's `custom_id`, same as page number does today. Two real
+      design questions, not yet decided: (1) a cycling button in the
+      existing Prev/indicator/Next row (+1 component, fits within
+      budget at 8/page with 1 to spare) vs. a `StringSelect` in its own
+      row (+2 components, exactly maxes the budget at 8/page — the same
+      precarious "no headroom" spot already hit twice); a select scales
+      to more modes before the label gets crowded, a button doesn't.
+      (2) does every entry point into this view (`/wishlist list`, the
+      welcome card's "My wishlist" button) need to thread the mode
+      through consistently, or does it just reset to default each time.
 - [ ] `/price` embed layout: reconsider Historical low's position — it
       currently sits alone on its own line above the 3-across
       Released/Reviews/Players inline-field row, which reads oddly.
@@ -1441,7 +1514,7 @@ compose down`/`up` and a full Docker Desktop restart — neither
       — a modal adds friction for a decision needing zero text input;
       buttons stay correct there.
   - Bot latency stat — replaces the old bare `/ping` (deleted, see
-    below), which only proved the request round-tripped with no
+    above), which only proved the request round-tripped with no
     timing. Two approaches discussed, undecided: derive request-
     received time from the interaction's snowflake ID (true network
     round trip, but needs snowflake bit-math) vs. timestamp at the
