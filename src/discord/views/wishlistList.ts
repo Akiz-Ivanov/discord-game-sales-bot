@@ -3,6 +3,7 @@ import type {
   APIContainerComponent,
   APISectionComponent,
   APISeparatorComponent,
+  APITextDisplayComponent,
   APIActionRowComponent,
   APIButtonComponentWithCustomId,
 } from 'discord-api-types/v10'
@@ -10,6 +11,7 @@ import type { games, wishlistItems } from '@/db/schema'
 import type { ItadDeal } from '@/types'
 import { formatMoney } from '@/lib/money'
 import { getShopEmoji } from '@/discord/embeds/shopEmoji'
+import { customEmojiTag } from '@/discord/embeds/discordEmoji'
 import { buildPaginationRow } from '@/discord/interactions/buildPaginationRow'
 import { clampPage, getTotalPages } from '@/lib/paginate'
 
@@ -18,9 +20,10 @@ type WishlistItemWithGame = typeof wishlistItems.$inferSelect & {
 }
 
 //* Component budget limit
-export const MAX_ITEMS_PER_PAGE = 9
+export const MAX_ITEMS_PER_PAGE = 8
 const ACCENT_COLOR = 0x378add
 const TRASH_EMOJI = { id: '1542937719091499098', name: 'trash' }
+const WISHLIST_EMOJI = { id: '1548045300525047929', name: 'wishlist' }
 
 const formatDealLine = (deal: ItadDeal | undefined): string => {
   if (!deal) return 'Price unavailable'
@@ -67,6 +70,11 @@ const buildItemSection = (
   },
 })
 
+const buildHeader = (count: number): APITextDisplayComponent => ({
+  type: ComponentType.TextDisplay,
+  content: `${customEmojiTag(WISHLIST_EMOJI.name, WISHLIST_EMOJI.id)} **Your wishlist (${count} game${count === 1 ? '' : 's'})**\n-# Sorted by discount`,
+})
+
 export const buildWishlistListMessage = (
   items: WishlistItemWithGame[],
   prices: Map<number, ItadDeal | undefined>,
@@ -95,7 +103,9 @@ export const buildWishlistListMessage = (
   const start = clampedPage * MAX_ITEMS_PER_PAGE
   const shown = sorted.slice(start, start + MAX_ITEMS_PER_PAGE)
 
-  const children: (APISectionComponent | APISeparatorComponent)[] = []
+  const children: (
+    APISectionComponent | APISeparatorComponent | APITextDisplayComponent
+  )[] = [buildHeader(sorted.length), { type: ComponentType.Separator }]
   shown.forEach((item, idx) => {
     children.push(buildItemSection(item, prices.get(item.game.id), clampedPage))
     if (idx < shown.length - 1) {
