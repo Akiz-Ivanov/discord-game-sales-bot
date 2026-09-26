@@ -56,40 +56,21 @@ A Discord bot that tracks PC game prices across dozens of stores, watches your w
 
 ## Screenshots
 
-<table>
-<tr>
-<td width="50%">
-
 **`/price`** — cheapest-first deals, historical low, review score, tags
 
-<img src="docs/images/price-card.jpg" alt="/price command result">
-
-</td>
-<td width="50%">
+<img src="docs/images/price-card.jpg" alt="/price command result" width="500">
 
 **`/wishlist list`** — sorted by discount, free games first
 
-<img src="docs/images/wishlist-card.jpg" alt="/wishlist list result">
-
-</td>
-</tr>
-<tr>
-<td width="50%">
+<img src="docs/images/wishlist-card.jpg" alt="/wishlist list result" width="500">
 
 **`/trending`** — matches IsThereAnyDeal's own "hottest deals" sort
 
-<img src="docs/images/trending-card.jpg" alt="/trending command result">
-
-</td>
-<td width="50%">
+<img src="docs/images/trending-card.jpg" alt="/trending command result" width="500">
 
 **`/bundles`** — browse every currently active bundle
 
-<img src="docs/images/bundles-card.jpg" alt="/bundles command result">
-
-</td>
-</tr>
-</table>
+<img src="docs/images/bundles-card.jpg" alt="/bundles command result" width="500">
 
 **`/free`** — currently free PC games, refreshed weekly
 
