@@ -73,7 +73,28 @@ describe('buildWishlistListMessage', () => {
     const separators = container.components.filter(
       (c) => c.type === ComponentType.Separator
     )
-    expect(separators).toHaveLength(1)
+    //* 1 after the header + 1 between the two items — none trailing
+    expect(separators).toHaveLength(2)
+  })
+
+  it('shows a header naming the wishlist size', () => {
+    const items = [makeWishlistItemRow({ game: makeGameRow({ id: 1 }) })]
+    const container = getContainer(buildWishlistListMessage(items, new Map()))
+    const header = container.components[0] as APITextDisplayComponent
+
+    expect(header.type).toBe(ComponentType.TextDisplay)
+    expect(header.content).toContain('Your wishlist (1 game)')
+  })
+
+  it('uses plural phrasing for multiple games, counting the whole wishlist not just the shown page', () => {
+    const items = [
+      makeWishlistItemRow({ id: 1, game: makeGameRow({ id: 1 }) }),
+      makeWishlistItemRow({ id: 2, game: makeGameRow({ id: 2 }) }),
+    ]
+    const container = getContainer(buildWishlistListMessage(items, new Map()))
+    const header = container.components[0] as APITextDisplayComponent
+
+    expect(header.content).toContain('Your wishlist (2 games)')
   })
 
   it(`caps display at ${MAX_ITEMS_PER_PAGE} items even with more on the wishlist`, () => {

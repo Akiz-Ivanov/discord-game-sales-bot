@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 }
 
 const SECTIONS = [
-  {
+   {
     heading: 'What this is',
     body: (
       <p>
@@ -19,11 +19,11 @@ const SECTIONS = [
     ),
   },
   {
-    heading: 'Data we store, and why',
+    heading: 'What the bot stores, and why',
     body: (
       <ul className="list-disc space-y-3 pl-5">
         <li>
-          <strong>Your Discord ID</strong> — so we can associate your wishlist
+          <strong>Your Discord ID</strong> — used to associate your wishlist
           with you across sessions.
         </li>
         <li>
@@ -34,15 +34,15 @@ const SECTIONS = [
         </li>
         <li>
           <strong>Your wishlist entries</strong> — which games you&apos;ve
-          added, and the price you were last alerted at (so we don&apos;t notify
-          you again for the same deal).
+          added, and the price you were last alerted at (so you&apos;re not
+          notified again for the same deal).
         </li>
         <li>
-          <strong>Price history</strong> — we check prices once a day for every
-          tracked game and log the result, which is how &quot;historical
-          low&quot; prices are shown. This log is kept for a limited period, the
-          exact retention window is still being finalized, and this page will be
-          updated once it&apos;s locked in.
+          <strong>Price history</strong> — prices are checked once a day for
+          every tracked game and the result is logged, which is how
+          &quot;historical low&quot; prices are shown. This log is kept for a
+          limited period, the exact retention window is still being finalized,
+          and this page will be updated once it&apos;s locked in.
         </li>
         <li>
           <strong>Game catalog data</strong> — titles, store IDs, and cached low
@@ -67,12 +67,12 @@ const SECTIONS = [
     ),
   },
   {
-    heading: "What we don't collect",
+    heading: "What isn't collected",
     body: (
       <p>
-        We don&apos;t read or store the content of your messages. We don&apos;t
-        collect email addresses, payment information, or anything beyond
-        what&apos;s needed for the features above.
+        This bot doesn&apos;t read or store the content of your messages, and
+        doesn&apos;t collect email addresses, payment information, or anything
+        beyond what&apos;s needed for the features above.
       </p>
     ),
   },
@@ -107,7 +107,7 @@ const SECTIONS = [
           <a href="https://isthereanydeal.com" className="underline">
             IsThereAnyDeal
           </a>
-          . We are not affiliated with or endorsed by them.
+          . This bot is not affiliated with or endorsed by them.
         </li>
         <li>
           Free-game listings come from{' '}

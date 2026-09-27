@@ -15,7 +15,7 @@ const HEADER =
   '### Privacy Summary\nA quick look at what this bot stores. For the full policy, see the button below.'
 
 const SECTION_ENTRIES = [
-  '**What we store**\nYour Discord ID, wishlist entries, last-alerted prices, and a daily price-history log kept for a limited time.',
+  '**What the bot stores**\nYour Discord ID, wishlist entries, last-alerted prices, and a daily price-history log kept for a limited time.',
   `**How to remove it**\n${mention('forget-me')} deletes your personal data. Server admins can use ${mention('config', 'remove-alerts')} to remove server-level alert config.`,
 ]
 

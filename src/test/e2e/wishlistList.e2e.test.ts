@@ -101,12 +101,12 @@ describe('POST /api/interactions — /wishlist list pagination (e2e)', () => {
     const sections = container.components.filter(
       (c: { type: number }) => c.type === ComponentType.Section
     )
-    expect(sections).toHaveLength(9) // MAX_ITEMS_PER_PAGE
+    expect(sections).toHaveLength(8) // MAX_ITEMS_PER_PAGE
 
     //* game-5 has cut: 75, the highest discount — should sort first.
     expect(sections[0].components[0].content).toContain('Game 5')
 
-    //* Nav row present since 10 items > 9-per-page.
+    //* Nav row present since 10 items > 8-per-page.
     expect(body.data.components).toHaveLength(2)
 
     //* Confirms getWishlistPrices' side-write to the prices cache.
@@ -114,7 +114,7 @@ describe('POST /api/interactions — /wishlist list pagination (e2e)', () => {
     expect(priceRows.length).toBeGreaterThan(0)
   })
 
-  it('shows the remaining item on page 2 via wishlist_list_page click', async () => {
+  it('shows the remaining 2 items on page 2 via wishlist_list_page click', async () => {
     server.use(
       http.post('https://api.isthereanydeal.com/games/prices/v3', () =>
         HttpResponse.json(multiGameFixture)
@@ -135,6 +135,6 @@ describe('POST /api/interactions — /wishlist list pagination (e2e)', () => {
     const sections = container.components.filter(
       (c: { type: number }) => c.type === ComponentType.Section
     )
-    expect(sections).toHaveLength(1)
+    expect(sections).toHaveLength(2)
   })
 })
