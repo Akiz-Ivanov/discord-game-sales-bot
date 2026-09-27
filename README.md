@@ -80,14 +80,11 @@ A Discord bot that tracks PC game prices across dozens of stores, watches your w
 
 Layered structure, no gateway connection — the bot runs entirely on Discord's HTTP Interactions model, which means it needs no always-on host.
 
-​```
-discord/    → transport layer: parses interactions, builds replies
-              (commands / components / modals / autocomplete / embeds / views)
-services/   → business logic, orchestrates repositories + external APIs
-repositories/ → all Postgres access (Drizzle)
-itad/ · gamerpower/ → typed clients for the two external APIs
-lib/        → pure, cross-cutting helpers (formatting, pagination, etc.)
-​```
+- `discord/` — transport layer: parses interactions, builds replies (commands, components, modals, autocomplete, embeds, views)
+- `services/` — business logic, orchestrates repositories + external APIs
+- `repositories/` — all Postgres access (Drizzle)
+- `itad/` · `gamerpower/` — typed clients for the two external APIs
+- `lib/` — pure, cross-cutting helpers (formatting, pagination, etc.)
 
 - **Same-day price caching.** Every price check writes to Postgres, keyed by `(game, shop, day)` with a real unique index — a `/price` lookup within the same UTC day reads the cache instead of re-hitting the API, and a daily cron still logs full price history from day one, before anything even displays it.
 - **Discord's newer Components V2** for every paginated view (`/wishlist list`, `/bundles`, `/trending`, sale alerts) — with real component-budget math behind each one, since Discord caps a message at 40 total components. `/price` deliberately stays on classic embeds instead, after V2 hit hard layout limits (no proportional image scaling, no two-column price/metadata layout) that classic embeds don't have.
