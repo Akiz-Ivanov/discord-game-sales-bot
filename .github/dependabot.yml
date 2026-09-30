@@ -12,3 +12,5 @@ updates:
       # typescript-eslint doesn't support TS 7 yet (typescript-eslint#10940)
       - dependency-name: typescript
         update-types: ['version-update:semver-major']
+      - dependency-name: '@vitest/coverage-v8'
+        update-types: ['version-update:semver-major']
