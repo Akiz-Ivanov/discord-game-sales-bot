@@ -130,7 +130,14 @@ const commandDefinitions = [
 //* Guild-only for now (0 = guild). Global commands show up in DMs by
 //* default, and several handlers (config, wishlist add) need a guild
 //* and would throw in one. Set to [0, 1] to allow DMs later.
-const commands = commandDefinitions.map((c) => ({ ...c, contexts: [0] }))
+//* integration_types [0] = guild install only; the default also
+//* enables user install, which would expose commands in servers where
+//* the bot isn't a member.
+const commands = commandDefinitions.map((c) => ({
+  ...c,
+  contexts: [0],
+  integration_types: [0],
+}))
 
 async function registerCommands() {
   if (!APPLICATION_ID || !BOT_TOKEN) {
