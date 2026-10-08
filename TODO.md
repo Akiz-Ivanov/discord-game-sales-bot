@@ -1379,7 +1379,7 @@ compose down`/`up` and a full Docker Desktop restart — neither
       `buildHeader()` reusing the same wishlist custom emoji already on
       the welcome card, plus a `-# Sorted by discount` subtext line for
       the same reason `/trending`'s footer exists — telling the user
-      *why* the order is what it is, for free.
+      _why_ the order is what it is, for free.
   - **Component budget cost**: the header (`TextDisplay` + `Separator`)
     adds 2 components; a full page + nav row was already sitting at
     exactly 40 (`MAX_ITEMS_PER_PAGE = 9`'s own comment said so), so
@@ -1420,6 +1420,96 @@ compose down`/`up` and a full Docker Desktop restart — neither
     file-convention favicon) — reuses the bot's own app icon, which
     was already credited on `/privacy` but never actually set as the
     site's favicon.
+- [x] Global command registration — the bot can now be invited to any
+      server. `scripts/register-commands.js` gained an opt-in `--global`
+      flag (new `npm run register-commands:global`); a plain
+      `npm run register-commands` still targets the test guild only,
+      since global registration is the riskier action and shouldn't be
+      reachable by accident. The command list is now `commandDefinitions`,
+      mapped once to add `contexts: [0]` and `integration_types: [0]` to
+      every command, so a rule for all commands can't be forgotten on a
+      new one. Also added env-var guards (clear error instead of a
+      request to `.../guilds/undefined/commands`) and a non-zero exit
+      code on failure (the old bare `.catch(console.error)` printed the
+      error but still exited 0, so a failed run looked like a success).
+  - **Real gotcha caught**: the first global run came back with
+    `integration_types: [0, 1]` on every command, even though the
+    script never set it. Discord fills that default from the app's
+    Installation settings, and User Install was enabled (the default
+    for new apps). With user install on, an individual could install
+    the app to their own account and use the commands in servers the
+    bot was never invited to, while the handlers (`/config`, anything
+    posting with the bot token) assume the bot is a guild member.
+    Fixed in the script (`integration_types: [0]`) and by unchecking
+    User Install in the Developer Portal so the two agree. Re-running
+    the bulk overwrite preserved every command ID (Discord matches by
+    name), so `commandIds.ts` didn't change.
+  - **Guild-only on purpose**: global commands appear in DMs by
+    default, and `/config` and `/wishlist add` call
+    `getInteractionGuildId`, which throws in a DM. `contexts: [0]`
+    keeps everything guild-only for now. Allowing DMs later is
+    `contexts: [0, 1]` plus a re-register; the DM handling already in
+    the code (`getInteractionUserId`, the hidden wishlist button) is
+    untouched.
+  - **Command IDs differ between guild and global scope**, and
+    `mention()` renders `</name:id>`, so `commandIds.ts` had to be
+    regenerated with the global IDs (its generated header now states
+    which scope it came from). Order mattered: register globally,
+    commit and deploy the new `commandIds.ts`, and only then clear the
+    guild copies, so the test server never lost its commands or had
+    dead mentions in between.
+  - Guild-scoped copies cleared with an empty bulk overwrite
+    (`PUT .../guilds/{id}/commands` with `[]`), done as a one-off
+    `node --env-file=.env.local -e '...'` rather than sourcing
+    `.env.local` in bash. Returned 200.
+  - Rollout: PR #61. A `pre-global` tag marks `main` before the change.
+    Rollback is an empty `PUT` to `/applications/{id}/commands`.
+    Interactions Endpoint URL had already been moved from ngrok to the
+    Vercel domain and ran for about a week beforehand. Terms of Service
+    URL added in the Developer Portal alongside the existing privacy
+    policy URL (both show in Discord's install dialog).
+  - Verified live in a second server created for the purpose: invited
+    through the Discord-provided install link, `/config alerts-channel`
+    posted the welcome card (confirms the permissions work in a server
+    the bot has never been in), `/price`, `/wishlist add`, and `/free`
+    all worked, and `/help` mentions resolve with the new IDs.
+  - **Still open**: setting the bot to Public, which is gated on the
+    dev-app item below.
+- [x] `/terms` page — static Next.js route mirroring `/privacy`'s
+      structure (`SECTIONS` array, same zinc dark-mode tones, `BOT_NAME`
+      from `lib/constants.ts`). Written for a free hobby bot rather than
+      borrowed legalese: free-tier hosting and "as is" with no uptime
+      guarantee, prices and data from third parties that can be stale
+      (always check the store before buying), acceptable use, access
+      may be limited for abusive users or servers, a pointer to
+      `/privacy` for data handling rather than restating it, and
+      `/feedback` or GitHub issues as contact. No governing-law clause
+      on purpose — it adds legal weight a free solo project doesn't
+      need. Not legal advice; revisit if the bot is ever monetized.
+  - No affiliate-link statement included: ITAD's `itad.link` URLs may
+    carry affiliate tags and the bot must never strip them, but
+    whether that earns the owner anything wasn't verified. Add one if
+    that turns out to matter.
+  - No test written, consistent with `/privacy` (static, no logic).
+  - PR #55.
+- [x] Dependabot triage — merged seven patch/minor bumps (`nanoid`,
+      `js-yaml`, `sharp`, `vitest`, `eslint-config-next`,
+      `discord-api-types`, `next`) and then the remaining five
+      (`react`/`@types/react`, `drizzle-orm`, `dotenv`,
+      `react-dom`/`@types/react-dom`, `prettier`). Three majors closed
+      and ignored in `.github/dependabot.yml`, each with the reason
+      written next to it:
+  - `eslint` 10.x: `eslint-plugin-react` (bundled through
+    `eslint-config-next`) crashes on ESLint 10's removed
+    `getFilename()` API.
+  - `typescript` 7.x: `typescript-eslint` explicitly rejects TS 7
+    (typescript-eslint#10940).
+  - `@vitest/coverage-v8` 5.x: has to stay version-matched with
+    `vitest`, which is still on `^4.1.10`.
+  - Pattern for future majors: comment `@dependabot ignore this major
+version` on the PR, then add a commented `ignore:` entry to
+    `dependabot.yml` in its own small branch/PR (branch protection
+    requires a PR, not a direct push).
 - [ ] `/commands` folder reorg — flat directory has grown to ~13
       command files (well past the standing "flat until ~5-6 files"
       rule already applied to e2e specs). Natural split surfaced:
@@ -1446,7 +1536,6 @@ compose down`/`up` and a full Docker Desktop restart — neither
       not preemptively.
 - [ ] User-defined notification thresholds (min % off, price ceiling, historical-low-only, store filter)
 - [ ] Web dashboard (tracked games + price history, reusing the same service layer as the bot)
-- [ ] Global command registration (once ready to invite the bot to other servers)
 - [ ] Additional `/config` subcommands (currency, stores, role) — deferred post-MVP
   - alert-visibility toggle: admin-set per-guild flag for whether sale
     alerts post as ephemeral or visible-to-all (some guilds may want
@@ -1534,6 +1623,72 @@ compose down`/`up` and a full Docker Desktop restart — neither
     pattern already used for GitHub/privacy-policy.
   - Support-server link — only worth it once `/feedback` volume
     actually suggests people want a place to talk, not preemptively.
+- [ ] **Separate dev Discord app — do this before setting the bot
+      Public.** The production app's Interactions Endpoint now points
+      at Vercel, so once other servers use the bot, pointing it back at
+      ngrok to test locally would take it down for everyone. **Rule
+      until this exists: never edit the production app's Interactions
+      Endpoint URL.** Plan:
+  - Create `PC Game Deals Dev` in the Developer Portal: Guild Install
+    only, scopes `bot` + `applications.commands`, the same five
+    permissions as production, kept private. Collect its Application
+    ID, Public Key, and bot token.
+  - Credentials split: `.env.local` becomes the dev app (including
+    `DISCORD_TEST_GUILD_ID`, a dev `FEEDBACK_CHANNEL_ID`, and a dev
+    `DATABASE_URL`); a new gitignored `.env.prod` holds only
+    `DISCORD_APPLICATION_ID` and `DISCORD_BOT_TOKEN` for production.
+    `register-commands:global` switches to `--env-file=.env.prod`.
+    Vercel's env vars already hold the production values. Check with
+    `git check-ignore -v .env.prod` before saving secrets in it.
+  - Separate dev database, never production data (it holds real users'
+    Discord IDs): a separate Neon project, or a branch if the plan's
+    limits allow it (a branch shares the project's free-tier compute).
+    Apply the schema with the same `psql` loop CI uses. Not the Docker
+    test database: tests truncate it.
+  - `register-commands.js`: write `commandIds.ts` only on `--global`
+    runs, so a dev registration can't overwrite the production IDs in a
+    committed file. Side effect: command mentions in the dev server
+    render as plain text, which is fine.
+  - Dev server wiring: add the dev app to the original test server;
+    before removing the production bot from it, run
+    `/config remove-alerts` there (otherwise the cron keeps failing to
+    post to a guild the bot has left). Use ngrok's free static domain
+    so the endpoint URL doesn't change every session, and curl
+    `/api/interactions` once after each `next dev` restart as usual.
+- [ ] Set the bot to Public in the Bot tab (after the dev app) and
+      watch free-tier usage for the first days: Vercel usage, Neon
+      CU-hours, and the ITAD dashboard (the 1000 req/5 min limit is
+      shared across everything).
+- [ ] README: the status note still says the bot runs in a single test
+      server and that invite instructions are coming. Replace it with
+      the install link and a link to `/terms`. Consider a Terms link
+      from `/about` too.
+- [ ] Close the `msw` 3.x Dependabot PR (its preview build errors) and
+      ignore that major in `dependabot.yml`, same pattern as the other
+      three.
+- [ ] Welcome message when the bot is added to a server — the
+      "Yay you made it" line in a new server is Discord's own system
+      message and can't be customized. Possible approach without a
+      gateway: Webhook Events in the Developer Portal (a separate
+      endpoint from Interactions), listening for the app-authorized
+      event and DMing the installer a short "run `/config
+  alerts-channel` to get started". Verify the exact event name and
+      payload in the current docs first. DMs can fail (error 50007), so
+      it has to fail quietly. Not launch-blocking: `/config
+  alerts-channel` already posts the getting-started card.
+- [ ] `register-commands.js` as TypeScript (or at least `.mjs`) — runs
+      today as a typeless-package ES module, which prints Node's
+      `MODULE_TYPELESS_PACKAGE_JSON` warning. As `.ts` it could use
+      `discord-api-types` for the command definitions (typos like a
+      wrong option type become compile errors, and
+      `ApplicationCommandOptionType.String` replaces the magic number
+      `3`); Node 24 runs `.ts` directly, no build step. Adding
+      `"type": "module"` to `package.json` was rejected: it would
+      affect the rest of the tooling for one script's warning. Its own
+      small `chore:` commit, after launch.
+- [ ] App Verification: Discord requires it once a bot reaches about
+      100 servers (the warning next to App Verification in the
+      portal). Far off; revisit with server count.
 
 ## Possible future upgrades (not needed yet — revisit only if usage justifies it)
 
