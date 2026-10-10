@@ -1473,8 +1473,8 @@ compose down`/`up` and a full Docker Desktop restart — neither
     posted the welcome card (confirms the permissions work in a server
     the bot has never been in), `/price`, `/wishlist add`, and `/free`
     all worked, and `/help` mentions resolve with the new IDs.
-  - **Still open**: setting the bot to Public, which is gated on the
-    dev-app item below.
+  - **Still open**: setting the bot to Public. The dev app it was
+    waiting on now exists (see the dev-app item below).
 - [x] `/terms` page — static Next.js route mirroring `/privacy`'s
       structure (`SECTIONS` array, same zinc dark-mode tones, `BOT_NAME`
       from `lib/constants.ts`). Written for a free hobby bot rather than
@@ -1510,6 +1510,15 @@ compose down`/`up` and a full Docker Desktop restart — neither
 version` on the PR, then add a commented `ignore:` entry to
     `dependabot.yml` in its own small branch/PR (branch protection
     requires a PR, not a direct push).
+- [ ] Stale `guilds` rows when the bot is removed without
+      `/config remove-alerts` — HTTP Interactions gets no "bot removed"
+      event, so the row stays and both crons keep failing to post there
+      (contained by `Promise.allSettled`, but retried daily, and the
+      price-check still spends ITAD calls on that guild's wishlists).
+      Candidate fix: delete the guild row when a post fails with an
+      "Unknown Channel" / "Missing Access" style error from Discord
+      (confirm the exact codes in the docs first). Better done before
+      the bot is Public, since most admins just kick a bot.
 - [ ] `/commands` folder reorg — flat directory has grown to ~13
       command files (well past the standing "flat until ~5-6 files"
       rule already applied to e2e specs). Natural split surfaced:
@@ -1623,7 +1632,7 @@ version` on the PR, then add a commented `ignore:` entry to
     pattern already used for GitHub/privacy-policy.
   - Support-server link — only worth it once `/feedback` volume
     actually suggests people want a place to talk, not preemptively.
-- [ ] **Separate dev Discord app — do this before setting the bot
+- [x] **Separate dev Discord app — do this before setting the bot
       Public.** The production app's Interactions Endpoint now points
       at Vercel, so once other servers use the bot, pointing it back at
       ngrok to test locally would take it down for everyone. **Rule
@@ -1655,6 +1664,24 @@ version` on the PR, then add a commented `ignore:` entry to
     post to a guild the bot has left). Use ngrok's free static domain
     so the endpoint URL doesn't change every session, and curl
     `/api/interactions` once after each `next dev` restart as usual.
+  - Done: `PC Game Deals Dev` app (guild install only, private), dev
+    database in a separate Neon org (`akiz-personal`, project
+    `pc-game-deals-dev`) with the schema applied from `drizzle/*.sql`.
+    `.env.local` is dev-only; `.env.prod` (gitignored) holds only
+    the production app ID and bot token for `register-commands:global`.
+    `register-commands.js` now writes `commandIds.ts` only on `--global`
+    runs (PR #62). Verified live: dev registration left the working tree
+    clean, `/price` and `/config alerts-channel` worked in the dev server,
+    production still answered in the second server.
+  - Gotchas hit: the Neon org created through Vercel can't create new
+    projects (the button is greyed out, and the Vercel route would
+    write to Vercel's env vars), so the dev DB lives in its own Neon org.
+    Saving the Interactions Endpoint URL returned 401s because
+    `.env.local` still held the production Public Key; the dev app signs
+    with its own key. The production bot token got reset by mistake while
+    copying values from the wrong app; fixed by updating Vercel and
+    redeploying. Custom emoji belong to the production app, so they
+    render as raw `:name:` text in the dev server (cosmetic only).
 - [ ] Set the bot to Public in the Bot tab (after the dev app) and
       watch free-tier usage for the first days: Vercel usage, Neon
       CU-hours, and the ITAD dashboard (the 1000 req/5 min limit is
@@ -1672,10 +1699,10 @@ version` on the PR, then add a commented `ignore:` entry to
       gateway: Webhook Events in the Developer Portal (a separate
       endpoint from Interactions), listening for the app-authorized
       event and DMing the installer a short "run `/config
-  alerts-channel` to get started". Verify the exact event name and
+alerts-channel` to get started". Verify the exact event name and
       payload in the current docs first. DMs can fail (error 50007), so
       it has to fail quietly. Not launch-blocking: `/config
-  alerts-channel` already posts the getting-started card.
+alerts-channel` already posts the getting-started card.
 - [ ] `register-commands.js` as TypeScript (or at least `.mjs`) — runs
       today as a typeless-package ES module, which prints Node's
       `MODULE_TYPELESS_PACKAGE_JSON` warning. As `.ts` it could use
