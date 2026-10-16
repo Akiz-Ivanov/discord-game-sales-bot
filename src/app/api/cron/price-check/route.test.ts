@@ -3,6 +3,7 @@ import { GET } from './route'
 import { getSaleAlerts } from '@/services/saleAlerts'
 import { postChannelMessage } from '@/discord/rest'
 import { updateLastNotifiedPrices } from '@/repositories/wishlist'
+import { pruneUnreachableGuilds } from '@/discord/pruneUnreachableGuilds'
 
 vi.mock('@/services/saleAlerts', () => ({ getSaleAlerts: vi.fn() }))
 vi.mock('@/discord/rest', () => ({ postChannelMessage: vi.fn() }))
@@ -11,6 +12,9 @@ vi.mock('@/discord/views/saleAlert', () => ({
 }))
 vi.mock('@/repositories/wishlist', () => ({
   updateLastNotifiedPrices: vi.fn(),
+}))
+vi.mock('@/discord/pruneUnreachableGuilds', () => ({
+  pruneUnreachableGuilds: vi.fn(),
 }))
 
 const buildRequest = (authHeader: string | null) =>
@@ -143,5 +147,30 @@ describe('GET /api/cron/price-check', () => {
     await GET(buildRequest('Bearer test-secret'))
 
     expect(updateLastNotifiedPrices).not.toHaveBeenCalled()
+  })
+
+  it('hands the guild ids and the settled post results to the pruner', async () => {
+    vi.mocked(getSaleAlerts).mockResolvedValue([
+      { guildId: 'g1', notificationChannelId: 'c1', alerts: [] },
+      { guildId: 'g2', notificationChannelId: 'c2', alerts: [] },
+    ])
+    const failure = new Error('Missing Access')
+    vi.mocked(postChannelMessage)
+      .mockRejectedValueOnce(failure)
+      .mockResolvedValueOnce(
+        {} as Awaited<ReturnType<typeof postChannelMessage>>
+      )
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await GET(buildRequest('Bearer test-secret'))
+
+    expect(pruneUnreachableGuilds).toHaveBeenCalledWith(
+      ['g1', 'g2'],
+      [
+        { status: 'rejected', reason: failure },
+        { status: 'fulfilled', value: undefined },
+      ]
+    )
+    consoleSpy.mockRestore()
   })
 })

@@ -4,6 +4,7 @@ import { GET } from './route'
 import { getSortedFreeGames } from '@/services/freeGames'
 import { getGuildsWithNotificationChannel } from '@/repositories/guilds'
 import { postChannelMessage } from '@/discord/rest'
+import { pruneUnreachableGuilds } from '@/discord/pruneUnreachableGuilds'
 
 vi.mock('@/services/freeGames', () => ({ getSortedFreeGames: vi.fn() }))
 vi.mock('@/repositories/guilds', () => ({
@@ -12,6 +13,9 @@ vi.mock('@/repositories/guilds', () => ({
 vi.mock('@/discord/rest', () => ({ postChannelMessage: vi.fn() }))
 vi.mock('@/discord/views/freeGames', () => ({
   buildFreeGamesMessage: vi.fn(() => ({ flags: 0, components: [] })),
+}))
+vi.mock('@/discord/pruneUnreachableGuilds', () => ({
+  pruneUnreachableGuilds: vi.fn(),
 }))
 
 const buildRequest = (authHeader: string | null) =>
@@ -96,5 +100,31 @@ describe('GET /api/cron/free-games', () => {
       guildsFailed: 1,
       activeGiveaways: 1,
     })
+  })
+
+  it('hands the guild ids and the settled post results to the pruner', async () => {
+    vi.mocked(getSortedFreeGames).mockResolvedValue([{ id: 1 } as never])
+    vi.mocked(getGuildsWithNotificationChannel).mockResolvedValue([
+      { guildId: 'g1', notificationChannelId: 'c1' },
+      { guildId: 'g2', notificationChannelId: 'c2' },
+    ])
+    const failure = new Error('Missing Access')
+    vi.mocked(postChannelMessage)
+      .mockRejectedValueOnce(failure)
+      .mockResolvedValueOnce(
+        {} as Awaited<ReturnType<typeof postChannelMessage>>
+      )
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await GET(buildRequest('Bearer test-secret'))
+
+    expect(pruneUnreachableGuilds).toHaveBeenCalledWith(
+      ['g1', 'g2'],
+      [
+        { status: 'rejected', reason: failure },
+        { status: 'fulfilled', value: {} },
+      ]
+    )
+    consoleSpy.mockRestore()
   })
 })

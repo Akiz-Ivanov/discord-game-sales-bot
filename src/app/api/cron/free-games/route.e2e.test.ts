@@ -54,4 +54,58 @@ describe('GET /api/cron/free-games (e2e)', () => {
       activeGiveaways: 0,
     })
   })
+
+  it('prunes a guild whose channel can no longer be reached (bot kicked)', async () => {
+    await db.insert(guilds).values({
+      guildId: 'guild-1',
+      notificationChannelId: 'channel-1',
+    })
+
+    server.use(
+      http.post(
+        'https://discord.com/api/v10/channels/:channelId/messages',
+        () =>
+          HttpResponse.json(
+            { message: 'Missing Access', code: 50001 },
+            { status: 403 }
+          )
+      )
+    )
+
+    const res = await GET(buildRequest())
+
+    expect(await res.json()).toEqual({
+      guildsNotified: 0,
+      guildsFailed: 1,
+      activeGiveaways: 3,
+    })
+    expect(await db.select().from(guilds)).toHaveLength(0)
+  })
+
+  it('keeps a guild whose post failed for a fixable reason (missing permissions)', async () => {
+    await db.insert(guilds).values({
+      guildId: 'guild-1',
+      notificationChannelId: 'channel-1',
+    })
+
+    server.use(
+      http.post(
+        'https://discord.com/api/v10/channels/:channelId/messages',
+        () =>
+          HttpResponse.json(
+            { message: 'Missing Permissions', code: 50013 },
+            { status: 403 }
+          )
+      )
+    )
+
+    const res = await GET(buildRequest())
+
+    expect(await res.json()).toEqual({
+      guildsNotified: 0,
+      guildsFailed: 1,
+      activeGiveaways: 3,
+    })
+    expect(await db.select().from(guilds)).toHaveLength(1)
+  })
 })
