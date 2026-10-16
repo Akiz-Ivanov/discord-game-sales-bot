@@ -2,6 +2,7 @@ import { getSortedFreeGames } from '@/services/freeGames'
 import { getGuildsWithNotificationChannel } from '@/repositories/guilds'
 import { buildFreeGamesMessage } from '@/discord/views/freeGames'
 import { postChannelMessage } from '@/discord/rest'
+import { pruneUnreachableGuilds } from '@/discord/pruneUnreachableGuilds'
 
 export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET
@@ -34,6 +35,11 @@ export async function GET(req: Request) {
     if (r.status === 'rejected')
       console.error('Free games post failed:', r.reason)
   })
+
+  await pruneUnreachableGuilds(
+    guildsToNotify.map((guild) => guild.guildId),
+    results
+  )
 
   const failed = results.filter((r) => r.status === 'rejected').length
 

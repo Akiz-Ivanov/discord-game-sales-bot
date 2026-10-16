@@ -70,6 +70,20 @@ describe('postChannelMessage', () => {
       'Discord postChannelMessage failed: 500'
     )
   })
+
+  it("includes Discord's raw error body in the message, so callers can read the error code", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        ok: false,
+        status: 403,
+        data: { message: 'Missing Access', code: 50001 },
+      })
+    )
+
+    await expect(postChannelMessage('999', { content: 'x' })).rejects.toThrow(
+      '"code":50001'
+    )
+  })
 })
 
 describe('postChannelMessageWithFile', () => {

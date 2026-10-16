@@ -2,6 +2,7 @@ import { getSaleAlerts } from '@/services/saleAlerts'
 import { buildSaleAlertMessage } from '@/discord/views/saleAlert'
 import { postChannelMessage } from '@/discord/rest'
 import { updateLastNotifiedPrices } from '@/repositories/wishlist'
+import { pruneUnreachableGuilds } from '@/discord/pruneUnreachableGuilds'
 
 export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET
@@ -43,6 +44,16 @@ export async function GET(req: Request) {
         )
       )
     })
+  )
+
+  results.forEach((r) => {
+    if (r.status === 'rejected')
+      console.error('Sale alert post failed:', r.reason)
+  })
+
+  await pruneUnreachableGuilds(
+    guildAlerts.map((guild) => guild.guildId),
+    results
   )
 
   const failed = results.filter((r) => r.status === 'rejected').length
