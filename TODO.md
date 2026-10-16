@@ -1510,7 +1510,7 @@ compose down`/`up` and a full Docker Desktop restart — neither
 version` on the PR, then add a commented `ignore:` entry to
     `dependabot.yml` in its own small branch/PR (branch protection
     requires a PR, not a direct push).
-- [ ] Stale `guilds` rows when the bot is removed without
+- [x] Stale `guilds` rows when the bot is removed without
       `/config remove-alerts` — HTTP Interactions gets no "bot removed"
       event, so the row stays and both crons keep failing to post there
       (contained by `Promise.allSettled`, but retried daily, and the
@@ -1519,6 +1519,18 @@ version` on the PR, then add a commented `ignore:` entry to
       "Unknown Channel" / "Missing Access" style error from Discord
       (confirm the exact codes in the docs first). Better done before
       the bot is Public, since most admins just kick a bot.
+  - Done: both crons now call `pruneUnreachableGuilds` after posting.
+    A post that fails with Discord 50001 (Missing Access, bot kicked)
+    or 10003 (Unknown Channel, channel deleted) deletes that guild's
+    row; 50013 (Missing Permissions) deliberately keeps it, since
+    fixing permissions restores alerts. Wishlists are untouched, so
+    they work again if the bot is re-added. Error codes read from the
+    existing error message (pinned by a `rest.test.ts` test) rather
+    than a custom error class. Verified live on dev for both codes.
+  - Gotcha: kicking a bot from a server also removes its guild-scoped
+    commands there. Re-inviting without the `applications.commands`
+    scope gives `403 Missing Access` when re-registering; use the
+    Installation-tab invite link, which includes both scopes.
 - [ ] `/commands` folder reorg — flat directory has grown to ~13
       command files (well past the standing "flat until ~5-6 files"
       rule already applied to e2e specs). Natural split surfaced:
